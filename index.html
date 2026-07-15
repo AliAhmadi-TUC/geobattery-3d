@@ -99,6 +99,11 @@
     <div class="row"><input type="range" id="clipPos" min="0" max="1" step="0.005" value="0.5"></div>
   </div>
 
+  <div class="grp" id="warpGrp" style="display:none"><h2>Warp (thermal stress)</h2>
+    <div class="row"><label>exaggerate</label><input type="range" id="warpAmt" min="0" max="5000" step="50" value="0"></div>
+    <div class="row"><span id="warpLab" style="color:var(--mut);font-size:11px">×0</span></div>
+  </div>
+
   <div class="grp"><button id="reset">Reset view</button></div>
 </div>
 
@@ -144,6 +149,7 @@ function main() {
     { name:'air',      file:'air.vtp',      opacity:0.32, visible:true, solid:[0.60,0.78,0.90] },
   ];
   const objs = {};
+  let hasWarp = false;
 
   function buildRow(L) {
     const wrap = document.getElementById('layers');
@@ -171,7 +177,17 @@ function main() {
         mapper.setScalarVisibility(true); mapper.setInterpolateScalarsBeforeMapping(true);
       }
       actor.getProperty().setOpacity(L.opacity); actor.setVisibility(L.visible);
-      renderer.addActor(actor); objs[L.name] = { mapper, actor }; buildRow(L);
+      renderer.addActor(actor); objs[L.name] = { mapper, actor };
+      const pd = rd.getOutputData(0);
+      const da = pd.getPointData().getArrayByName('disp');   // thermoelastic displacement
+      if (da) {
+        objs[L.name].disp = da.getData();
+        objs[L.name].orig = Float32Array.from(pd.getPoints().getData());
+        objs[L.name].work = new Float32Array(objs[L.name].orig.length);
+        objs[L.name].pts = pd.getPoints(); objs[L.name].pd = pd;
+        hasWarp = true;
+      }
+      buildRow(L);
     }).catch(() => { /* region absent in this scenario — skip */ });
   }
 
@@ -477,6 +493,32 @@ function main() {
         }
       };
     }).catch(() => { if (flowGrp) flowGrp.style.display = 'none'; });
+
+    // ---- warp: exaggerated thermoelastic displacement of rock + concrete ----
+    let warpMeta = null;
+    if (hasWarp) {
+      const warpGrp = document.getElementById('warpGrp');
+      const warpLab = document.getElementById('warpLab');
+      warpGrp.style.display = '';
+      const applyWarp = (scale) => {
+        Object.values(objs).forEach(o => {
+          if (!o.disp) return;
+          const orig = o.orig, disp = o.disp, w = o.work, n = orig.length;
+          for (let i = 0; i < n; i++) w[i] = orig[i] + scale * disp[i];
+          o.pts.setData(w, 3); o.pd.modified();
+        });
+        renderWindow.render();
+      };
+      document.getElementById('warpAmt').oninput = e => {
+        const s = +e.target.value; applyWarp(s);
+        warpLab.textContent = '×' + s + (warpMeta ? ' · real max ' + warpMeta.maxdisp_mm.toFixed(2) + ' mm' : '');
+      };
+      fetch(DATA + 'warp.json').then(r => r.ok ? r.json() : null).then(m => {
+        warpMeta = m;
+        if (m) warpLab.textContent = '×' + document.getElementById('warpAmt').value +
+          ' · real max ' + m.maxdisp_mm.toFixed(2) + ' mm';
+      }).catch(() => {});
+    }
 
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
