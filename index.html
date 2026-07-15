@@ -364,7 +364,7 @@ function main() {
 
     function addWell(center, color) {                 // inlet/outlet marker sphere
       const s = vtk.Filters.Sources.vtkSphereSource.newInstance(
-        { center: center, radius: 0.45, thetaResolution: 22, phiResolution: 22 });
+        { center: center, radius: 0.35, thetaResolution: 22, phiResolution: 22 });
       const m = vtk.Rendering.Core.vtkMapper.newInstance(); m.setInputConnection(s.getOutputPort());
       const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
       a.getProperty().setColor(color[0], color[1], color[2]);
@@ -454,8 +454,12 @@ function main() {
       flowMeta = meta;
       speedLUT = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
       SPEED_COLORS.forEach((c,i) => speedLUT.addRGBPoint(i/(SPEED_COLORS.length-1)*meta.clip, c[0],c[1],c[2]));
-      if (meta.inlet)  addWell(meta.inlet,  [0.20, 0.90, 0.42]);   // green = inlet
-      if (meta.outlet) addWell(meta.outlet, [0.96, 0.35, 0.15]);   // red = outlet
+      if (meta.inlet && meta.outlet) {                 // nudge markers off the wall, into the water
+        const M = meta.inlet.map((v, i) => (v + meta.outlet[i]) / 2);
+        const inward = (p, off) => { const d = M.map((m, i) => m - p[i]); const nn = Math.hypot(d[0], d[1], d[2]) || 1; return p.map((v, i) => v + off * d[i] / nn); };
+        addWell(inward(meta.inlet, 0.55),  [0.20, 0.90, 0.42]);   // green = inlet
+        addWell(inward(meta.outlet, 0.55), [0.96, 0.35, 0.15]);   // red = outlet
+      }
       renderWindow.render();
       if (flowGrp) flowGrp.style.display = '';
       document.getElementById('flowOn').onchange = e => {
