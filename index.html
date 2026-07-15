@@ -41,7 +41,14 @@
 <div id="view"></div>
 <div id="panel">
   <h1>Geobattery · 3-D lab</h1>
-  <div class="sub">As-built drift · end of charge · T 10–80&nbsp;°C. <a class="home" href="simple/">← simple viewer</a></div>
+  <div class="sub"><span id="sceneLabel">As-built drift · end of charge</span> · T 10–80&nbsp;°C. <a class="home" href="simple/">← simple viewer</a></div>
+
+  <div class="grp"><h2>Scenario</h2>
+    <div class="row"><select id="scene" style="flex:1">
+      <option value="drift">As-built drift · end of charge</option>
+      <option value="array">10 m array cell · year 10</option>
+    </select></div>
+  </div>
 
   <div class="grp"><h2>Heat field (3-D)</h2>
     <div class="row"><input type="checkbox" id="volOn" checked><label for="volOn">volumetric temperature</label></div>
@@ -102,6 +109,13 @@ function infernoCTF() {
 
 function main() {
   if (!window.vtk) { setStatus('vtk.js failed to load.', true); return; }
+  const SCENES = { drift:'As-built drift · end of charge', array:'10 m array cell · year 10 storage' };
+  const q = new URLSearchParams(location.search).get('scene');
+  const SCENE = (q && SCENES[q]) ? q : 'drift';
+  const DATA = 'data/' + SCENE + '/';
+  document.getElementById('sceneLabel').textContent = SCENES[SCENE];
+  const sceneSel = document.getElementById('scene'); sceneSel.value = SCENE;
+  sceneSel.onchange = e => { location.search = '?scene=' + e.target.value; };
   const view = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
     rootContainer: document.getElementById('view'), background: [0.043, 0.055, 0.066] });
   const renderer = view.getRenderer();
@@ -111,10 +125,10 @@ function main() {
 
   // ---- surface layers ----
   const LAYERS = [
-    { name:'water',    file:'data/water.vtp',    opacity:0.0,  visible:false },
-    { name:'rock',     file:'data/rock.vtp',     opacity:0.22, visible:true, solid:[0.55,0.60,0.68] },
-    { name:'concrete', file:'data/concrete.vtp', opacity:0.95, visible:true, solid:[0.40,0.43,0.48] },
-    { name:'air',      file:'data/air.vtp',      opacity:0.32, visible:true, solid:[0.60,0.78,0.90] },
+    { name:'water',    file:'water.vtp',    opacity:0.0,  visible:false },
+    { name:'rock',     file:'rock.vtp',     opacity:0.22, visible:true, solid:[0.55,0.60,0.68] },
+    { name:'concrete', file:'concrete.vtp', opacity:0.95, visible:true, solid:[0.40,0.43,0.48] },
+    { name:'air',      file:'air.vtp',      opacity:0.32, visible:true, solid:[0.60,0.78,0.90] },
   ];
   const objs = {};
 
@@ -130,7 +144,7 @@ function main() {
   }
   function loadLayer(L) {
     const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
-    return rd.setUrl(L.file).then(() => {
+    return rd.setUrl(DATA + L.file).then(() => {
       const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
       mapper.setInputData(rd.getOutputData(0));
       const actor = vtk.Rendering.Core.vtkActor.newInstance();
@@ -145,7 +159,7 @@ function main() {
       }
       actor.getProperty().setOpacity(L.opacity); actor.setVisibility(L.visible);
       renderer.addActor(actor); objs[L.name] = { mapper, actor }; buildRow(L);
-    });
+    }).catch(() => { /* region absent in this scenario — skip */ });
   }
 
   // ---- volumetric temperature (ImageData) ----
@@ -159,7 +173,7 @@ function main() {
   }
   function loadVolume() {
     const rd = vtk.IO.XML.vtkXMLImageDataReader.newInstance();
-    return rd.setUrl('data/temperature.vti').then(() => {
+    return rd.setUrl(DATA + 'temperature.vti').then(() => {
       volImage = rd.getOutputData(0);
       const mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
       mapper.setInputData(volImage);
