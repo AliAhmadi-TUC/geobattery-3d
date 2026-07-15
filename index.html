@@ -76,9 +76,9 @@
   </div>
 
   <div class="grp" id="flowGrp" style="display:none"><h2>Flow field (drift)</h2>
-    <div class="row"><input type="checkbox" id="flowOn"><label for="flowOn">velocity arrows</label></div>
-    <div class="row"><input type="checkbox" id="flowMove"><label for="flowMove">moving particles</label></div>
-    <div class="row"><span style="color:var(--mut);font-size:11px">colour = speed &middot; inlet → outlet</span></div>
+    <div class="row"><input type="checkbox" id="flowOn"><label for="flowOn">static arrow field</label></div>
+    <div class="row"><input type="checkbox" id="flowMove"><label for="flowMove">moving arrows</label></div>
+    <div class="row"><span style="color:var(--mut);font-size:11px">green = inlet &middot; red = outlet &middot; colour = speed</span></div>
   </div>
 
   <div class="grp" id="layers"><h2>Surfaces</h2></div>
@@ -341,7 +341,7 @@ function main() {
     // ---- flow field (drift only): arrows + moving particles, lazy-loaded ----
     let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
     let pActor = null, pLoading = false, pOn = false, pRAF = null, pLastT = null, pAccum = 0;
-    let pLines = null, pList = null, pCoords = null, pSpd = null, pPts = null, pScal = null, pPoly = null;
+    let pLines = null, pList = null, pCoords = null, pSpd = null, pDir = null, pPts = null, pScal = null, pDirArr = null, pPoly = null;
     const flowGrp = document.getElementById('flowGrp');
     const PPL = 3, P_SPEED = 7.0, P_SIZE = 7;
 
@@ -362,6 +362,15 @@ function main() {
       }).catch(err => { flowLoading = false; setStatus('flow load failed: ' + err, true); });
     }
 
+    function addWell(center, color) {                 // inlet/outlet marker sphere
+      const s = vtk.Filters.Sources.vtkSphereSource.newInstance(
+        { center: center, radius: 0.75, thetaResolution: 20, phiResolution: 20 });
+      const m = vtk.Rendering.Core.vtkMapper.newInstance(); m.setInputConnection(s.getOutputPort());
+      const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
+      a.getProperty().setColor(color[0], color[1], color[2]);
+      a.getProperty().setAmbient(0.35); a.getProperty().setDiffuse(0.75);
+      renderer.addActor(a);
+    }
     function startParticleAnim() {
       if (pRAF) cancelAnimationFrame(pRAF);
       pLastT = null; pRAF = requestAnimationFrame(stepParticles);
@@ -374,11 +383,14 @@ function main() {
       for (let i = 0; i < pList.length; i++) {
         const it = pList[i], L = pLines[it.l], len = L.pts.length;
         let idx = (base + it.p) % len; if (idx < 0) idx += len;
-        const q = L.pts[idx];
+        const q = L.pts[idx], d = L.dir[idx];
         pCoords[3*i] = q[0]; pCoords[3*i+1] = q[1]; pCoords[3*i+2] = q[2];
+        pDir[3*i] = d[0]; pDir[3*i+1] = d[1]; pDir[3*i+2] = d[2];
         pSpd[i] = L.spd[idx];
       }
-      pPts.setData(pCoords, 3); pScal.setData(pSpd, 1); pPoly.modified();
+      pPts.setData(pCoords, 3); pScal.setData(pSpd, 1);
+      if (pDirArr) pDirArr.setData(pDir, 3);
+      pPoly.modified();
       renderWindow.render();
       pRAF = requestAnimationFrame(stepParticles);
     }
@@ -386,23 +398,48 @@ function main() {
       fetch(DATA + 'flowlines.json').then(r => r.json()).then(fl => {
         pLines = fl.lines; pList = [];
         pLines.forEach((L, li) => {
-          const len = L.pts.length, per = Math.min(PPL, len);
-          for (let k = 0; k < per; k++) pList.push({ l: li, p: Math.floor(k * len / per) });
+          const P = L.pts, n = P.length; L.dir = new Array(n);      // unit tangent per node
+          for (let j = 0; j < n; j++) {
+            const a = P[Math.min(j, n - 2)], b = P[Math.min(j + 1, n - 1)];
+            const dx = b[0]-a[0], dy = b[1]-a[1], dz = b[2]-a[2];
+            const mm = Math.hypot(dx, dy, dz) || 1; L.dir[j] = [dx/mm, dy/mm, dz/mm];
+          }
+          const per = Math.min(PPL, n);
+          for (let k = 0; k < per; k++) pList.push({ l: li, p: Math.floor(k * n / per) });
         });
         const N = pList.length;
-        pCoords = new Float32Array(N * 3); pSpd = new Float32Array(N);
+        pCoords = new Float32Array(N * 3); pDir = new Float32Array(N * 3); pSpd = new Float32Array(N);
+        pPts = vtk.Common.Core.vtkPoints.newInstance(); pPts.setData(pCoords, 3);
+        pPoly = vtk.Common.DataModel.vtkPolyData.newInstance(); pPoly.setPoints(pPts);
         const verts = new Uint32Array(N * 2);
         for (let i = 0; i < N; i++) { verts[2*i] = 1; verts[2*i+1] = i; }
-        pPts = vtk.Common.Core.vtkPoints.newInstance(); pPts.setData(pCoords, 3);
-        pPoly = vtk.Common.DataModel.vtkPolyData.newInstance();
-        pPoly.setPoints(pPts); pPoly.getVerts().setData(verts);
+        pPoly.getVerts().setData(verts);
+        pDirArr = vtk.Common.Core.vtkDataArray.newInstance({ name: 'dir', values: pDir, numberOfComponents: 3 });
         pScal = vtk.Common.Core.vtkDataArray.newInstance({ name: 'spd', values: pSpd, numberOfComponents: 1 });
+        pPoly.getPointData().addArray(pDirArr);
         pPoly.getPointData().setScalars(pScal);
-        const m = vtk.Rendering.Core.vtkMapper.newInstance();
-        m.setInputData(pPoly); m.setLookupTable(speedLUT);
-        m.setScalarModeToUsePointFieldData(); m.setColorByArrayName('spd');
-        m.setScalarRange(0, flowMeta.clip); m.setScalarVisibility(true);
-        pActor = vtk.Rendering.Core.vtkActor.newInstance(); pActor.setMapper(m);
+        let mapper = null;
+        try {                                     // moving ARROWS via glyph mapper
+          const arrowSrc = vtk.Filters.Sources.vtkArrowSource.newInstance(
+            { tipResolution: 8, shaftResolution: 8, tipRadius: 0.32, tipLength: 0.42, shaftRadius: 0.10 });
+          const gm = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
+          gm.setInputData(pPoly, 0);
+          gm.setInputConnection(arrowSrc.getOutputPort(), 1);
+          gm.setOrient(true); gm.setOrientationArray('dir');
+          gm.setScaleArray('dir'); gm.setScaleFactor(1.1);
+          gm.setScalarModeToUsePointFieldData(); gm.setColorByArrayName('spd');
+          gm.setLookupTable(speedLUT); gm.setScalarRange(0, flowMeta.clip);
+          gm.setScalarVisibility(true);
+          mapper = gm;
+        } catch (e) {                             // fallback: moving points
+          console.warn('glyph mapper unavailable, moving points instead', e);
+          const m = vtk.Rendering.Core.vtkMapper.newInstance();
+          m.setInputData(pPoly); m.setLookupTable(speedLUT);
+          m.setScalarModeToUsePointFieldData(); m.setColorByArrayName('spd');
+          m.setScalarRange(0, flowMeta.clip); m.setScalarVisibility(true);
+          mapper = m;
+        }
+        pActor = vtk.Rendering.Core.vtkActor.newInstance(); pActor.setMapper(mapper);
         pActor.getProperty().setPointSize(P_SIZE); pActor.getProperty().setLighting(false);
         renderer.addActor(pActor);
         pLoading = false; startParticleAnim();
@@ -414,6 +451,9 @@ function main() {
       flowMeta = meta;
       speedLUT = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
       SPEED_COLORS.forEach((c,i) => speedLUT.addRGBPoint(i/(SPEED_COLORS.length-1)*meta.clip, c[0],c[1],c[2]));
+      if (meta.inlet)  addWell(meta.inlet,  [0.20, 0.90, 0.42]);   // green = inlet
+      if (meta.outlet) addWell(meta.outlet, [0.96, 0.35, 0.15]);   // red = outlet
+      renderWindow.render();
       if (flowGrp) flowGrp.style.display = '';
       document.getElementById('flowOn').onchange = e => {
         if (e.target.checked && !flowActor && !flowLoading) { flowLoading = true; setStatus('loading flow field…'); loadFlow(); }
