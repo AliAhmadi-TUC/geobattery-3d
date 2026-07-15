@@ -407,8 +407,8 @@ function main() {
             const al = Math.min(0.78, Math.max(0.20, 0.78 * Math.sqrt((L.spd[j] || 0) / flowMeta.clip)));
             L.scl[j] = al * 0.6;                                   // speed-scaled, ~0.6x the static arrows
           }
-          const per = Math.min(PPL, n);
-          for (let k = 0; k < per; k++) pList.push({ l: li, p: Math.floor(k * n / per) });
+          const per = Math.min(PPL, n), phi = Math.random();     // random per-line phase
+          for (let k = 0; k < per; k++) pList.push({ l: li, p: Math.floor((k / per + phi) * n) % n });
         });
         const N = pList.length;
         pCoords = new Float32Array(N * 3); pDir = new Float32Array(N * 3);
