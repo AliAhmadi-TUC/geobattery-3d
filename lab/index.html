@@ -11,13 +11,13 @@
   html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink);
     font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; overflow:hidden; }
   #view{ position:absolute; inset:0; }
-  #panel{ position:absolute; top:12px; left:12px; width:270px; max-height:calc(100% - 24px); overflow:auto;
+  #panel{ position:absolute; top:12px; left:12px; width:272px; max-height:calc(100% - 24px); overflow:auto;
     background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
     backdrop-filter:blur(6px); font-size:13px; z-index:5; }
   #panel h1{ font-size:15px; margin:0 0 2px; }
-  #panel .sub{ color:var(--mut); font-size:11px; margin-bottom:10px; }
+  #panel .sub{ color:var(--mut); font-size:11px; margin-bottom:8px; }
   .grp{ border-top:1px solid var(--line); padding:9px 0 3px; }
-  .grp h2{ font:600 11px/1 ui-monospace,Consolas,monospace; letter-spacing:.12em; text-transform:uppercase;
+  .grp h2{ font:600 11px/1 ui-monospace,Consolas,monospace; letter-spacing:.11em; text-transform:uppercase;
     color:var(--grn); margin:0 0 8px; }
   .row{ display:flex; align-items:center; gap:8px; margin:6px 0; }
   .row label{ flex:1; }
@@ -25,8 +25,7 @@
   input[type=checkbox]{ accent-color:var(--grn); }
   select,button{ background:#1b222a; color:var(--ink); border:1px solid var(--line); border-radius:7px;
     padding:5px 8px; font:inherit; font-size:12px; }
-  button{ cursor:pointer; }
-  button:hover{ border-color:var(--grn); }
+  button{ cursor:pointer; } button:hover{ border-color:var(--grn); }
   .cbar{ position:absolute; right:14px; bottom:16px; width:220px; text-align:center; z-index:5;
     font:600 11px ui-monospace,Consolas,monospace; color:var(--ink); }
   .cbar .grad{ height:11px; border-radius:6px; border:1px solid #ffffff22; margin-bottom:4px;
@@ -42,9 +41,14 @@
 <div id="view"></div>
 <div id="panel">
   <h1>Geobattery · 3-D lab</h1>
-  <div class="sub">As-built drift · end of charge · T in 10–80&nbsp;°C. <a class="home" href="../">← simple viewer</a></div>
+  <div class="sub">As-built drift · end of charge · T 10–80&nbsp;°C. <a class="home" href="../">← simple viewer</a></div>
 
-  <div class="grp" id="layers"><h2>Layers</h2></div>
+  <div class="grp"><h2>Heat field (3-D)</h2>
+    <div class="row"><input type="checkbox" id="volOn" checked><label for="volOn">volumetric temperature</label></div>
+    <div class="row"><label>intensity</label><input type="range" id="volInt" min="0.2" max="2.5" step="0.05" value="1"></div>
+  </div>
+
+  <div class="grp" id="layers"><h2>Surfaces</h2></div>
 
   <div class="grp"><h2>Representation</h2>
     <div class="row"><label>style</label>
@@ -53,8 +57,8 @@
     <div class="row"><label>edges</label><input type="checkbox" id="edges"></div>
   </div>
 
-  <div class="grp"><h2>Clip</h2>
-    <div class="row"><label>enable</label><input type="checkbox" id="clipOn"></div>
+  <div class="grp"><h2>Clip (surfaces)</h2>
+    <div class="row"><input type="checkbox" id="clipOn"><label for="clipOn">enable</label></div>
     <div class="row"><label>axis</label>
       <select id="clipAxis"><option value="0">X</option><option value="1">Y</option><option value="2">Z</option></select>
     </div>
@@ -73,28 +77,29 @@ const S = document.getElementById('status');
 const setStatus = (m, err=false) => { S.textContent = m; S.className = err ? 'err' : ''; };
 window.addEventListener('error', e => setStatus('Error: ' + (e.message || e.error), true));
 
-function infernoLUT() {
-  const A = [[0,0,0.016],[0.086,0.043,0.224],[0.259,0.039,0.408],[0.416,0.090,0.431],
-    [0.576,0.149,0.404],[0.737,0.216,0.330],[0.867,0.318,0.227],[0.953,0.471,0.098],
-    [0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
+const INFERNO = [[0,0,0.016],[0.086,0.043,0.224],[0.259,0.039,0.408],[0.416,0.090,0.431],
+  [0.576,0.149,0.404],[0.737,0.216,0.330],[0.867,0.318,0.227],[0.953,0.471,0.098],
+  [0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
+function infernoCTF() {
   const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-  A.forEach((c,i) => lut.addRGBPoint(10 + (i/(A.length-1))*70, c[0], c[1], c[2]));
+  INFERNO.forEach((c,i) => lut.addRGBPoint(10 + (i/(INFERNO.length-1))*70, c[0], c[1], c[2]));
   return lut;
 }
 
 function main() {
-  if (!window.vtk) { setStatus('vtk.js failed to load (network/CSP).', true); return; }
+  if (!window.vtk) { setStatus('vtk.js failed to load.', true); return; }
   const view = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
-    rootContainer: document.getElementById('view'), background: [0.043, 0.055, 0.066],
-  });
+    rootContainer: document.getElementById('view'), background: [0.043, 0.055, 0.066] });
   const renderer = view.getRenderer();
   const renderWindow = view.getRenderWindow();
-  const lut = infernoLUT();
   const clipPlane = vtk.Common.DataModel.vtkPlane.newInstance();
+  const surfLUT = infernoCTF();
+
+  // ---- surface layers ----
   const LAYERS = [
-    { name:'water',    file:'../data/water.vtp',    opacity:1.0,  visible:true },
-    { name:'rock',     file:'../data/rock.vtp',     opacity:0.28, visible:true },
-    { name:'concrete', file:'../data/concrete.vtp', opacity:1.0,  visible:true },
+    { name:'water',    file:'../data/water.vtp',    opacity:0.0,  visible:false },
+    { name:'rock',     file:'../data/rock.vtp',     opacity:0.12, visible:true  },
+    { name:'concrete', file:'../data/concrete.vtp', opacity:0.9,  visible:true  },
   ];
   const objs = {};
 
@@ -108,69 +113,85 @@ function main() {
     r.querySelector(`#vis_${L.name}`).onchange = e => { objs[L.name].actor.setVisibility(e.target.checked); renderWindow.render(); };
     r.querySelector(`#op_${L.name}`).oninput  = e => { objs[L.name].actor.getProperty().setOpacity(+e.target.value); renderWindow.render(); };
   }
-
   function loadLayer(L) {
-    const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
-    return reader.setUrl(L.file).then(() => {
-      const pd = reader.getOutputData(0);
+    const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+    return rd.setUrl(L.file).then(() => {
       const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
-      mapper.setInputData(pd);
-      mapper.setLookupTable(lut);
-      mapper.setScalarModeToUsePointFieldData();
-      mapper.setColorByArrayName('T');
-      mapper.setScalarRange(10, 80);
-      mapper.setScalarVisibility(true);
-      mapper.setInterpolateScalarsBeforeMapping(true);
+      mapper.setInputData(rd.getOutputData(0));
+      mapper.setLookupTable(surfLUT); mapper.setScalarModeToUsePointFieldData();
+      mapper.setColorByArrayName('T'); mapper.setScalarRange(10,80);
+      mapper.setScalarVisibility(true); mapper.setInterpolateScalarsBeforeMapping(true);
       const actor = vtk.Rendering.Core.vtkActor.newInstance();
       actor.setMapper(mapper);
-      actor.getProperty().setOpacity(L.opacity);
-      actor.setVisibility(L.visible);
-      renderer.addActor(actor);
-      objs[L.name] = { mapper, actor };
-      buildRow(L);
+      actor.getProperty().setOpacity(L.opacity); actor.setVisibility(L.visible);
+      renderer.addActor(actor); objs[L.name] = { mapper, actor }; buildRow(L);
     });
   }
 
-  setStatus('loading meshes…');
-  Promise.all(LAYERS.map(loadLayer)).then(() => {
-    renderer.resetCamera();
-    renderWindow.render();
+  // ---- volumetric temperature (ImageData) ----
+  let volume = null, otf = null;
+  function buildOTF(scale) {
+    const f = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
+    f.addPoint(10, 0.0); f.addPoint(19, 0.0);
+    f.addPoint(30, 0.05*scale); f.addPoint(48, 0.14*scale);
+    f.addPoint(64, 0.30*scale); f.addPoint(80, 0.55*scale);
+    return f;
+  }
+  function loadVolume() {
+    const rd = vtk.IO.XML.vtkXMLImageDataReader.newInstance();
+    return rd.setUrl('../data/temperature.vti').then(() => {
+      const mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
+      mapper.setInputData(rd.getOutputData(0));
+      mapper.setSampleDistance(0.4);
+      volume = vtk.Rendering.Core.vtkVolume.newInstance();
+      volume.setMapper(mapper);
+      otf = buildOTF(1.0);
+      const p = volume.getProperty();
+      p.setRGBTransferFunction(0, infernoCTF());
+      p.setScalarOpacity(0, otf);
+      p.setInterpolationTypeToLinear();
+      p.setScalarOpacityUnitDistance(0, 1.2);
+      p.setShade(false);
+      renderer.addVolume(volume);
+    });
+  }
+
+  setStatus('loading meshes + volume…');
+  Promise.all([...LAYERS.map(loadLayer), loadVolume()]).then(() => {
+    renderer.resetCamera(); renderWindow.render();
     setStatus('ready · drag to rotate, scroll to zoom');
+    const b = renderer.computeVisiblePropBounds();
 
-    const bounds = renderer.computeVisiblePropBounds(); // [xmin,xmax,ymin,ymax,zmin,zmax]
+    document.getElementById('volOn').onchange = e => { if (volume) volume.setVisibility(e.target.checked); renderWindow.render(); };
+    document.getElementById('volInt').oninput = e => {
+      if (!volume) return;
+      otf = buildOTF(+e.target.value);
+      volume.getProperty().setScalarOpacity(0, otf); renderWindow.render();
+    };
 
-    // ---- representation ----
     document.getElementById('repr').onchange = e => {
-      const v = +e.target.value;
-      Object.values(objs).forEach(o => o.actor.getProperty().setRepresentation(v));
-      renderWindow.render();
-    };
+      const v=+e.target.value; Object.values(objs).forEach(o=>o.actor.getProperty().setRepresentation(v)); renderWindow.render(); };
     document.getElementById('edges').onchange = e => {
-      Object.values(objs).forEach(o => o.actor.getProperty().setEdgeVisibility(e.target.checked));
-      renderWindow.render();
-    };
+      Object.values(objs).forEach(o=>o.actor.getProperty().setEdgeVisibility(e.target.checked)); renderWindow.render(); };
 
-    // ---- clip ----
     function applyClip() {
       const on = document.getElementById('clipOn').checked;
       Object.values(objs).forEach(o => o.mapper.removeAllClippingPlanes());
       if (on) {
-        const ax = +document.getElementById('clipAxis').value;
-        const flip = document.getElementById('clipFlip').checked ? -1 : 1;
-        const n = [0,0,0]; n[ax] = flip;
-        const t = +document.getElementById('clipPos').value;
-        const o = [(bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2, (bounds[4]+bounds[5])/2];
-        o[ax] = bounds[ax*2] + t * (bounds[ax*2+1] - bounds[ax*2]);
-        clipPlane.setNormal(n[0], n[1], n[2]);
-        clipPlane.setOrigin(o[0], o[1], o[2]);
-        Object.values(objs).forEach(obj => obj.mapper.addClippingPlane(clipPlane));
+        const ax=+document.getElementById('clipAxis').value;
+        const flip=document.getElementById('clipFlip').checked?-1:1;
+        const n=[0,0,0]; n[ax]=flip;
+        const t=+document.getElementById('clipPos').value;
+        const o=[(b[0]+b[1])/2,(b[2]+b[3])/2,(b[4]+b[5])/2];
+        o[ax]=b[ax*2]+t*(b[ax*2+1]-b[ax*2]);
+        clipPlane.setNormal(...n); clipPlane.setOrigin(...o);
+        Object.values(objs).forEach(o2=>o2.mapper.addClippingPlane(clipPlane));
       }
       renderWindow.render();
     }
-    ['clipOn','clipAxis','clipFlip','clipPos'].forEach(id => {
-      document.getElementById(id).addEventListener('input', applyClip);
-      document.getElementById(id).addEventListener('change', applyClip);
-    });
+    ['clipOn','clipAxis','clipFlip','clipPos'].forEach(id=>{
+      document.getElementById(id).addEventListener('input',applyClip);
+      document.getElementById(id).addEventListener('change',applyClip); });
 
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
