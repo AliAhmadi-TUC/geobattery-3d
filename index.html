@@ -433,20 +433,17 @@ function main() {
           gm.setInputConnection(arrowSrc.getOutputPort(), 1);
           gm.setOrient(true); gm.setOrientationArray('dir');
           gm.setScaleArray('scl'); gm.setScaleFactor(1.0);
-          gm.setScalarModeToUsePointFieldData(); gm.setColorByArrayName('spd');
-          gm.setLookupTable(speedLUT); gm.setScalarRange(0, flowMeta.clip);
-          gm.setScalarVisibility(true);
+          gm.setScalarVisibility(false);          // solid water colour, not speed
           mapper = gm;
         } catch (e) {                             // fallback: moving points
           console.warn('glyph mapper unavailable, moving points instead', e);
           const m = vtk.Rendering.Core.vtkMapper.newInstance();
-          m.setInputData(pPoly); m.setLookupTable(speedLUT);
-          m.setScalarModeToUsePointFieldData(); m.setColorByArrayName('spd');
-          m.setScalarRange(0, flowMeta.clip); m.setScalarVisibility(true);
+          m.setInputData(pPoly); m.setScalarVisibility(false);
           mapper = m;
         }
         pActor = vtk.Rendering.Core.vtkActor.newInstance(); pActor.setMapper(mapper);
-        pActor.getProperty().setPointSize(P_SIZE); pActor.getProperty().setLighting(false);
+        pActor.getProperty().setColor(0.32, 0.62, 0.95);   // water blue
+        pActor.getProperty().setPointSize(P_SIZE);
         renderer.addActor(pActor);
         pLoading = false; startParticleAnim();
         setStatus('ready · drag to rotate, scroll to zoom');
