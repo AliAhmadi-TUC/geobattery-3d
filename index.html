@@ -231,36 +231,33 @@ function main() {
     }
     document.getElementById('colMode').onchange = e => setColorMode(e.target.value);
 
-    // ---- interior slice: cut the volume, colour by temperature ----
-    let sliceActor = null, sliceCutter = null;
-    const slicePlane = vtk.Common.DataModel.vtkPlane.newInstance();
-    const vb = volImage ? volImage.getBounds() : b;
+    // ---- interior slice: axis-aligned slice of the volume, coloured by T ----
+    let imgSlice = null, imgMapper = null;
+    const dims = volImage ? volImage.getDimensions() : [2,2,2];
     try {
       if (volImage) {
-        sliceCutter = vtk.Filters.Core.vtkCutter.newInstance();
-        sliceCutter.setCutFunction(slicePlane); sliceCutter.setInputData(volImage);
-        const sm = vtk.Rendering.Core.vtkMapper.newInstance();
-        sm.setInputConnection(sliceCutter.getOutputPort());
-        sm.setLookupTable(surfLUT); sm.setScalarModeToUsePointFieldData();
-        sm.setColorByArrayName('T'); sm.setScalarRange(10,80); sm.setScalarVisibility(true);
-        sliceActor = vtk.Rendering.Core.vtkActor.newInstance();
-        sliceActor.setMapper(sm); sliceActor.setVisibility(false);
-        sliceActor.getProperty().setLighting(false);
-        renderer.addActor(sliceActor);
+        imgMapper = vtk.Rendering.Core.vtkImageMapper.newInstance();
+        imgMapper.setInputData(volImage);
+        imgMapper.setSlicingMode(2);                       // K (Z) by default
+        imgMapper.setSlice(Math.floor(dims[2] / 2));
+        imgSlice = vtk.Rendering.Core.vtkImageSlice.newInstance();
+        imgSlice.setMapper(imgMapper);
+        const ip = imgSlice.getProperty();
+        ip.setRGBTransferFunction(0, infernoCTF());
+        ip.setColorWindow(70); ip.setColorLevel(45);       // map 10..80 C
+        imgSlice.setVisibility(false);
+        renderer.addViewProp(imgSlice);
       }
-    } catch (e) { sliceActor = null; console.warn('slice setup failed', e); }
+    } catch (e) { imgSlice = null; console.warn('slice setup failed', e); }
     function applySlice() {
-      if (!sliceActor) return;
+      if (!imgSlice) return;
       const on = document.getElementById('sliceOn').checked;
-      sliceActor.setVisibility(on);
+      imgSlice.setVisibility(on);
       if (on) {
-        const ax=+document.getElementById('sliceAxis').value;
-        const n=[0,0,0]; n[ax]=1;
-        const t=+document.getElementById('slicePos').value;
-        const o=[(vb[0]+vb[1])/2,(vb[2]+vb[3])/2,(vb[4]+vb[5])/2];
-        o[ax]=vb[ax*2]+t*(vb[ax*2+1]-vb[ax*2]);
-        slicePlane.setNormal(...n); slicePlane.setOrigin(...o);
-        if (sliceCutter) sliceCutter.modified();
+        const ax = +document.getElementById('sliceAxis').value;   // 0=I(X) 1=J(Y) 2=K(Z)
+        imgMapper.setSlicingMode(ax);
+        const t = +document.getElementById('slicePos').value;
+        imgMapper.setSlice(Math.round(t * (dims[ax] - 1)));
       }
       renderWindow.render();
     }
