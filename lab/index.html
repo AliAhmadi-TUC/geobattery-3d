@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Geobattery · interactive 3-D lab</title>
+<script src="https://unpkg.com/vtk.js@36.4.1/vtk.js"></script>
+<style>
+  :root{ --bg:#0b0e11; --panel:#12171dee; --ink:#e8ecef; --mut:#8a929a; --grn:#20c368; --line:#2a323a; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; overflow:hidden; }
+  #view{ position:absolute; inset:0; }
+  #panel{ position:absolute; top:12px; left:12px; width:270px; max-height:calc(100% - 24px); overflow:auto;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+    backdrop-filter:blur(6px); font-size:13px; z-index:5; }
+  #panel h1{ font-size:15px; margin:0 0 2px; }
+  #panel .sub{ color:var(--mut); font-size:11px; margin-bottom:10px; }
+  .grp{ border-top:1px solid var(--line); padding:9px 0 3px; }
+  .grp h2{ font:600 11px/1 ui-monospace,Consolas,monospace; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--grn); margin:0 0 8px; }
+  .row{ display:flex; align-items:center; gap:8px; margin:6px 0; }
+  .row label{ flex:1; }
+  .row input[type=range]{ flex:1; accent-color:var(--grn); }
+  input[type=checkbox]{ accent-color:var(--grn); }
+  select,button{ background:#1b222a; color:var(--ink); border:1px solid var(--line); border-radius:7px;
+    padding:5px 8px; font:inherit; font-size:12px; }
+  button{ cursor:pointer; }
+  button:hover{ border-color:var(--grn); }
+  .cbar{ position:absolute; right:14px; bottom:16px; width:220px; text-align:center; z-index:5;
+    font:600 11px ui-monospace,Consolas,monospace; color:var(--ink); }
+  .cbar .grad{ height:11px; border-radius:6px; border:1px solid #ffffff22; margin-bottom:4px;
+    background:linear-gradient(90deg,#000004,#1b0c41,#4a0c6b,#781c6d,#a52c60,#cf4446,#ed6925,#fb9a06,#f7d13d,#fcffa4);}
+  .cbar .lab{ display:flex; justify-content:space-between; color:var(--mut); }
+  #status{ position:absolute; bottom:12px; left:12px; z-index:6; font:600 12px ui-monospace,Consolas,monospace;
+    color:var(--grn); background:#000a; padding:6px 10px; border-radius:8px; max-width:60%; }
+  #status.err{ color:#ff6b6b; white-space:pre-wrap; }
+  a.home{ color:var(--grn); text-decoration:none; font-size:12px; }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<div id="panel">
+  <h1>Geobattery · 3-D lab</h1>
+  <div class="sub">As-built drift · end of charge · T in 10–80&nbsp;°C. <a class="home" href="../">← simple viewer</a></div>
+
+  <div class="grp" id="layers"><h2>Layers</h2></div>
+
+  <div class="grp"><h2>Representation</h2>
+    <div class="row"><label>style</label>
+      <select id="repr"><option value="2">surface</option><option value="1">wireframe</option><option value="0">points</option></select>
+    </div>
+    <div class="row"><label>edges</label><input type="checkbox" id="edges"></div>
+  </div>
+
+  <div class="grp"><h2>Clip</h2>
+    <div class="row"><label>enable</label><input type="checkbox" id="clipOn"></div>
+    <div class="row"><label>axis</label>
+      <select id="clipAxis"><option value="0">X</option><option value="1">Y</option><option value="2">Z</option></select>
+    </div>
+    <div class="row"><label>flip</label><input type="checkbox" id="clipFlip"></div>
+    <div class="row"><input type="range" id="clipPos" min="0" max="1" step="0.005" value="0.5"></div>
+  </div>
+
+  <div class="grp"><button id="reset">Reset view</button></div>
+</div>
+
+<div class="cbar"><div class="grad"></div><div class="lab"><span>10&nbsp;°C</span><span>temperature</span><span>80&nbsp;°C</span></div></div>
+<div id="status">loading vtk.js…</div>
+
+<script>
+const S = document.getElementById('status');
+const setStatus = (m, err=false) => { S.textContent = m; S.className = err ? 'err' : ''; };
+window.addEventListener('error', e => setStatus('Error: ' + (e.message || e.error), true));
+
+function infernoLUT() {
+  const A = [[0,0,0.016],[0.086,0.043,0.224],[0.259,0.039,0.408],[0.416,0.090,0.431],
+    [0.576,0.149,0.404],[0.737,0.216,0.330],[0.867,0.318,0.227],[0.953,0.471,0.098],
+    [0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
+  const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+  A.forEach((c,i) => lut.addRGBPoint(10 + (i/(A.length-1))*70, c[0], c[1], c[2]));
+  return lut;
+}
+
+function main() {
+  if (!window.vtk) { setStatus('vtk.js failed to load (network/CSP).', true); return; }
+  const view = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+    rootContainer: document.getElementById('view'), background: [0.043, 0.055, 0.066],
+  });
+  const renderer = view.getRenderer();
+  const renderWindow = view.getRenderWindow();
+  const lut = infernoLUT();
+  const clipPlane = vtk.Common.DataModel.vtkPlane.newInstance();
+  const LAYERS = [
+    { name:'water',    file:'../data/water.vtp',    opacity:1.0,  visible:true },
+    { name:'rock',     file:'../data/rock.vtp',     opacity:0.28, visible:true },
+    { name:'concrete', file:'../data/concrete.vtp', opacity:1.0,  visible:true },
+  ];
+  const objs = {};
+
+  function buildRow(L) {
+    const wrap = document.getElementById('layers');
+    const r = document.createElement('div'); r.className = 'row';
+    r.innerHTML = `<input type="checkbox" ${L.visible?'checked':''} id="vis_${L.name}">
+      <label for="vis_${L.name}" style="text-transform:capitalize">${L.name}</label>
+      <input type="range" min="0" max="1" step="0.02" value="${L.opacity}" id="op_${L.name}">`;
+    wrap.appendChild(r);
+    r.querySelector(`#vis_${L.name}`).onchange = e => { objs[L.name].actor.setVisibility(e.target.checked); renderWindow.render(); };
+    r.querySelector(`#op_${L.name}`).oninput  = e => { objs[L.name].actor.getProperty().setOpacity(+e.target.value); renderWindow.render(); };
+  }
+
+  function loadLayer(L) {
+    const reader = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+    return reader.setUrl(L.file).then(() => {
+      const pd = reader.getOutputData(0);
+      const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+      mapper.setInputData(pd);
+      mapper.setLookupTable(lut);
+      mapper.setScalarModeToUsePointFieldData();
+      mapper.setColorByArrayName('T');
+      mapper.setScalarRange(10, 80);
+      mapper.setScalarVisibility(true);
+      mapper.setInterpolateScalarsBeforeMapping(true);
+      const actor = vtk.Rendering.Core.vtkActor.newInstance();
+      actor.setMapper(mapper);
+      actor.getProperty().setOpacity(L.opacity);
+      actor.setVisibility(L.visible);
+      renderer.addActor(actor);
+      objs[L.name] = { mapper, actor };
+      buildRow(L);
+    });
+  }
+
+  setStatus('loading meshes…');
+  Promise.all(LAYERS.map(loadLayer)).then(() => {
+    renderer.resetCamera();
+    renderWindow.render();
+    setStatus('ready · drag to rotate, scroll to zoom');
+
+    const bounds = renderer.computeVisiblePropBounds(); // [xmin,xmax,ymin,ymax,zmin,zmax]
+
+    // ---- representation ----
+    document.getElementById('repr').onchange = e => {
+      const v = +e.target.value;
+      Object.values(objs).forEach(o => o.actor.getProperty().setRepresentation(v));
+      renderWindow.render();
+    };
+    document.getElementById('edges').onchange = e => {
+      Object.values(objs).forEach(o => o.actor.getProperty().setEdgeVisibility(e.target.checked));
+      renderWindow.render();
+    };
+
+    // ---- clip ----
+    function applyClip() {
+      const on = document.getElementById('clipOn').checked;
+      Object.values(objs).forEach(o => o.mapper.removeAllClippingPlanes());
+      if (on) {
+        const ax = +document.getElementById('clipAxis').value;
+        const flip = document.getElementById('clipFlip').checked ? -1 : 1;
+        const n = [0,0,0]; n[ax] = flip;
+        const t = +document.getElementById('clipPos').value;
+        const o = [(bounds[0]+bounds[1])/2, (bounds[2]+bounds[3])/2, (bounds[4]+bounds[5])/2];
+        o[ax] = bounds[ax*2] + t * (bounds[ax*2+1] - bounds[ax*2]);
+        clipPlane.setNormal(n[0], n[1], n[2]);
+        clipPlane.setOrigin(o[0], o[1], o[2]);
+        Object.values(objs).forEach(obj => obj.mapper.addClippingPlane(clipPlane));
+      }
+      renderWindow.render();
+    }
+    ['clipOn','clipAxis','clipFlip','clipPos'].forEach(id => {
+      document.getElementById(id).addEventListener('input', applyClip);
+      document.getElementById(id).addEventListener('change', applyClip);
+    });
+
+    document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
+  }).catch(err => setStatus('Load failed: ' + err, true));
+}
+main();
+</script>
+</body>
+</html>
