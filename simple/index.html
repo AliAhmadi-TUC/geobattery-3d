@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Geobattery · 3-D thermal models</title>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+<style>
+  :root{ --bg:#0b0e11; --panel:#12171d; --ink:#e8ecef; --mut:#8a929a; --grn:#20c368; --line:#232a31; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  .wrap{ max-width:900px; margin:0 auto; min-height:100%; display:flex; flex-direction:column; }
+  header{ padding:18px 20px 8px; }
+  .kick{ font:600 11px/1.4 ui-monospace,Menlo,Consolas,monospace; letter-spacing:.14em;
+    color:var(--grn); text-transform:uppercase; }
+  h1{ font-size:22px; margin:6px 0 2px; line-height:1.15; }
+  .sub{ color:var(--mut); font-size:13px; }
+  .tabs{ display:flex; gap:8px; padding:12px 20px 0; }
+  .tab{ flex:1; padding:10px 12px; border:1px solid var(--line); background:var(--panel);
+    color:var(--ink); border-radius:10px; font:600 13px/1.2 inherit; cursor:pointer; text-align:center; }
+  .tab[aria-selected="true"]{ border-color:var(--grn); box-shadow:0 0 0 1px var(--grn) inset; }
+  .stage{ position:relative; margin:12px 20px 0; border:1px solid var(--line); border-radius:14px;
+    overflow:hidden; background:radial-gradient(120% 90% at 50% 0%, #171d24 0%, #0b0e11 70%); }
+  model-viewer{ width:100%; height:56vh; min-height:320px; --poster-color:transparent; }
+  .cbar{ position:absolute; left:14px; bottom:14px; right:14px; display:flex; align-items:center; gap:8px;
+    font:600 10px ui-monospace,Consolas,monospace; color:var(--ink); pointer-events:none; }
+  .cbar .grad{ flex:1; height:9px; border-radius:5px; border:1px solid rgba(255,255,255,.15);
+    background:linear-gradient(90deg,#000004,#1b0c41,#4a0c6b,#781c6d,#a52c60,#cf4446,#ed6925,#fb9a06,#f7d13d,#fcffa4); }
+  .cap{ padding:14px 20px 4px; font-size:14px; line-height:1.5; color:#cfd6db; }
+  .hint{ padding:2px 20px 0; color:var(--mut); font-size:12px; }
+  footer{ margin-top:auto; padding:18px 20px 26px; color:var(--mut); font-size:12px; line-height:1.5;
+    border-top:1px solid var(--line); }
+  footer b{ color:var(--ink); }
+  a{ color:var(--grn); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kick">● Reiche Zeche · seasonal mine-heat storage</div>
+    <h1>Geobattery — 3-D thermal models</h1>
+    <div class="sub">Full-3D conjugate-heat-transfer temperature fields, coloured 10–80&nbsp;°C.</div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true"  data-model="../models/drift_charge.gltf"
+      data-cap="cap-drift" id="t-drift">As-built drift · charge</button>
+    <button class="tab" role="tab" aria-selected="false" data-model="../models/array_year10.gltf"
+      data-cap="cap-array" id="t-array">Array cell · year 10</button>
+  </div>
+
+  <div class="stage">
+    <model-viewer id="mv" src="../models/drift_charge.gltf" alt="3-D temperature field"
+      camera-controls touch-action="pan-y" auto-rotate rotation-per-second="18deg"
+      interaction-prompt="none" exposure="1.25" shadow-intensity="0.5"
+      orientation="0 0 90deg" camera-orbit="35deg 72deg auto" min-field-of-view="12deg">
+    </model-viewer>
+    <div class="cbar"><span>10&nbsp;°C</span><span class="grad"></span><span>80&nbsp;°C</span></div>
+  </div>
+
+  <p class="cap" id="cap-drift">
+    <b>As-built drift, end of charge (year&nbsp;1).</b> The surveyed drift filled with water at ~66&nbsp;°C
+    right after the 61-day charge. Over the following months this heat drains into the surrounding rock — a
+    single drift behaves as a monthly buffer, not a seasonal store.
+  </p>
+  <p class="cap" id="cap-array" hidden>
+    <b>Drift-array unit cell, end of storage (year&nbsp;10).</b> One cell of a 10&nbsp;m-pitch array, its
+    faces adiabatic symmetry planes. After ten years the rock between drifts has saturated, so the stored
+    water stays warm (~58&nbsp;°C): the array keeps almost everything the single drift lost.
+  </p>
+  <p class="hint">Drag to rotate · pinch/scroll to zoom.</p>
+  <p style="padding:4px 20px 2px;margin:0"><a href="../" style="display:inline-block;background:var(--grn);color:#06110a;font-weight:800;text-decoration:none;padding:11px 16px;border-radius:11px;font-size:14px">▶&nbsp; Open the interactive 3-D lab — heat volume · clip · opacity</a></p>
+
+  <footer>
+    <b>Ali Ahmadi</b> &amp; Eleni Gerolymatou — Chair of Geomechanics and Multiphysical Systems,
+    TU&nbsp;Clausthal (MOVIE project).<br>
+    Companion to the ALERT&nbsp;Geomaterials 2026 poster “Geobattery: a dimensionless criterion for seasonal
+    heat storage in flooded mine workings.” Geometry is the real surveyed Reiche&nbsp;Zeche drift; the duty
+    cycle is hypothetical.
+  </footer>
+</div>
+
+<script>
+  const mv = document.getElementById('mv');
+  const tabs = [...document.querySelectorAll('.tab')];
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.setAttribute('aria-selected', x === t));
+    mv.setAttribute('src', t.dataset.model);
+    document.querySelectorAll('.cap').forEach(c => c.hidden = (c.id !== t.dataset.cap));
+  }));
+</script>
+</body>
+</html>
