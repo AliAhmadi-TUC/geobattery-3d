@@ -75,6 +75,11 @@
     <div class="row"><input type="range" id="slicePos" min="0" max="1" step="0.005" value="0.5"></div>
   </div>
 
+  <div class="grp" id="flowGrp" style="display:none"><h2>Flow field (drift)</h2>
+    <div class="row"><input type="checkbox" id="flowOn"><label for="flowOn">velocity arrows</label></div>
+    <div class="row"><span style="color:var(--mut);font-size:11px">colour = speed &middot; inlet → outlet</span></div>
+  </div>
+
   <div class="grp" id="layers"><h2>Surfaces</h2></div>
 
   <div class="grp"><h2>Representation</h2>
@@ -107,6 +112,7 @@ window.addEventListener('error', e => setStatus('Error: ' + (e.message || e.erro
 const INFERNO = [[0,0,0.016],[0.086,0.043,0.224],[0.259,0.039,0.408],[0.416,0.090,0.431],
   [0.576,0.149,0.404],[0.737,0.216,0.330],[0.867,0.318,0.227],[0.953,0.471,0.098],
   [0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
+const SPEED_COLORS = [[0.23,0.30,0.75],[0.15,0.65,0.90],[0.20,0.80,0.35],[0.95,0.85,0.15],[0.90,0.25,0.15]];
 function infernoCTF() {
   const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
   INFERNO.forEach((c,i) => lut.addRGBPoint(10 + (i/(INFERNO.length-1))*70, c[0], c[1], c[2]));
@@ -330,6 +336,36 @@ function main() {
     } else if (timeGrp) {
       timeGrp.style.display = 'none';
     }
+
+    // ---- flow field (drift only): velocity arrows coloured by speed, lazy-loaded ----
+    let flowActor = null, flowLoading = false, flowMeta = null;
+    const flowGrp = document.getElementById('flowGrp');
+    function loadFlow() {
+      const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+      SPEED_COLORS.forEach((c,i) => lut.addRGBPoint(i/(SPEED_COLORS.length-1)*flowMeta.clip, c[0],c[1],c[2]));
+      const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+      rd.setUrl(DATA + 'flow_arrows.vtp').then(() => {
+        const m = vtk.Rendering.Core.vtkMapper.newInstance();
+        m.setInputData(rd.getOutputData(0));
+        m.setLookupTable(lut); m.setScalarModeToUsePointFieldData();
+        m.setColorByArrayName('speed'); m.setScalarRange(0, flowMeta.clip);
+        m.setScalarVisibility(true); m.setInterpolateScalarsBeforeMapping(true);
+        flowActor = vtk.Rendering.Core.vtkActor.newInstance();
+        flowActor.setMapper(m); flowActor.getProperty().setLighting(false);
+        renderer.addActor(flowActor);
+        flowActor.setVisibility(document.getElementById('flowOn').checked);
+        flowLoading = false; renderWindow.render();
+        setStatus('ready · drag to rotate, scroll to zoom');
+      }).catch(err => { flowLoading = false; setStatus('flow load failed: ' + err, true); });
+    }
+    fetch(DATA + 'flow.json').then(r => r.ok ? r.json() : Promise.reject('no flow')).then(meta => {
+      flowMeta = meta;
+      if (flowGrp) flowGrp.style.display = '';
+      document.getElementById('flowOn').onchange = e => {
+        if (e.target.checked && !flowActor && !flowLoading) { flowLoading = true; setStatus('loading flow field…'); loadFlow(); }
+        else if (flowActor) { flowActor.setVisibility(e.target.checked); renderWindow.render(); }
+      };
+    }).catch(() => { if (flowGrp) flowGrp.style.display = 'none'; });
 
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
