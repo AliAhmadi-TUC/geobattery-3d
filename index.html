@@ -48,6 +48,20 @@
     <div class="row"><label>intensity</label><input type="range" id="volInt" min="0.2" max="2.5" step="0.05" value="1"></div>
   </div>
 
+  <div class="grp"><h2>Colour surfaces by</h2>
+    <div class="row"><label>mode</label>
+      <select id="colMode"><option value="material">material</option><option value="temperature">temperature</option></select>
+    </div>
+  </div>
+
+  <div class="grp"><h2>Slice (interior T)</h2>
+    <div class="row"><input type="checkbox" id="sliceOn"><label for="sliceOn">enable</label></div>
+    <div class="row"><label>axis</label>
+      <select id="sliceAxis"><option value="0">X</option><option value="1">Y</option><option value="2">Z</option></select>
+    </div>
+    <div class="row"><input type="range" id="slicePos" min="0" max="1" step="0.005" value="0.5"></div>
+  </div>
+
   <div class="grp" id="layers"><h2>Surfaces</h2></div>
 
   <div class="grp"><h2>Representation</h2>
@@ -135,7 +149,7 @@ function main() {
   }
 
   // ---- volumetric temperature (ImageData) ----
-  let volume = null, otf = null;
+  let volume = null, otf = null, volImage = null;
   function buildOTF(scale) {
     const f = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
     f.addPoint(10, 0.0); f.addPoint(19, 0.0);
@@ -146,8 +160,9 @@ function main() {
   function loadVolume() {
     const rd = vtk.IO.XML.vtkXMLImageDataReader.newInstance();
     return rd.setUrl('data/temperature.vti').then(() => {
+      volImage = rd.getOutputData(0);
       const mapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
-      mapper.setInputData(rd.getOutputData(0));
+      mapper.setInputData(volImage);
       mapper.setSampleDistance(0.4);
       volume = vtk.Rendering.Core.vtkVolume.newInstance();
       volume.setMapper(mapper);
@@ -198,6 +213,60 @@ function main() {
     ['clipOn','clipAxis','clipFlip','clipPos'].forEach(id=>{
       document.getElementById(id).addEventListener('input',applyClip);
       document.getElementById(id).addEventListener('change',applyClip); });
+
+    // ---- colour surfaces: material solids <-> temperature (rock/air/concrete too) ----
+    function setColorMode(mode) {
+      LAYERS.forEach(L => {
+        const o = objs[L.name]; if (!o) return;
+        if (mode === 'material' && L.solid) {
+          o.mapper.setScalarVisibility(false);
+          o.actor.getProperty().setColor(L.solid[0], L.solid[1], L.solid[2]);
+        } else {
+          o.mapper.setLookupTable(surfLUT); o.mapper.setScalarModeToUsePointFieldData();
+          o.mapper.setColorByArrayName('T'); o.mapper.setScalarRange(10,80);
+          o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
+        }
+      });
+      renderWindow.render();
+    }
+    document.getElementById('colMode').onchange = e => setColorMode(e.target.value);
+
+    // ---- interior slice: cut the volume, colour by temperature ----
+    let sliceActor = null, sliceCutter = null;
+    const slicePlane = vtk.Common.DataModel.vtkPlane.newInstance();
+    const vb = volImage ? volImage.getBounds() : b;
+    try {
+      if (volImage) {
+        sliceCutter = vtk.Filters.Core.vtkCutter.newInstance();
+        sliceCutter.setCutFunction(slicePlane); sliceCutter.setInputData(volImage);
+        const sm = vtk.Rendering.Core.vtkMapper.newInstance();
+        sm.setInputConnection(sliceCutter.getOutputPort());
+        sm.setLookupTable(surfLUT); sm.setScalarModeToUsePointFieldData();
+        sm.setColorByArrayName('T'); sm.setScalarRange(10,80); sm.setScalarVisibility(true);
+        sliceActor = vtk.Rendering.Core.vtkActor.newInstance();
+        sliceActor.setMapper(sm); sliceActor.setVisibility(false);
+        sliceActor.getProperty().setLighting(false);
+        renderer.addActor(sliceActor);
+      }
+    } catch (e) { sliceActor = null; console.warn('slice setup failed', e); }
+    function applySlice() {
+      if (!sliceActor) return;
+      const on = document.getElementById('sliceOn').checked;
+      sliceActor.setVisibility(on);
+      if (on) {
+        const ax=+document.getElementById('sliceAxis').value;
+        const n=[0,0,0]; n[ax]=1;
+        const t=+document.getElementById('slicePos').value;
+        const o=[(vb[0]+vb[1])/2,(vb[2]+vb[3])/2,(vb[4]+vb[5])/2];
+        o[ax]=vb[ax*2]+t*(vb[ax*2+1]-vb[ax*2]);
+        slicePlane.setNormal(...n); slicePlane.setOrigin(...o);
+        if (sliceCutter) sliceCutter.modified();
+      }
+      renderWindow.render();
+    }
+    ['sliceOn','sliceAxis','slicePos'].forEach(id=>{
+      document.getElementById(id).addEventListener('input',applySlice);
+      document.getElementById(id).addEventListener('change',applySlice); });
 
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
