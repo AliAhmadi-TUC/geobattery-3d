@@ -98,8 +98,9 @@ function main() {
   // ---- surface layers ----
   const LAYERS = [
     { name:'water',    file:'data/water.vtp',    opacity:0.0,  visible:false },
-    { name:'rock',     file:'data/rock.vtp',     opacity:0.12, visible:true  },
-    { name:'concrete', file:'data/concrete.vtp', opacity:0.9,  visible:true  },
+    { name:'rock',     file:'data/rock.vtp',     opacity:0.22, visible:true, solid:[0.55,0.60,0.68] },
+    { name:'concrete', file:'data/concrete.vtp', opacity:0.95, visible:true, solid:[0.40,0.43,0.48] },
+    { name:'air',      file:'data/air.vtp',      opacity:0.32, visible:true, solid:[0.60,0.78,0.90] },
   ];
   const objs = {};
 
@@ -118,11 +119,16 @@ function main() {
     return rd.setUrl(L.file).then(() => {
       const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
       mapper.setInputData(rd.getOutputData(0));
-      mapper.setLookupTable(surfLUT); mapper.setScalarModeToUsePointFieldData();
-      mapper.setColorByArrayName('T'); mapper.setScalarRange(10,80);
-      mapper.setScalarVisibility(true); mapper.setInterpolateScalarsBeforeMapping(true);
       const actor = vtk.Rendering.Core.vtkActor.newInstance();
       actor.setMapper(mapper);
+      if (L.solid) {                                   // solid geometry colour (reads on dark bg)
+        mapper.setScalarVisibility(false);
+        actor.getProperty().setColor(L.solid[0], L.solid[1], L.solid[2]);
+      } else {                                         // colour by temperature
+        mapper.setLookupTable(surfLUT); mapper.setScalarModeToUsePointFieldData();
+        mapper.setColorByArrayName('T'); mapper.setScalarRange(10,80);
+        mapper.setScalarVisibility(true); mapper.setInterpolateScalarsBeforeMapping(true);
+      }
       actor.getProperty().setOpacity(L.opacity); actor.setVisibility(L.visible);
       renderer.addActor(actor); objs[L.name] = { mapper, actor }; buildRow(L);
     });
