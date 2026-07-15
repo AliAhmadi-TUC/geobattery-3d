@@ -131,7 +131,7 @@ function main() {
 
   // ---- surface layers ----
   const LAYERS = [
-    { name:'water',    file:'water.vtp',    opacity:0.0,  visible:false },
+    { name:'water',    file:'water_transient.vtp', opacity:0.8, visible:false, solid:[0.24,0.52,0.85] },
     { name:'rock',     file:'rock.vtp',     opacity:0.22, visible:true, solid:[0.55,0.60,0.68] },
     { name:'concrete', file:'concrete.vtp', opacity:0.95, visible:true, solid:[0.40,0.43,0.48] },
     { name:'air',      file:'air.vtp',      opacity:0.32, visible:true, solid:[0.60,0.78,0.90] },
@@ -172,6 +172,8 @@ function main() {
   let volume = null, otf = null, volImage = null, volMapper = null;
   let imgSlice = null, imgMapper = null;                 // interior slice (hoisted for frame swap)
   let frames = [], frameIdx = 0, playing = false, playTimer = null;
+  let colMode = 'material';                              // tracks the "colour surfaces by" toggle
+  const fn = i => 'T' + String(i).padStart(2, '0');      // water-surface per-frame array name
   const frameCache = {};
   function buildOTF(scale) {
     const f = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
@@ -193,6 +195,10 @@ function main() {
       volImage = img;
       if (volMapper) volMapper.setInputData(img);
       if (imgMapper) imgMapper.setInputData(img);
+      if (objs.water && colMode === 'temperature') {     // animate the water surface too
+        objs.water.mapper.setColorByArrayName(fn(frameIdx));
+        objs.water.mapper.setScalarVisibility(true);
+      }
       const lab = document.getElementById('timeLabel'); if (lab) lab.textContent = frames[frameIdx].label;
       const sl  = document.getElementById('timeSlider'); if (sl) sl.value = frameIdx;
       renderWindow.render();
@@ -259,6 +265,7 @@ function main() {
 
     // ---- colour surfaces: material solids <-> temperature (rock/air/concrete too) ----
     function setColorMode(mode) {
+      colMode = mode;
       LAYERS.forEach(L => {
         const o = objs[L.name]; if (!o) return;
         if (mode === 'material' && L.solid) {
@@ -266,7 +273,8 @@ function main() {
           o.actor.getProperty().setColor(L.solid[0], L.solid[1], L.solid[2]);
         } else {
           o.mapper.setLookupTable(surfLUT); o.mapper.setScalarModeToUsePointFieldData();
-          o.mapper.setColorByArrayName('T'); o.mapper.setScalarRange(10,80);
+          o.mapper.setColorByArrayName(L.name === 'water' ? fn(frameIdx) : 'T');
+          o.mapper.setScalarRange(10,80);
           o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
         }
       });
