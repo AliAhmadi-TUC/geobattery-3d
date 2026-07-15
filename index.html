@@ -77,6 +77,7 @@
 
   <div class="grp" id="flowGrp" style="display:none"><h2>Flow field (drift)</h2>
     <div class="row"><input type="checkbox" id="flowOn"><label for="flowOn">velocity arrows</label></div>
+    <div class="row"><input type="checkbox" id="flowMove"><label for="flowMove">moving particles</label></div>
     <div class="row"><span style="color:var(--mut);font-size:11px">colour = speed &middot; inlet → outlet</span></div>
   </div>
 
@@ -337,17 +338,19 @@ function main() {
       timeGrp.style.display = 'none';
     }
 
-    // ---- flow field (drift only): velocity arrows coloured by speed, lazy-loaded ----
-    let flowActor = null, flowLoading = false, flowMeta = null;
+    // ---- flow field (drift only): arrows + moving particles, lazy-loaded ----
+    let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
+    let pActor = null, pLoading = false, pOn = false, pRAF = null, pLastT = null, pAccum = 0;
+    let pLines = null, pList = null, pCoords = null, pSpd = null, pPts = null, pScal = null, pPoly = null;
     const flowGrp = document.getElementById('flowGrp');
+    const PPL = 3, P_SPEED = 7.0, P_SIZE = 7;
+
     function loadFlow() {
-      const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-      SPEED_COLORS.forEach((c,i) => lut.addRGBPoint(i/(SPEED_COLORS.length-1)*flowMeta.clip, c[0],c[1],c[2]));
       const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
       rd.setUrl(DATA + 'flow_arrows.vtp').then(() => {
         const m = vtk.Rendering.Core.vtkMapper.newInstance();
         m.setInputData(rd.getOutputData(0));
-        m.setLookupTable(lut); m.setScalarModeToUsePointFieldData();
+        m.setLookupTable(speedLUT); m.setScalarModeToUsePointFieldData();
         m.setColorByArrayName('speed'); m.setScalarRange(0, flowMeta.clip);
         m.setScalarVisibility(true); m.setInterpolateScalarsBeforeMapping(true);
         flowActor = vtk.Rendering.Core.vtkActor.newInstance();
@@ -358,12 +361,73 @@ function main() {
         setStatus('ready · drag to rotate, scroll to zoom');
       }).catch(err => { flowLoading = false; setStatus('flow load failed: ' + err, true); });
     }
+
+    function startParticleAnim() {
+      if (pRAF) cancelAnimationFrame(pRAF);
+      pLastT = null; pRAF = requestAnimationFrame(stepParticles);
+    }
+    function stepParticles(ts) {
+      if (!pOn || !pPoly) return;
+      if (pLastT === null) pLastT = ts;
+      pAccum += (ts - pLastT) / 1000 * P_SPEED; pLastT = ts;
+      const base = Math.floor(pAccum);
+      for (let i = 0; i < pList.length; i++) {
+        const it = pList[i], L = pLines[it.l], len = L.pts.length;
+        let idx = (base + it.p) % len; if (idx < 0) idx += len;
+        const q = L.pts[idx];
+        pCoords[3*i] = q[0]; pCoords[3*i+1] = q[1]; pCoords[3*i+2] = q[2];
+        pSpd[i] = L.spd[idx];
+      }
+      pPts.setData(pCoords, 3); pScal.setData(pSpd, 1); pPoly.modified();
+      renderWindow.render();
+      pRAF = requestAnimationFrame(stepParticles);
+    }
+    function loadParticles() {
+      fetch(DATA + 'flowlines.json').then(r => r.json()).then(fl => {
+        pLines = fl.lines; pList = [];
+        pLines.forEach((L, li) => {
+          const len = L.pts.length, per = Math.min(PPL, len);
+          for (let k = 0; k < per; k++) pList.push({ l: li, p: Math.floor(k * len / per) });
+        });
+        const N = pList.length;
+        pCoords = new Float32Array(N * 3); pSpd = new Float32Array(N);
+        const verts = new Uint32Array(N * 2);
+        for (let i = 0; i < N; i++) { verts[2*i] = 1; verts[2*i+1] = i; }
+        pPts = vtk.Common.Core.vtkPoints.newInstance(); pPts.setData(pCoords, 3);
+        pPoly = vtk.Common.DataModel.vtkPolyData.newInstance();
+        pPoly.setPoints(pPts); pPoly.getVerts().setData(verts);
+        pScal = vtk.Common.Core.vtkDataArray.newInstance({ name: 'spd', values: pSpd, numberOfComponents: 1 });
+        pPoly.getPointData().setScalars(pScal);
+        const m = vtk.Rendering.Core.vtkMapper.newInstance();
+        m.setInputData(pPoly); m.setLookupTable(speedLUT);
+        m.setScalarModeToUsePointFieldData(); m.setColorByArrayName('spd');
+        m.setScalarRange(0, flowMeta.clip); m.setScalarVisibility(true);
+        pActor = vtk.Rendering.Core.vtkActor.newInstance(); pActor.setMapper(m);
+        pActor.getProperty().setPointSize(P_SIZE); pActor.getProperty().setLighting(false);
+        renderer.addActor(pActor);
+        pLoading = false; startParticleAnim();
+        setStatus('ready · drag to rotate, scroll to zoom');
+      }).catch(err => { pLoading = false; setStatus('particles load failed: ' + err, true); });
+    }
+
     fetch(DATA + 'flow.json').then(r => r.ok ? r.json() : Promise.reject('no flow')).then(meta => {
       flowMeta = meta;
+      speedLUT = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+      SPEED_COLORS.forEach((c,i) => speedLUT.addRGBPoint(i/(SPEED_COLORS.length-1)*meta.clip, c[0],c[1],c[2]));
       if (flowGrp) flowGrp.style.display = '';
       document.getElementById('flowOn').onchange = e => {
         if (e.target.checked && !flowActor && !flowLoading) { flowLoading = true; setStatus('loading flow field…'); loadFlow(); }
         else if (flowActor) { flowActor.setVisibility(e.target.checked); renderWindow.render(); }
+      };
+      document.getElementById('flowMove').onchange = e => {
+        pOn = e.target.checked;
+        if (pOn) {
+          if (!pActor && !pLoading) { pLoading = true; setStatus('loading particles…'); loadParticles(); }
+          else if (pActor) { pActor.setVisibility(true); startParticleAnim(); }
+        } else {
+          if (pRAF) cancelAnimationFrame(pRAF); pRAF = null;
+          if (pActor) pActor.setVisibility(false); renderWindow.render();
+        }
       };
     }).catch(() => { if (flowGrp) flowGrp.style.display = 'none'; });
 
