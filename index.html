@@ -36,10 +36,12 @@
   select,button{ background:#1b222a; color:var(--ink); border:1px solid var(--line); border-radius:7px;
     padding:5px 8px; font:inherit; font-size:12px; }
   button{ cursor:pointer; } button:hover{ border-color:var(--grn); }
-  .cbar{ position:absolute; right:14px; bottom:16px; width:220px; text-align:center; z-index:5;
-    font:600 11px ui-monospace,Consolas,monospace; color:var(--ink); }
+  .cbar{ position:absolute; right:14px; bottom:16px; width:236px; text-align:center; z-index:5;
+    font:600 11px ui-monospace,Consolas,monospace; color:var(--ink);
+    background:#12171dd9; border:1px solid var(--line); border-radius:10px; padding:8px 10px;
+    backdrop-filter:blur(6px); }
   .cbar .grad{ height:11px; border-radius:6px; border:1px solid #ffffff22; margin-bottom:4px;
-    background:linear-gradient(90deg,#3B4CC0,#8DB0FE,#DDDDDD,#F49A7C,#B40426); }
+    background:linear-gradient(90deg,#5b126e,#a52c60,#ed6925,#f7d13d,#fcffa4); }
   .cbar .lab{ display:flex; justify-content:space-between; color:var(--mut); }
   #status{ position:absolute; bottom:12px; left:12px; z-index:6; font:600 12px ui-monospace,Consolas,monospace;
     color:var(--grn); background:#000a; padding:6px 10px; border-radius:8px; max-width:60%; }
@@ -65,9 +67,19 @@
     </select></div>
   </div>
 
-  <div class="grp"><h2>Heat field (3-D)</h2>
-    <div class="row"><input type="checkbox" id="volOn" checked><label for="volOn">volumetric temperature</label></div>
-    <div class="row"><label>intensity</label><input type="range" id="volInt" min="0.2" max="3.5" step="0.05" value="1"></div>
+  <div class="grp"><h2>Colour surfaces by</h2>
+    <div class="row"><label>mode</label>
+      <select id="colMode"><option value="material">material</option><option value="temperature" selected>temperature</option><option value="vm">stress (von Mises)</option><option value="flow">water velocity</option></select>
+    </div>
+    <div id="tempCtl">
+      <div class="row"><input type="checkbox" id="volOn" checked><label for="volOn">volumetric temperature</label></div>
+      <div class="row"><label>intensity</label><input type="range" id="volInt" min="0.2" max="3.5" step="0.05" value="1"></div>
+    </div>
+    <div id="flowCtl" style="display:none">
+      <div class="row"><input type="checkbox" id="flowOn" checked><label for="flowOn">static arrow field</label></div>
+      <div class="row"><input type="checkbox" id="flowMove"><label for="flowMove">moving arrows</label></div>
+      <div class="row"><span style="color:var(--mut);font-size:11px">green = inlet &middot; red = outlet</span></div>
+    </div>
   </div>
 
   <div class="grp" id="timeGrp"><h2>Transient (time)</h2>
@@ -78,12 +90,6 @@
 
   <div class="grp" id="layers"><h2>Surfaces</h2></div>
 
-  <div class="grp fold"><h2>Colour surfaces by</h2>
-    <div class="row"><label>mode</label>
-      <select id="colMode"><option value="material">material</option><option value="temperature">temperature</option><option value="vm">stress (von Mises)</option></select>
-    </div>
-  </div>
-
   <div class="grp fold" id="cutGrp"><h2>Clip &amp; slice</h2>
     <div class="row"><input type="checkbox" id="clipOn"><label for="clipOn">clip surfaces</label></div>
     <div class="row"><input type="checkbox" id="sliceOn"><label for="sliceOn">temperature plane (cap)</label></div>
@@ -93,12 +99,6 @@
     <div class="row"><label>flip side</label><input type="checkbox" id="clipFlip"></div>
     <div class="row"><input type="range" id="cutPos" min="0" max="1" step="0.005" value="0.5"></div>
     <div class="row"><span style="color:var(--mut);font-size:11px">plane shows T across the whole domain</span></div>
-  </div>
-
-  <div class="grp fold" id="flowGrp" style="display:none"><h2>Flow field (drift)</h2>
-    <div class="row"><input type="checkbox" id="flowOn"><label for="flowOn">static arrow field</label></div>
-    <div class="row"><input type="checkbox" id="flowMove"><label for="flowMove">moving arrows</label></div>
-    <div class="row"><span style="color:var(--mut);font-size:11px">green = inlet &middot; red = outlet</span></div>
   </div>
 
   <div class="grp fold"><h2>Representation</h2>
@@ -128,17 +128,27 @@ document.querySelectorAll('#panel .grp h2').forEach(h => {
 });
 
 // ---- colour ramps ----
-const TEMP_COLORS = [[0.230,0.299,0.754],[0.552,0.690,0.996],[0.866,0.866,0.866],
-                     [0.956,0.603,0.486],[0.706,0.016,0.150]];               // coolwarm
+const INFERNO = [[0,0,0.016],[0.086,0.043,0.224],[0.259,0.039,0.408],[0.416,0.090,0.431],
+  [0.576,0.149,0.404],[0.737,0.216,0.330],[0.867,0.318,0.227],[0.953,0.471,0.098],
+  [0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
+const TCLIM = [-15, 80];       // colour-mapping range: 10 C ambient lands on magenta, not black
 const SPEED_COLORS = [[0.23,0.30,0.75],[0.15,0.65,0.90],[0.20,0.80,0.35],[0.95,0.85,0.15],[0.90,0.25,0.15]];
 const STRESS_COLORS = [[0.267,0.005,0.329],[0.229,0.322,0.545],[0.128,0.567,0.551],
                        [0.369,0.789,0.383],[0.993,0.906,0.144]];             // viridis
 const cssGrad = cols => 'linear-gradient(90deg,' + cols.map(c =>
   `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`).join(',') + ')';
+function rampSlice(cols, f0, f1, n) {                    // sample a sub-range of a ramp
+  const pick = f => {
+    const x = Math.max(0, Math.min(1, f)) * (cols.length - 1);
+    const i = Math.min(cols.length - 2, Math.floor(x)), u = x - i;
+    return [0,1,2].map(k => cols[i][k]*(1-u) + cols[i+1][k]*u);
+  };
+  return Array.from({length: n}, (_, j) => pick(f0 + (f1 - f0) * j / (n - 1)));
+}
 function tempCTF() {
   const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-  lut.addRGBPoint(-100, TEMP_COLORS[0][0], TEMP_COLORS[0][1], TEMP_COLORS[0][2]);
-  TEMP_COLORS.forEach((c,i) => lut.addRGBPoint(10 + (i/(TEMP_COLORS.length-1))*70, c[0], c[1], c[2]));
+  lut.addRGBPoint(-100, INFERNO[0][0], INFERNO[0][1], INFERNO[0][2]);
+  INFERNO.forEach((c,i) => lut.addRGBPoint(TCLIM[0] + (i/(INFERNO.length-1))*(TCLIM[1]-TCLIM[0]), c[0], c[1], c[2]));
   return lut;
 }
 
@@ -152,7 +162,7 @@ function main() {
   const sceneSel = document.getElementById('scene'); sceneSel.value = SCENE;
   sceneSel.onchange = e => { location.search = '?scene=' + e.target.value; };
   const view = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
-    rootContainer: document.getElementById('view'), background: [0.043, 0.055, 0.066] });
+    rootContainer: document.getElementById('view'), background: [0.82, 0.85, 0.88] });   // light bg
   const renderer = view.getRenderer();
   const renderWindow = view.getRenderWindow();
   const clipPlane = vtk.Common.DataModel.vtkPlane.newInstance();
@@ -161,9 +171,9 @@ function main() {
   // ---- surface layers (Phong + specular per material) ----
   const LAYERS = [
     { name:'water',    file:'water_transient.vtp', opacity:0.8, visible:false, solid:[0.24,0.52,0.85], spec:0.85, specPow:60 },
-    { name:'rock',     file:'rock.vtp',     opacity:0.22, visible:true, solid:[0.55,0.60,0.68], spec:0.32, specPow:14 },
-    { name:'concrete', file:'concrete.vtp', opacity:0.95, visible:true, solid:[0.40,0.43,0.48], spec:0.12, specPow:8 },
-    { name:'air',      file:'air.vtp',      opacity:0.32, visible:true, solid:[0.60,0.78,0.90], spec:0.35, specPow:25 },
+    { name:'rock',     file:'rock.vtp',     opacity:0.22, visible:true, solid:[0.44,0.47,0.54], spec:0.32, specPow:14 },
+    { name:'concrete', file:'concrete.vtp', opacity:0.95, visible:true, solid:[0.38,0.41,0.46], spec:0.12, specPow:8 },
+    { name:'air',      file:'air.vtp',      opacity:0.32, visible:true, solid:[0.42,0.62,0.82], spec:0.35, specPow:25 },
   ];
   const objs = {};
 
@@ -280,7 +290,10 @@ function main() {
       const o = document.querySelector('#colMode option[value="vm"]'); if (o) o.remove();
     });
 
-    document.getElementById('volOn').onchange = e => { if (volume) volume.setVisibility(e.target.checked); renderWindow.render(); };
+    document.getElementById('volOn').onchange = () => {
+      if (volume) volume.setVisibility(colMode === 'temperature' && document.getElementById('volOn').checked);
+      renderWindow.render();
+    };
     document.getElementById('volInt').oninput = e => {
       if (!volume) return;
       otf = buildOTF(+e.target.value);
@@ -346,7 +359,13 @@ function main() {
       document.getElementById(id).addEventListener('input', applyCut);
       document.getElementById(id).addEventListener('change', applyCut); });
 
-    // ---- colour surfaces: material / temperature / von Mises stress ----
+    // ---- colour surfaces: material / temperature / von Mises / water velocity ----
+    function setFieldVis() {
+      document.getElementById('tempCtl').style.display = colMode === 'temperature' ? '' : 'none';
+      document.getElementById('flowCtl').style.display = colMode === 'flow' ? '' : 'none';
+      if (volume) volume.setVisibility(colMode === 'temperature' && document.getElementById('volOn').checked);
+      syncFlowVis();
+    }
     function setColorMode(mode) {
       colMode = mode;
       LAYERS.forEach(L => {
@@ -354,18 +373,19 @@ function main() {
         if (mode === 'temperature') {
           o.mapper.setLookupTable(surfLUT); o.mapper.setScalarModeToUsePointFieldData();
           o.mapper.setColorByArrayName(L.name === 'water' ? fn(frameIdx) : 'T');
-          o.mapper.setScalarRange(10, 80);
+          o.mapper.setScalarRange(TCLIM[0], TCLIM[1]);
           o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
         } else if (mode === 'vm' && o.hasVM && stressLUT) {
           o.mapper.setLookupTable(stressLUT); o.mapper.setScalarModeToUsePointFieldData();
           o.mapper.setColorByArrayName('vm');
           o.mapper.setScalarRange(stressMeta.vmin, stressMeta.vmax);
           o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
-        } else if (L.solid) {                            // material (and non-vm layers in vm mode)
+        } else if (L.solid) {                            // material (and flow / non-vm layers)
           o.mapper.setScalarVisibility(false);
           o.actor.getProperty().setColor(L.solid[0], L.solid[1], L.solid[2]);
         }
       });
+      setFieldVis();
       updateColorbar();
       renderWindow.render();
     }
@@ -391,8 +411,23 @@ function main() {
     let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
     let pActor = null, pLoading = false, pOn = false, pRAF = null, pLastT = null, pAccum = 0;
     let pLines = null, pList = null, pCoords = null, pSpd = null, pDir = null, pScl = null, pPts = null, pScal = null, pDirArr = null, pSclArr = null, pPoly = null;
-    const flowGrp = document.getElementById('flowGrp');
     const PPL = 3, P_SPEED = 7.0, P_SIZE = 7;
+
+    function syncFlowVis() {                 // flow actors follow the "water velocity" mode
+      const on = colMode === 'flow' && !!flowMeta;
+      const so = on && document.getElementById('flowOn').checked;
+      const mo = on && document.getElementById('flowMove').checked;
+      if (so && !flowActor && !flowLoading) { flowLoading = true; setStatus('loading flow field…'); loadFlow(); }
+      if (flowActor) flowActor.setVisibility(so);
+      pOn = mo;
+      if (mo) {
+        if (!pActor && !pLoading) { pLoading = true; setStatus('loading moving arrows…'); loadParticles(); }
+        else if (pActor) { pActor.setVisibility(true); startParticleAnim(); }
+      } else {
+        if (pRAF) cancelAnimationFrame(pRAF); pRAF = null;
+        if (pActor) pActor.setVisibility(false);
+      }
+    }
 
     // ---- dynamic colourbar: stress > velocity > temperature ----
     function updateColorbar() {
@@ -401,11 +436,11 @@ function main() {
       if (colMode === 'vm' && stressMeta) {
         g.style.background = cssGrad(STRESS_COLORS);
         lo.textContent = stressMeta.vmin.toFixed(1); mid.textContent = 'von Mises [MPa]'; hi.textContent = stressMeta.vmax.toFixed(1);
-      } else if (flowMeta && document.getElementById('flowOn').checked) {
+      } else if (colMode === 'flow' && flowMeta) {
         g.style.background = cssGrad(SPEED_COLORS);
         lo.textContent = '0'; mid.textContent = '|u| [m/s]'; hi.textContent = flowMeta.clip.toExponential(1);
       } else {
-        g.style.background = cssGrad(TEMP_COLORS);
+        g.style.background = cssGrad(rampSlice(INFERNO, (10 - TCLIM[0]) / (TCLIM[1] - TCLIM[0]), 1, 8));
         lo.textContent = '10 °C'; mid.textContent = 'temperature'; hi.textContent = '80 °C';
       }
     }
@@ -421,7 +456,7 @@ function main() {
         flowActor = vtk.Rendering.Core.vtkActor.newInstance();
         flowActor.setMapper(m); flowActor.getProperty().setLighting(false);
         renderer.addActor(flowActor);
-        flowActor.setVisibility(document.getElementById('flowOn').checked);
+        flowActor.setVisibility(colMode === 'flow' && document.getElementById('flowOn').checked);
         flowLoading = false; renderWindow.render();
         setStatus('ready · drag to rotate, scroll to zoom');
       }).catch(err => { flowLoading = false; setStatus('flow load failed: ' + err, true); });
@@ -510,7 +545,8 @@ function main() {
         pActor.getProperty().setColor(0.32, 0.62, 0.95);   // water blue
         pActor.getProperty().setPointSize(P_SIZE);
         renderer.addActor(pActor);
-        pLoading = false; startParticleAnim();
+        pActor.setVisibility(pOn);
+        pLoading = false; if (pOn) startParticleAnim();
         setStatus('ready · drag to rotate, scroll to zoom');
       }).catch(err => { pLoading = false; setStatus('particles load failed: ' + err, true); });
     }
@@ -526,25 +562,15 @@ function main() {
         addWell(inward(meta.outlet, 0.55), [0.96, 0.35, 0.15]);   // red = outlet
       }
       renderWindow.render();
-      if (flowGrp) flowGrp.style.display = '';
-      document.getElementById('flowOn').onchange = e => {
-        if (e.target.checked && !flowActor && !flowLoading) { flowLoading = true; setStatus('loading flow field…'); loadFlow(); }
-        else if (flowActor) { flowActor.setVisibility(e.target.checked); renderWindow.render(); }
-        updateColorbar();
-      };
-      document.getElementById('flowMove').onchange = e => {
-        pOn = e.target.checked;
-        if (pOn) {
-          if (!pActor && !pLoading) { pLoading = true; setStatus('loading particles…'); loadParticles(); }
-          else if (pActor) { pActor.setVisibility(true); startParticleAnim(); }
-        } else {
-          if (pRAF) cancelAnimationFrame(pRAF); pRAF = null;
-          if (pActor) pActor.setVisibility(false); renderWindow.render();
-        }
-      };
-    }).catch(() => { if (flowGrp) flowGrp.style.display = 'none'; });
+      document.getElementById('flowOn').onchange = () => { syncFlowVis(); renderWindow.render(); };
+      document.getElementById('flowMove').onchange = () => { syncFlowVis(); renderWindow.render(); };
+      syncFlowVis(); updateColorbar();
+    }).catch(() => {
+      const o = document.querySelector('#colMode option[value="flow"]'); if (o) o.remove();
+      if (colMode === 'flow') { document.getElementById('colMode').value = 'material'; setColorMode('material'); }
+    });
 
-    updateColorbar();
+    setColorMode(document.getElementById('colMode').value);
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
