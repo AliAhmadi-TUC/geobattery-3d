@@ -218,11 +218,15 @@ function main() {
   const fn = i => 'T' + String(i).padStart(2, '0');      // water-surface per-frame array name
   const frameCache = {};
   function buildOTF(scale) {
-    // ramp starts just above ambient so at higher intensity the warm rock /
-    // concrete / air halo shows too, not only the water plume
+    // Bulk rock/air/concrete sit at exactly 10 C, so a ramp that is zero at
+    // 10 C can only ever show the plume halo. Above 1x intensity an ambient
+    // fog floor fades in, revealing the whole domain, not just the water.
+    const amb = 0.022 * Math.max(0, scale - 1);
     const f = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
-    f.addPoint(-100, 0.0); f.addPoint(9.5, 0.0);
-    f.addPoint(14, 0.012*scale); f.addPoint(22, 0.035*scale);
+    f.addPoint(-100, 0.0); f.addPoint(9.0, 0.0);
+    f.addPoint(10, amb);
+    f.addPoint(14, Math.max(amb, 0.012*scale));
+    f.addPoint(22, Math.max(amb, 0.035*scale));
     f.addPoint(34, 0.07*scale);  f.addPoint(48, 0.14*scale);
     f.addPoint(64, 0.30*scale);  f.addPoint(80, 0.55*scale);
     return f;
