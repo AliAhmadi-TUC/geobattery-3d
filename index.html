@@ -218,15 +218,10 @@ function main() {
   const fn = i => 'T' + String(i).padStart(2, '0');      // water-surface per-frame array name
   const frameCache = {};
   function buildOTF(scale) {
-    // Bulk rock/air/concrete sit at exactly 10 C, so a ramp that is zero at
-    // 10 C can only ever show the plume halo. Above 1x intensity an ambient
-    // fog floor fades in, revealing the whole domain, not just the water.
-    const amb = 0.022 * Math.max(0, scale - 1);
+    // opacity follows warmth only: the plume + its halo glow, ambient stays clear
     const f = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
-    f.addPoint(-100, 0.0); f.addPoint(9.0, 0.0);
-    f.addPoint(10, amb);
-    f.addPoint(14, Math.max(amb, 0.012*scale));
-    f.addPoint(22, Math.max(amb, 0.035*scale));
+    f.addPoint(-100, 0.0); f.addPoint(9.5, 0.0);
+    f.addPoint(14, 0.012*scale); f.addPoint(22, 0.035*scale);
     f.addPoint(34, 0.07*scale);  f.addPoint(48, 0.14*scale);
     f.addPoint(64, 0.30*scale);  f.addPoint(80, 0.55*scale);
     return f;
@@ -379,14 +374,17 @@ function main() {
           o.mapper.setColorByArrayName(L.name === 'water' ? fn(frameIdx) : 'T');
           o.mapper.setScalarRange(TCLIM[0], TCLIM[1]);
           o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
+          o.actor.getProperty().setLighting(false);      // flat: colours match the colourbar
         } else if (mode === 'vm' && o.hasVM && stressLUT) {
           o.mapper.setLookupTable(stressLUT); o.mapper.setScalarModeToUsePointFieldData();
           o.mapper.setColorByArrayName('vm');
           o.mapper.setScalarRange(stressMeta.vmin, stressMeta.vmax);
           o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
+          o.actor.getProperty().setLighting(false);      // flat: colours match the colourbar
         } else if (L.solid) {                            // material (and flow / non-vm layers)
           o.mapper.setScalarVisibility(false);
           o.actor.getProperty().setColor(L.solid[0], L.solid[1], L.solid[2]);
+          o.actor.getProperty().setLighting(true);       // shaded material look
         }
       });
       setFieldVis();
