@@ -766,7 +766,7 @@ function main() {
     let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
     let pActor = null, pLoading = false, pOn = false, pRAF = null, pLastT = null, pAccum = 0;
     let pLines = null, pList = null, pCoords = null, pSpd = null, pDir = null, pScl = null, pPts = null, pScal = null, pDirArr = null, pSclArr = null, pPoly = null;
-    const PPL = 3, P_SPEED = 7.0, P_SIZE = 7;
+    const PPL_BASE = 4, PPL_MIN = 3, CURV_GAIN = 1.8, P_SPEED = 7.0, P_SIZE = 7;
 
     function syncFlowVis() {                 // flow actors follow the "water velocity" mode
       const on = colMode === 'flow' && !!flowMeta;
@@ -853,16 +853,26 @@ function main() {
     function loadParticles() {
       fetch(DATA + 'flowlines.json').then(r => r.json()).then(fl => {
         pLines = fl.lines; pList = [];
-        pLines.forEach((L, li) => {
-          const P = L.pts, n = P.length; L.dir = new Array(n); L.scl = new Array(n);
+        // pass 1: unit tangents, speed-scale, and total turning (chamber proxy)
+        let maxTurn = 1e-6;
+        pLines.forEach(L => {
+          const P = L.pts, n = P.length; L.dir = new Array(n); L.scl = new Array(n); let turn = 0;
           for (let j = 0; j < n; j++) {
             const a = P[Math.min(j, n - 2)], b2 = P[Math.min(j + 1, n - 1)];
             const dx = b2[0]-a[0], dy = b2[1]-a[1], dz = b2[2]-a[2];
             const mm = Math.hypot(dx, dy, dz) || 1; L.dir[j] = [dx/mm, dy/mm, dz/mm];
             const al = Math.min(0.78, Math.max(0.20, 0.78 * Math.sqrt((L.spd[j] || 0) / flowMeta.clip)));
             L.scl[j] = al * 0.6;                                   // speed-scaled, ~0.6x the static arrows
+            if (j) { const p = L.dir[j-1]; turn += Math.max(0, 1 - (L.dir[j][0]*p[0]+L.dir[j][1]*p[1]+L.dir[j][2]*p[2])); }
           }
-          const per = Math.min(PPL, n), phi = Math.random();     // random per-line phase
+          L.turn = turn; if (turn > maxTurn) maxTurn = turn;
+        });
+        // pass 2: bendy lines get more particles -> denser at the chambers; all
+        // streamlines converge on the inlet/outlet, so those densify too
+        pLines.forEach((L, li) => {
+          const n = L.pts.length;
+          const per = Math.min(n, Math.max(PPL_MIN, Math.round(PPL_BASE * (1 + CURV_GAIN * L.turn / maxTurn))));
+          const phi = Math.random();                             // random per-line phase
           for (let k = 0; k < per; k++) pList.push({ l: li, p: Math.floor((k / per + phi) * n) % n });
         });
         const N = pList.length;
@@ -881,8 +891,8 @@ function main() {
         pPoly.getPointData().setScalars(pScal);
         let mapper = null;
         try {                                     // moving ARROWS via glyph mapper
-          const arrowSrc = vtk.Filters.Sources.vtkArrowSource.newInstance(
-            { tipResolution: 8, shaftResolution: 8, tipRadius: 0.32, tipLength: 0.42, shaftRadius: 0.10 });
+          const arrowSrc = vtk.Filters.Sources.vtkArrowSource.newInstance(   // match the static arrow: slim head, long body
+            { tipResolution: 12, shaftResolution: 12, tipRadius: 0.12, tipLength: 0.32, shaftRadius: 0.05 });
           const gm = vtk.Rendering.Core.vtkGlyph3DMapper.newInstance();
           gm.setInputData(pPoly, 0);
           gm.setInputConnection(arrowSrc.getOutputPort(), 1);
