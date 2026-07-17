@@ -1205,8 +1205,8 @@ function main() {
         sMap.addClippingPlane(sweep3);
         sAct = vtk.Rendering.Core.vtkActor.newInstance(); sAct.setMapper(sMap);
         { const sp = sAct.getProperty(); sp.setRepresentation(2); sp.setInterpolationToPhong();
-          sp.setColor(0.55, 0.63, 0.76); sp.setAmbient(0.16); sp.setDiffuse(0.5);
-          sp.setSpecular(1.0); sp.setSpecularPower(55); sp.setSpecularColor(1, 1, 1); }   // metallic sheen
+          sp.setColor(0.28, 0.35, 0.47); sp.setAmbient(0.22); sp.setDiffuse(0.80);
+          sp.setSpecular(0.12); sp.setSpecularPower(6); sp.setSpecularColor(0.7, 0.75, 0.85); }   // matte/rough, darker — edges read on top
         renderer.addActor(sAct);
         // WARM-UP: a throwaway render with the camera thrown far away (sub-pixel), all meshes open —
         // forces the GPU to upload geometry + compile shaders NOW, so nothing stalls mid-animation
@@ -1232,7 +1232,11 @@ function main() {
         await _tween(900, () => {});                        // brief hold on the wireframe
         // 1c — fill the SURFACE over the edges (shiny/metallic shading sets it apart from the flat edge lines)
         if (!touring) throw 0;
-        await _tween(3400, (e, u) => { sweep3.setOrigin(0, _L(symn, symx, u), 0); });   // surface skins over the mesh
+        await _tween(3400, (e, u) => {
+          sweep3.setOrigin(0, _L(symn, symx, u), 0);                            // surface skins over the mesh
+          W.actor.getProperty().setOpacity(Math.max(0, 1 - u * 1.5));           // ...and the point dots fade out as it fills
+        });
+        W.actor.setVisibility(false);                       // points gone — only the shaded surface + edges remain
         await _tween(1800, () => _place(sideV, cen, UP));   // hold on the finished shaded surface, then STOP
       } catch (e) { console.warn('tour', e); }
 
