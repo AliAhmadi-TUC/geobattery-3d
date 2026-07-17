@@ -1125,6 +1125,7 @@ function main() {
     // ================= guided tour (cinematic) =================
     // build -> zoom to inlet (red hot water) -> walk the drift as it heats -> hand back
     const tCam = renderer.getActiveCamera();
+    const baseFov = tCam.getViewAngle();               // the app's real fov, captured before any tour
     const _e = u => u < 0.5 ? 2*u*u : 1 - Math.pow(-2*u + 2, 2) / 2;
     const _L = (a,b2,t) => a + (b2 - a) * t;
     const _L3 = (A,B2,t) => [_L(A[0],B2[0],t), _L(A[1],B2[1],t), _L(A[2],B2[2],t)];
@@ -1153,7 +1154,7 @@ function main() {
       if (touring) { touring = false; return; }           // second click = end
       touring = true; if (btn) btn.textContent = '✕ end';
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
-      tCam.setViewAngle(30);                    // consistent fov across runs
+      tCam.setViewAngle(baseFov);               // restore the app's real fov (consistent across runs)
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
       let eAct = null;                                   // edges (node connections) actor
       try {
