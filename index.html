@@ -773,6 +773,34 @@ function main() {
       }
     });
 
+    // clip vs field-plane are mutually exclusive: each hides the other's controls
+    // (+ flip side, a clip-only control); both reveal the internal wireframe.
+    const clipRow = document.getElementById('clipOn').closest('.row');
+    const flipRow = document.getElementById('clipFlip').closest('.row');
+    const sliceRow = document.getElementById('sliceOn').closest('.row');
+    const wireGrpEl = document.getElementById('wireGrp');
+    function syncCutUI() {
+      const clip = document.getElementById('clipOn').checked, slice = document.getElementById('sliceOn').checked;
+      clipRow.style.display = slice ? 'none' : '';
+      flipRow.style.display = slice ? 'none' : '';
+      sliceRow.style.display = clip ? 'none' : '';
+      const w = document.getElementById('wireOn'), want = clip || slice;
+      if (w && wireGrpEl && wireGrpEl.style.display !== 'none' && w.checked !== want) {
+        w.checked = want; w.dispatchEvent(new Event('change'));
+      }
+    }
+    document.getElementById('clipOn').addEventListener('change', e => {
+      if (e.target.checked) { const s = document.getElementById('sliceOn'); if (s.checked) { s.checked = false; s.dispatchEvent(new Event('change')); } }
+      syncCutUI();
+    });
+    document.getElementById('sliceOn').addEventListener('change', e => {
+      if (e.target.checked) { const c = document.getElementById('clipOn'); if (c.checked) { c.checked = false; c.dispatchEvent(new Event('change')); } }
+      syncCutUI();
+    });
+    syncCutUI();
+    fetch(DATA + 'domain.vti', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
+      .catch(() => { sliceRow.style.display = 'none'; });   // field plane needs domain.vti (drift only)
+
     // ---- colour surfaces: material / temperature / von Mises / water velocity ----
     function setFieldVis() {
       document.getElementById('tempCtl').style.display = colMode === 'temperature' ? '' : 'none';
