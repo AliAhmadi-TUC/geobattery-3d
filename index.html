@@ -1191,8 +1191,8 @@ function main() {
         const sweep2 = vtk.Common.DataModel.vtkPlane.newInstance(); sweep2.setNormal(0, -1, 0); sweep2.setOrigin(0, symn, 0);
         eMap.addClippingPlane(sweep2);
         eAct = vtk.Rendering.Core.vtkActor.newInstance(); eAct.setMapper(eMap);
-        eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light — visible on dark
-        eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.9);
+        eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light blue — visible on dark
+        eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(3); eAct.getProperty().setOpacity(0.95);   // step 2: THICK + opaque
         renderer.addActor(eAct);
         // pre-create the SURFACE actor (shiny/metallic, distinct from the flat edges), fully clipped
         const sMap = vtk.Rendering.Core.vtkMapper.newInstance();
@@ -1205,8 +1205,8 @@ function main() {
         sMap.addClippingPlane(sweep3);
         sAct = vtk.Rendering.Core.vtkActor.newInstance(); sAct.setMapper(sMap);
         { const sp = sAct.getProperty(); sp.setRepresentation(2); sp.setInterpolationToPhong();
-          sp.setColor(0.28, 0.35, 0.47); sp.setAmbient(0.22); sp.setDiffuse(0.80);
-          sp.setSpecular(0.12); sp.setSpecularPower(6); sp.setSpecularColor(0.7, 0.75, 0.85); }   // matte/rough, darker — edges read on top
+          sp.setColor(0.60, 0.62, 0.66); sp.setAmbient(0.32); sp.setDiffuse(0.88);
+          sp.setSpecular(0.28); sp.setSpecularPower(14); sp.setSpecularColor(1, 1, 1); }   // lit grey — clearly not the blue edges
         renderer.addActor(sAct);
         // WARM-UP: a throwaway render with the camera thrown far away (sub-pixel), all meshes open —
         // forces the GPU to upload geometry + compile shaders NOW, so nothing stalls mid-animation
@@ -1220,24 +1220,21 @@ function main() {
         // 1a — POINTS build + rotation to the side view in ONE continuous tween, so there's no
         // mid-motion hand-off between tweens (that hand-off was the residual stutter).
         // W's clip is left swept-open here; it's cleared on restore.
-        await _tween(6800, (e, u) => {
+        await _tween(4400, (e, u) => {
           sweep.setOrigin(0, _L(symn, symx, Math.min(1, u / 0.55)), 0);      // points sweep completes by ~55%
           const r = _e(Math.max(0, Math.min(1, (u - 0.5) / 0.5)));          // rotation runs u 0.5 -> 1 (overlaps the sweep tail)
           _place(_L3(front, sideV, r), _L3(focalP, cen, r), UP);
         });
 
-        // 1b — CONNECT the nodes (edges) from the side view (actor pre-created above -> no hitch)
+        // 2 — CONNECT the nodes (edges: THICK + opaque) from the side view (actor pre-created above -> no hitch)
         if (!touring) throw 0;
-        await _tween(3600, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
-        await _tween(900, () => {});                        // brief hold on the wireframe
-        // 1c — fill the SURFACE over the edges (shiny/metallic shading sets it apart from the flat edge lines)
+        await _tween(2200, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
+        W.actor.setVisibility(false);                                                    // POINTS removed the instant step 2 finishes
+        eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.3);          // edges recede: THIN + faint under the surface
+        // 3 — fill the SURFACE over the edges (lit grey shading sets it apart from the thin faint edges)
         if (!touring) throw 0;
-        await _tween(3400, (e, u) => {
-          sweep3.setOrigin(0, _L(symn, symx, u), 0);                            // surface skins over the mesh
-          W.actor.getProperty().setOpacity(Math.max(0, 1 - u * 1.5));           // ...and the point dots fade out as it fills
-        });
-        W.actor.setVisibility(false);                       // points gone — only the shaded surface + edges remain
-        await _tween(1800, () => _place(sideV, cen, UP));   // hold on the finished shaded surface, then STOP
+        await _tween(2000, (e, u) => { sweep3.setOrigin(0, _L(symn, symx, u), 0); });   // surface skins over the mesh
+        await _tween(1100, () => _place(sideV, cen, UP));   // hold on the finished shaded surface, then STOP
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
