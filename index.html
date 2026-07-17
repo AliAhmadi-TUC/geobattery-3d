@@ -1203,16 +1203,14 @@ function main() {
         sweep2.setOrigin(0, symn, 0);            // edges hidden again for the points phase
         _place(front, focalP, UP);
         if (!touring) throw 0;
-        // 1a — POINTS build; the camera begins easing toward the side view before the sweep finishes
-        await _tween(4600, (e, u) => {
-          sweep.setOrigin(0, _L(symn, symx, u), 0);
-          const r = Math.max(0, (u - 0.7) / 0.3) * 0.4;      // last 30%: ease into 40% of the rotation
+        // 1a — POINTS build + rotation to the side view in ONE continuous tween, so there's no
+        // mid-motion hand-off between tweens (that hand-off was the residual stutter).
+        // W's clip is left swept-open here; it's cleared on restore.
+        await _tween(6800, (e, u) => {
+          sweep.setOrigin(0, _L(symn, symx, Math.min(1, u / 0.55)), 0);      // points sweep completes by ~55%
+          const r = _e(Math.max(0, Math.min(1, (u - 0.5) / 0.5)));          // rotation runs u 0.5 -> 1 (overlaps the sweep tail)
           _place(_L3(front, sideV, r), _L3(focalP, cen, r), UP);
         });
-        // (leave W's clip plane in place at the swept-open origin — removing it here would
-        //  recompile the shader and stutter the rotation; it's cleaned up on restore)
-        // finish rotating round to the side view
-        await _tween(2400, e => _place(_L3(front, sideV, 0.4 + e*0.6), _L3(focalP, cen, 0.4 + e*0.6), UP));
 
         // 1b — CONNECT the nodes (edges) from the side view (actor pre-created above -> no hitch)
         if (!touring) throw 0;
