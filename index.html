@@ -761,14 +761,14 @@ function main() {
     // field plane on -> hide the surrounding surfaces for a clean cross-section; restore on off
     let savedSurfVis = null;
     document.getElementById('sliceOn').addEventListener('change', e => {
-      const layers = ['water','rock','concrete','air'];
+      const boxes = ['vis_water','vis_rock','vis_concrete','vis_air','volOn'];   // surfaces + volumetric glow
       if (e.target.checked) {
         savedSurfVis = {};
-        layers.forEach(nm => { const cb = document.getElementById('vis_' + nm);
-          if (cb) { savedSurfVis[nm] = cb.checked; if (cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); } } });
+        boxes.forEach(id => { const cb = document.getElementById(id);
+          if (cb) { savedSurfVis[id] = cb.checked; if (cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); } } });
       } else if (savedSurfVis) {
-        layers.forEach(nm => { const cb = document.getElementById('vis_' + nm);
-          if (cb && savedSurfVis[nm] && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); } });
+        boxes.forEach(id => { const cb = document.getElementById(id);
+          if (cb && savedSurfVis[id] && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); } });
         savedSurfVis = null;
       }
     });
