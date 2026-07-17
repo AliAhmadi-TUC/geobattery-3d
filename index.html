@@ -1175,21 +1175,20 @@ function main() {
         const cen = [sx/np, sy/np, sz/np];
         const ax = [out[0]-inl[0], out[1]-inl[1], 0], an = Math.hypot(ax[0], ax[1]) || 1;
         const perp = [ax[1]/an, -ax[0]/an, 0];   // horizontal, perpendicular to the tilted drift axis
-        const frontA = [cen[0], cen[1] - 78, cen[2] + 42];   // FRONT view (zoomed out a bit)
-        const frontB = [cen[0], cen[1] - 58, cen[2] + 31];
-        const sideV  = [cen[0] + perp[0]*92, cen[1] + perp[1]*92, cen[2] + 8];   // SIDE (Y-Z), tilt-corrected, zoomed out
+        const front = [cen[0], cen[1] - 100, cen[2] + 54];   // FRONT view (fixed for the points), zoomed out
+        const sideV = [cen[0] + perp[0]*118, cen[1] + perp[1]*118, cen[2] + 11];   // SIDE (Y-Z), tilt-corrected, zoomed out
         W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
         W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(1.0);
         W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(3.5);   // POINTS only
         W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
-        _place(frontA, cen, UP);
+        _place(front, cen, UP);
         if (!touring) throw 0;
-        // 1a — water/rock interface POINTS build (front view)
-        await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); _place(_L3(frontA, frontB, e), cen, UP); });
+        // 1a — POINTS build, camera STATIC
+        await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); });
         W.mapper.removeAllClippingPlanes();
-        await _tween(1400, () => _place(frontB, cen, UP));   // hold on the points
+        await _tween(1400, () => {});                        // hold on the points
         // rotate smoothly from the front view round to the side view
-        await _tween(2800, e => _place(_L3(frontB, sideV, e), cen, UP));
+        await _tween(2800, e => _place(_L3(front, sideV, e), cen, UP));
 
         // 1b — CONNECT the nodes (edges) from the side view
         const eMap = vtk.Rendering.Core.vtkMapper.newInstance();
