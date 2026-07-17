@@ -1156,7 +1156,7 @@ function main() {
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
       tCam.setViewAngle(baseFov);               // restore the app's real fov (consistent across runs)
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
-      let eAct = null, sAct = null, sweep4 = null, rSave = null;   // edges + surface actors; walls sweep-plane + saved rock material
+      let eAct = null, sAct = null, sweep4 = null; const faceActs = [];   // edges + surface actors; walls sweep-plane + 6 coloured face actors
       try {
         const B = renderer.computeVisiblePropBounds();
         const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
@@ -1208,34 +1208,58 @@ function main() {
           sp.setColor(0.46, 0.48, 0.52); sp.setAmbient(0.30); sp.setDiffuse(0.86);
           sp.setSpecular(0.28); sp.setSpecularPower(14); sp.setSpecularColor(1, 1, 1); }   // darker lit grey — clearly not the blue edges
         renderer.addActor(sAct);
-        // pre-configure the SURROUNDING ROCK DOMAIN (outer box walls) — translucent lit grey, swept along Y.
-        // Compute the domain-framing camera now (Gif_creating.py pulls way back to CAMERA_WALLS here).
+        // pre-build the SURROUNDING DOMAIN as SIX bright coloured walls (like Gif_creating.py's phase_walls).
+        // rock.vtp is one merged box surface -> split its triangles into 6 groups by outward normal.
         const R = objs.rock; let rb = null, bcen = null, wallCam = null;
         if (R) {
-          rb = R.mapper.getInputData().getBounds();
+          const rpd = R.mapper.getInputData();
+          const rpts = rpd.getPoints().getData();
+          const rpolys = rpd.getPolys().getData();     // [3,i,j,k, 3,...]
+          rb = rpd.getBounds();
           bcen = [(rb[0]+rb[1])/2, (rb[2]+rb[3])/2, (rb[4]+rb[5])/2];
           const bdiag = Math.hypot(rb[1]-rb[0], rb[3]-rb[2], rb[5]-rb[4]);
           const fovR = baseFov * Math.PI / 180;
           const dist = (bdiag / 2) / Math.sin(fovR / 2) * 0.9;      // pull back so the whole box fits the view
-          wallCam = [bcen[0] - perp[0]*dist, bcen[1] - perp[1]*dist, bcen[2] + dist*0.10];
-          const rp = R.actor.getProperty();
-          rSave = { amb: rp.getAmbient(), dif: rp.getDiffuse(), spec: rp.getSpecular(), sp: rp.getSpecularPower() };
+          const vd = [-0.85, -0.6, 0.55], vl = Math.hypot(vd[0], vd[1], vd[2]);   // 3/4 view -> three coloured faces read
+          wallCam = [bcen[0] + vd[0]/vl*dist, bcen[1] + vd[1]/vl*dist, bcen[2] + vd[2]/vl*dist];
+          // group triangles by dominant outward normal: 0:+x 1:-x 2:+y 3:-y 4:+z 5:-z
+          const groups = [[], [], [], [], [], []];
+          for (let p = 0; p + 3 < rpolys.length; p += 4) {
+            const a = rpolys[p+1], b2 = rpolys[p+2], c2 = rpolys[p+3];
+            const ux = rpts[b2*3]-rpts[a*3], uy = rpts[b2*3+1]-rpts[a*3+1], uz = rpts[b2*3+2]-rpts[a*3+2];
+            const vx = rpts[c2*3]-rpts[a*3], vy = rpts[c2*3+1]-rpts[a*3+1], vz = rpts[c2*3+2]-rpts[a*3+2];
+            const nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx;
+            const anx = Math.abs(nx), any2 = Math.abs(ny), anz = Math.abs(nz);
+            let g; if (anx >= any2 && anx >= anz) g = nx >= 0 ? 0 : 1;
+            else if (any2 >= anz) g = ny >= 0 ? 2 : 3; else g = nz >= 0 ? 4 : 5;
+            groups[g].push(a, b2, c2);
+          }
+          const WALL_COL = [[0.92,0.22,0.26],[0.24,0.76,0.34],[0.26,0.46,0.96],[0.98,0.62,0.14],[0.68,0.36,0.90],[0.16,0.80,0.80]];
           sweep4 = vtk.Common.DataModel.vtkPlane.newInstance(); sweep4.setNormal(0, -1, 0); sweep4.setOrigin(0, rb[2], 0);
-          R.mapper.setScalarVisibility(false);
-          R.mapper.removeAllClippingPlanes(); R.mapper.addClippingPlane(sweep4);
-          rp.setRepresentation(2); rp.setInterpolationToPhong(); rp.setEdgeVisibility(false);
-          rp.setColor(0.52, 0.55, 0.60); rp.setOpacity(0.2);
-          rp.setAmbient(0.34); rp.setDiffuse(0.82); rp.setSpecular(0.1); rp.setSpecularPower(8);
+          for (let g = 0; g < 6; g++) {
+            const tri = groups[g]; if (!tri.length) continue;
+            const conn = new Uint32Array(tri.length / 3 * 4);
+            for (let t = 0, w2 = 0; t < tri.length; t += 3) { conn[w2++] = 3; conn[w2++] = tri[t]; conn[w2++] = tri[t+1]; conn[w2++] = tri[t+2]; }
+            const fpd = vtk.Common.DataModel.vtkPolyData.newInstance();
+            fpd.getPoints().setData(rpts, 3); fpd.getPolys().setData(conn);
+            const fm = vtk.Rendering.Core.vtkMapper.newInstance(); fm.setInputData(fpd); fm.setScalarVisibility(false);
+            fm.addClippingPlane(sweep4);
+            const fa = vtk.Rendering.Core.vtkActor.newInstance(); fa.setMapper(fm);
+            const fp = fa.getProperty(); fp.setColor(WALL_COL[g][0], WALL_COL[g][1], WALL_COL[g][2]);
+            fp.setAmbient(0.45); fp.setDiffuse(0.62); fp.setSpecular(0.0); fp.setOpacity(0.94);
+            fp.setEdgeVisibility(true); fp.setEdgeColor(0.95, 0.96, 1.0); fp.setLineWidth(0.5);
+            fa.setVisibility(false); renderer.addActor(fa); faceActs.push(fa);
+          }
         }
         // WARM-UP: a throwaway render with the camera thrown far away (sub-pixel), all meshes open —
         // forces the GPU to upload geometry + compile shaders NOW, so nothing stalls mid-animation
         sweep.setOrigin(0, symx + 50, 0); sweep2.setOrigin(0, symx + 50, 0); sweep3.setOrigin(0, symx + 50, 0);
-        if (R) { R.actor.setVisibility(true); sweep4.setOrigin(0, rb[3], 0); }   // walls open for the warm-up too
+        if (faceActs.length) { faceActs.forEach(a => a.setVisibility(true)); sweep4.setOrigin(0, rb[3], 0); }   // walls open for the warm-up too
         tCam.setPosition(cen[0], cen[1] - 4000, cen[2]); tCam.setFocalPoint(cen[0], cen[1], cen[2]);
         tCam.setViewUp(0, 0, 1); tCam.setClippingRange(0.5, 8000);
         renderWindow.render();
         sweep2.setOrigin(0, symn, 0); sweep3.setOrigin(0, symn, 0);   // edges + surface hidden again for the points phase
-        if (R) { R.actor.setVisibility(false); sweep4.setOrigin(0, rb[2], 0); }   // walls hidden until step 4
+        if (faceActs.length) { faceActs.forEach(a => a.setVisibility(false)); sweep4.setOrigin(0, rb[2], 0); }   // walls hidden until step 4
         _place(front, focalP, UP);
         if (!touring) throw 0;
         // 1a — POINTS build + rotation to the side view in ONE continuous tween, so there's no
@@ -1260,11 +1284,11 @@ function main() {
         // 4 — ADD THE SURROUNDING ROCK DOMAIN (outer walls). Pull the camera back to frame the whole
         //     domain box (like Gif_creating.py -> CAMERA_WALLS), then sweep the walls in along the drift axis.
         if (!touring) throw 0;
-        if (R) {
-          R.actor.setVisibility(true);
-          await _tween(2000, (e) => _place(_L3(sideV, wallCam, e), _L3(cen, bcen, e), UP));   // zoom OUT to the domain view
-          await _tween(2600, (e, u) => { sweep4.setOrigin(0, _L(rb[2], rb[3], u), 0); });     // walls rise along Y
-          await _tween(1000, () => {});                        // hold on the finished domain
+        if (faceActs.length) {
+          faceActs.forEach(a => a.setVisibility(true));
+          await _tween(2000, (e) => _place(_L3(sideV, wallCam, e), _L3(cen, bcen, e), UP));   // zoom out + orbit to the 3/4 domain view
+          await _tween(2600, (e, u) => { sweep4.setOrigin(0, _L(rb[2], rb[3], u), 0); });     // the six coloured walls rise along Y
+          await _tween(1000, () => {});                        // hold on the finished domain box
         }
       } catch (e) { console.warn('tour', e); }
 
@@ -1273,9 +1297,7 @@ function main() {
       if (eAct) { renderer.removeActor(eAct); eAct = null; }
       if (sAct) { renderer.removeActor(sAct); sAct = null; }
       if (objs.water) objs.water.mapper.removeAllClippingPlanes();   // clear the tour's sweep clip
-      if (objs.rock) { objs.rock.mapper.removeAllClippingPlanes();   // clear the walls sweep + restore rock material
-        if (rSave) { const rp = objs.rock.actor.getProperty();
-          rp.setAmbient(rSave.amb); rp.setDiffuse(rSave.dif); rp.setSpecular(rSave.spec); rp.setSpecularPower(rSave.sp); } }
+      faceActs.forEach(a => renderer.removeActor(a)); faceActs.length = 0;   // drop the 6 coloured wall actors
       const eOn = document.getElementById('edges').checked, rep = +document.getElementById('repr').value;
       LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
         pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
