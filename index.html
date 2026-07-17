@@ -1179,17 +1179,10 @@ function main() {
           o.actor.getProperty().setOpacity(0.0); o.actor.setVisibility(true); } });
         _place(camA, drift);
         if (!touring) throw 0;
-        // 1a — mesh POINTS build across the domain
-        await _tween(1900, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0); _place(_L3(camA, ov, e*0.4), drift); });
-        // 1b — SURFACE MESHING: the triangulated surface reveals + fills over the points
-        LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.mapper.removeAllClippingPlanes(); o.mapper.addClippingPlane(sweep); } });
-        if (W) W.actor.getProperty().setOpacity(0.3);
-        await _tween(3000, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0);
-          LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity((L.name === 'rock' ? 0.55 : 0.9) * e); });
-          _place(_L3(camA, ov, 0.4 + e*0.55), drift); });
-        if (W) { W.mapper.removeAllClippingPlanes(); W.actor.setVisibility(false); }
-        LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.mapper.removeAllClippingPlanes(); });
-        await _tween(1600, () => _place(ov, drift));        // hold on the finished mesh
+        // 1a — mesh POINTS build across the domain (phase_tunnel_points), then STOP
+        await _tween(2200, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0); _place(_L3(camA, ov, e*0.45), drift); });
+        if (W) W.mapper.removeAllClippingPlanes();
+        await _tween(1600, () => _place(ov, drift));        // hold on the point cloud
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
