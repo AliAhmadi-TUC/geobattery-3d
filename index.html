@@ -1202,7 +1202,8 @@ function main() {
           const r = Math.max(0, (u - 0.7) / 0.3) * 0.4;      // last 30%: ease into 40% of the rotation
           _place(_L3(front, sideV, r), _L3(focalP, cen, r), UP);
         });
-        W.mapper.removeAllClippingPlanes();
+        // (leave W's clip plane in place at the swept-open origin — removing it here would
+        //  recompile the shader and stutter the rotation; it's cleaned up on restore)
         // finish rotating round to the side view
         await _tween(2400, e => _place(_L3(front, sideV, 0.4 + e*0.6), _L3(focalP, cen, 0.4 + e*0.6), UP));
 
@@ -1215,6 +1216,7 @@ function main() {
       // ---- hand over: restore the normal interactive view ----
       touring = false; if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
       if (eAct) { renderer.removeActor(eAct); eAct = null; }
+      if (objs.water) objs.water.mapper.removeAllClippingPlanes();   // clear the tour's sweep clip
       const eOn = document.getElementById('edges').checked, rep = +document.getElementById('repr').value;
       LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
         pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
