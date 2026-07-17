@@ -1154,6 +1154,7 @@ function main() {
       touring = true; if (btn) btn.textContent = '✕ end';
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
+      let wireWas = false;
       try {
         const B = renderer.computeVisiblePropBounds();
         const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
@@ -1161,35 +1162,35 @@ function main() {
         const out = (flowMeta && flowMeta.outlet) || [14,43,1.2];
         const drift = [(inl[0]+out[0])/2, (inl[1]+out[1])/2, (inl[2]+out[2])/2];
         const span = Math.max(B[1]-B[0], B[3]-B[2], B[5]-B[4]);
-        const ymn = B[2], ymx = B[3];
-        const camA = [ctr[0]+span*0.55, ctr[1]-span*0.80, ctr[2]+span*0.55];   // whole-domain 3/4 view
-        const ov   = [ctr[0]+span*0.40, ctr[1]-span*0.55, ctr[2]+span*0.40];   // closer, end of build
+        const symn = Math.min(inl[1], out[1]) - 5, symx = Math.max(inl[1], out[1]) + 7;  // sweep over the drift
+        const UP = [0, 0, 1];
+        const camA = [drift[0], drift[1] - 96, drift[2] + 26];   // straight-on FRONT view (looking +y)
+        const ov   = [drift[0], drift[1] - 70, drift[2] + 20];   // front, a touch closer
+        // everything OFF — only the point cloud shows
         if (volume) volume.setVisibility(false);
-        const wcb = document.getElementById('wireOn'); if (wcb && !wcb.checked) { wcb.checked = true; wcb.dispatchEvent(new Event('change')); }
+        LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.setVisibility(false); });
+        const wcb = document.getElementById('wireOn'); wireWas = !!(wcb && wcb.checked);
+        if (wcb && !wcb.checked) { wcb.checked = true; wcb.dispatchEvent(new Event('change')); }
         await _poll(() => objs.wire || !touring);
         const W = objs.wire;
         if (W) { W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
-          W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(0.95);
-          W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(2.5);
+          W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(0.98);
+          W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(3.0);   // POINTS only, no lattice
           W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep); }
-        LAYERS.forEach(L => { const o = objs[L.name]; if (o) {
-          o.mapper.setScalarVisibility(false); o.actor.getProperty().setColor(SURF[0], SURF[1], SURF[2]);
-          o.actor.getProperty().setLighting(true); o.actor.getProperty().setEdgeVisibility(true);
-          if (o.actor.getProperty().setEdgeColor) o.actor.getProperty().setEdgeColor(EDGE[0], EDGE[1], EDGE[2]);
-          o.actor.getProperty().setOpacity(0.0); o.actor.setVisibility(true); } });
-        _place(camA, drift);
+        _place(camA, drift, UP);
         if (!touring) throw 0;
-        // 1a — mesh POINTS build across the domain (phase_tunnel_points), then STOP
-        await _tween(2200, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0); _place(_L3(camA, ov, e*0.45), drift); });
+        // 1a — mesh POINTS build (phase_tunnel_points), then STOP
+        await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); _place(_L3(camA, ov, e*0.4), drift, UP); });
         if (W) W.mapper.removeAllClippingPlanes();
-        await _tween(1600, () => _place(ov, drift));        // hold on the point cloud
+        await _tween(2400, () => _place(ov, drift, UP));    // hold on the point cloud
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
       touring = false; if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
       const eOn = document.getElementById('edges').checked;
       LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.actor.getProperty().setEdgeVisibility(eOn); o.actor.getProperty().setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
-      if (objs.wire) { objs.wire.actor.getProperty().setRepresentation(1); objs.wire.actor.getProperty().setPointSize(1); objs.wire.actor.setVisibility(document.getElementById('wireOn').checked); }
+      const wcb2 = document.getElementById('wireOn'); if (wcb2) wcb2.checked = wireWas;
+      if (objs.wire) { objs.wire.actor.getProperty().setRepresentation(1); objs.wire.actor.getProperty().setPointSize(1); objs.wire.actor.setVisibility(wireWas); }
       document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
       if (volume) volume.setVisibility(document.getElementById('volOn').checked);
       renderer.resetCamera(); renderWindow.render();
