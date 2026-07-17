@@ -987,7 +987,11 @@ main();
   function paint() {
     const max = +slider.max || 0, v = +slider.value || 0;
     slider.style.setProperty('--p', (max ? v / max * 100 : 0) + '%');
-    if (ticksEl) [...ticksEl.children].forEach((t, i) => t.classList.toggle('on', i === v));
+    if (ticksEl) [...ticksEl.children].forEach((t, i) => {
+      const on = i === v;
+      t.classList.toggle('on', on);
+      t.dataset.lbl = on ? (t.dataset.full || '') : '';   // only the active label shows -> no overlap
+    });
   }
   window.uiTicks = frames => {
     if (!ticksEl) return;
@@ -997,9 +1001,8 @@ main();
       const t = document.createElement('span');
       t.className = 'tick';
       t.style.left = (n > 1 ? (i / (n - 1)) * 100 : 0) + '%';
-      const lbl = String(f.label || '').split('·')[0].trim();
-      const sparse = n > 6 && i % Math.ceil(n / 4) !== 0 && i !== n - 1;
-      t.dataset.lbl = sparse ? '' : lbl;
+      t.dataset.full = String(f.label || '').split('·')[0].trim();
+      t.dataset.lbl = '';                                  // filled in by paint() when active
       ticksEl.appendChild(t);
     });
     paint();
