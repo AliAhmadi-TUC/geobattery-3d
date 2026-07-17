@@ -396,6 +396,12 @@
       </div>
       <div class="row"><input type="checkbox" id="edges"><label for="edges">mesh edges</label></div>
     </div>
+
+    <div class="grp fold" id="wireGrp"><h2>3-D mesh</h2>
+      <div class="row"><input type="checkbox" id="wireOn"><label for="wireOn">internal wireframe</label></div>
+      <div class="row"><label for="wireOp">opacity</label><input type="range" id="wireOp" min="0.05" max="1" step="0.05" value="0.4"></div>
+      <p class="note">the real tetrahedral lattice · pair with clip to see inside</p>
+    </div>
   </div>
 </div>
 
@@ -524,6 +530,14 @@ function main() {
   ];
   const objs = {};
 
+  // crash backstop: if the GPU context is lost, shed the heaviest layer + warn
+  const _canvas = document.querySelector('#view canvas');
+  if (_canvas) _canvas.addEventListener('webglcontextlost', ev => {
+    ev.preventDefault();
+    if (objs.wire) { objs.wire.actor.setVisibility(false); const w = document.getElementById('wireOn'); if (w) w.checked = false; }
+    setStatus('GPU overloaded — 3-D mesh disabled. Reload if the view is blank.', true);
+  }, false);
+
   function buildRow(L) {
     const wrap = document.getElementById('layers');
     const r = document.createElement('div'); r.className = 'row';
@@ -589,6 +603,10 @@ function main() {
       if (objs.water && colMode === 'temperature') {     // animate the water surface too
         objs.water.mapper.setColorByArrayName(fn(frameIdx));
         objs.water.mapper.setScalarVisibility(true);
+      }
+      if (objs.wire && objs.wire.hasFrames && colMode === 'temperature') {  // animate the wireframe
+        objs.wire.mapper.setColorByArrayName(fn(frameIdx));
+        objs.wire.mapper.setScalarVisibility(true);
       }
       const lab = document.getElementById('timeLabel'); if (lab) lab.textContent = frames[frameIdx].label;
       const sl  = document.getElementById('timeSlider'); if (sl) sl.value = frameIdx;
@@ -717,6 +735,21 @@ function main() {
       if (volume) volume.setVisibility(colMode === 'temperature' && document.getElementById('volOn').checked);
       syncFlowVis();
     }
+    function colorWire(mode) {                           // field-colour the internal lattice
+      const o = objs.wire; if (!o) return;
+      if (mode === 'temperature' && o.hasFrames) {
+        o.mapper.setLookupTable(surfLUT); o.mapper.setScalarModeToUsePointFieldData();
+        o.mapper.setColorByArrayName(fn(frameIdx)); o.mapper.setScalarRange(TCLIM[0], TCLIM[1]);
+        o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
+      } else if (mode === 'vm' && o.hasVM && stressLUT) {
+        o.mapper.setLookupTable(stressLUT); o.mapper.setScalarModeToUsePointFieldData();
+        o.mapper.setColorByArrayName('vm'); o.mapper.setScalarRange(stressMeta.vmin, stressMeta.vmax);
+        o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
+      } else {
+        o.mapper.setScalarVisibility(false);
+        o.actor.getProperty().setColor(0.62, 0.66, 0.74);   // neutral lattice grey
+      }
+    }
     function setColorMode(mode) {
       colMode = mode;
       LAYERS.forEach(L => {
@@ -739,6 +772,7 @@ function main() {
           o.actor.getProperty().setLighting(true);       // shaded material look
         }
       });
+      colorWire(mode);
       setFieldVis();
       updateColorbar();
       renderWindow.render();
@@ -934,6 +968,41 @@ function main() {
     });
 
     setColorMode(document.getElementById('colMode').value);
+    // ---- 3-D mesh wireframe (drift): real tet lattice, field-coloured, lazy + device-gated ----
+    let wireLoading = false;
+    function loadWire() {
+      const mobile = window.innerWidth < 760 || matchMedia('(pointer:coarse)').matches;
+      const file = mobile ? 'edges_lite.vtp' : 'edges.vtp';   // phones: lighter, geometry-only
+      setStatus('loading 3-D mesh…');
+      const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+      rd.setUrl(DATA + file).then(() => {
+        const pd = rd.getOutputData(0);
+        const mapper = vtk.Rendering.Core.vtkMapper.newInstance(); mapper.setInputData(pd);
+        const actor = vtk.Rendering.Core.vtkActor.newInstance(); actor.setMapper(mapper);
+        const pr = actor.getProperty(); pr.setLighting(false); pr.setLineWidth(1);
+        pr.setOpacity(+document.getElementById('wireOp').value);
+        renderer.addActor(actor);
+        objs.wire = { mapper, actor, isWire: true,
+          hasVM: !!pd.getPointData().getArrayByName('vm'),
+          hasFrames: !!pd.getPointData().getArrayByName('T00') };
+        colorWire(colMode);
+        actor.setVisibility(document.getElementById('wireOn').checked);
+        if (document.getElementById('clipOn').checked) applyCut();   // honour the active clip
+        wireLoading = false; renderWindow.render(); setStatus('ready');
+      }).catch(err => { wireLoading = false; setStatus('mesh load failed: ' + err, true); });
+    }
+    document.getElementById('wireOn').onchange = e => {
+      if (e.target.checked) {
+        if (!objs.wire && !wireLoading) { wireLoading = true; loadWire(); }
+        else if (objs.wire) { objs.wire.actor.setVisibility(true); renderWindow.render(); }
+      } else if (objs.wire) { objs.wire.actor.setVisibility(false); renderWindow.render(); }
+    };
+    document.getElementById('wireOp').oninput = e => {
+      if (objs.wire) { objs.wire.actor.getProperty().setOpacity(+e.target.value); renderWindow.render(); }
+    };
+    fetch(DATA + 'edges.vtp', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
+      .catch(() => { const wg = document.getElementById('wireGrp'); if (wg) wg.style.display = 'none'; });
+
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
