@@ -67,6 +67,11 @@
   .scene-line{ display:flex; align-items:center; gap:6px; margin-top:7px;
     font:500 9.5px/1 var(--mono); letter-spacing:.09em; text-transform:uppercase; color:var(--heat-300); }
   .scene-line::before{ content:''; width:10px; height:2px; background:var(--heat); flex:none; }
+  .tourbtn{ margin-top:10px; display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+    font:600 10px/1 var(--mono); letter-spacing:.13em; text-transform:uppercase; color:var(--heat-300);
+    background:var(--heat-900); border:1px solid var(--heat-700); border-radius:999px; padding:7px 13px;
+    transition:color .15s, border-color .15s; }
+  .tourbtn:hover{ color:var(--heat-200); border-color:var(--heat); }
 
   /* status — instrument telemetry chip */
   #status{ align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
@@ -346,6 +351,7 @@
       <h1 class="title">Geo<em>battery</em></h1>
       <p class="tagline">Seasonal heat storage in a flooded mine drift — a live 3-D simulation.</p>
       <div class="scene-line"><span id="sceneLabel">As-built drift · end of charge</span></div>
+      <button id="tourBtn" class="tourbtn" style="display:none">▶ guided tour</button>
     </div>
   </header>
   <div id="status">initialising renderer…</div>
@@ -664,6 +670,7 @@ function main() {
     window.uiView = { renderer, renderWindow };          // handle for the UI layer (idle orbit)
     setStatus('ready');
     const b = renderer.computeVisiblePropBounds();
+    let touring = false;                                 // guided-tour (cinematic) flag
 
     // ---- stress (von Mises) colour data ----
     let stressMeta = null, stressLUT = null;
@@ -901,6 +908,7 @@ function main() {
     const PPL_BASE = 4, PPL_MIN = 3, CURV_GAIN = 1.8, P_SPEED = 6.0, P_SIZE = 7;
 
     function syncFlowVis() {                 // flow actors follow the "water velocity" mode
+      if (touring) return;                   // the tour drives the glyphs directly
       const on = colMode === 'flow' && !!flowMeta;
       const so = on && document.getElementById('flowOn').checked;
       const mo = on && document.getElementById('flowMove').checked;
@@ -1112,6 +1120,89 @@ function main() {
     };
     fetch(DATA + 'edges.vtp', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
       .catch(() => { const wg = document.getElementById('wireGrp'); if (wg) wg.style.display = 'none'; });
+
+    // ================= guided tour (cinematic) =================
+    // build -> zoom to inlet (red hot water) -> walk the drift as it heats -> hand back
+    const tCam = renderer.getActiveCamera();
+    const _e = u => u < 0.5 ? 2*u*u : 1 - Math.pow(-2*u + 2, 2) / 2;
+    const _L = (a,b2,t) => a + (b2 - a) * t;
+    const _L3 = (A,B2,t) => [_L(A[0],B2[0],t), _L(A[1],B2[1],t), _L(A[2],B2[2],t)];
+    function _place(p, f, up) {
+      tCam.setPosition(p[0],p[1],p[2]); tCam.setFocalPoint(f[0],f[1],f[2]);
+      if (up) tCam.setViewUp(up[0],up[1],up[2]);
+      renderer.resetCameraClippingRange();
+    }
+    function _tween(ms, fn) {
+      return new Promise(res => { let t0 = null;
+        function loop(ts) { if (!touring) return res();
+          if (t0 === null) t0 = ts; const u = Math.min(1, (ts - t0) / ms);
+          try { fn(_e(u), u); } catch (e) {} renderWindow.render();
+          if (u < 1) requestAnimationFrame(loop); else res(); }
+        requestAnimationFrame(loop); });
+    }
+    function _poll(cond) { return new Promise(res => { if (cond()) return res();
+      const iv = setInterval(() => { if (cond() || !touring) { clearInterval(iv); res(); } }, 100); }); }
+    const OPQ = { water: 0.8, rock: 0.22, concrete: 0.95, air: 0.32 };
+
+    async function runTour() {
+      const btn = document.getElementById('tourBtn');
+      if (touring) { touring = false; return; }           // second click = end
+      touring = true; if (btn) btn.textContent = '✕ end tour';
+      document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
+      try {
+        const B = renderer.computeVisiblePropBounds();
+        const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
+        const inl = (flowMeta && flowMeta.inlet) || [0,0,0.2];
+        const out = (flowMeta && flowMeta.outlet) || [14,43,1.2];
+        const drift = [(inl[0]+out[0])/2, (inl[1]+out[1])/2, (inl[2]+out[2])/2];
+        const span = Math.max(B[1]-B[0], B[3]-B[2], B[5]-B[4]);
+        document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
+        if (volume) volume.setVisibility(false);
+        const wcb = document.getElementById('wireOn'); if (wcb && !wcb.checked) { wcb.checked = true; wcb.dispatchEvent(new Event('change')); }
+        pOn = true; if (!pActor && !pLoading) { pLoading = true; loadParticles(); }
+        if (!heatFrames) { try { heatFrames = await fetch(DATA + 'heat.json').then(r => r.json()); } catch (e) {} }
+        await _poll(() => objs.wire || !touring);
+        LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity(0.0); });
+        if (objs.wire) objs.wire.actor.getProperty().setOpacity(0.0);
+
+        // PHASE 1 — construction: far -> overview, wireframe then surfaces fade in
+        const far = [ctr[0]+span*0.85, ctr[1]-span*1.15, ctr[2]+span*0.9];
+        const ov  = [drift[0]+42, drift[1]-58, drift[2]+42];
+        if (!touring) throw 0;
+        await _tween(2600, e => { _place(_L3(far, ov, e), _L3(ctr, drift, e));
+          if (objs.wire) objs.wire.actor.getProperty().setOpacity(0.5 * e); });
+        await _tween(1700, e => { LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity((OPQ[L.name] ?? 0.3) * e); }); });
+
+        // PHASE 2 — zoom to the inlet; surfaces go glassy; red hot-water glyphs stream out
+        if (pActor) { pActor.getProperty().setColor(0.95, 0.22, 0.12); pActor.setVisibility(true); startParticleAnim(); }
+        const inCam = [inl[0]-6, inl[1]-7, inl[2]+3];
+        await _tween(2600, e => { _place(_L3(ov, inCam, e), _L3(drift, inl, e));
+          LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const c = o.actor.getProperty().getOpacity(); o.actor.getProperty().setOpacity(_L(c, L.name==='rock'?0.05:0.13, e)); } }); });
+        await _tween(1800, () => _place(inCam, inl));      // watch the pump
+
+        // PHASE 3 — walk the drift while it heats (10 charge steps)
+        if (heatFrames) { switchFrames(heatFrames); if (volume) volume.setVisibility(true); }
+        let curH = -1; const nH = heatFrames ? heatFrames.length : 1;
+        await _tween(9000, (e, u) => {
+          const p = _L3(inl, out, u), ah = _L3(inl, out, Math.min(1, u + 0.14));
+          _place([p[0], p[1], p[2]+1.2], [ah[0], ah[1], ah[2]+0.6], [0,0,1]);
+          const hi = Math.min(nH - 1, Math.floor(u * (nH - 0.001)));
+          if (hi !== curH && heatFrames) { curH = hi; showFrame(hi); }
+        });
+        await _tween(1600, () => _place([out[0]-5, out[1]-6, out[2]+3], out));
+      } catch (e) { console.warn('tour', e); }
+
+      // ---- restore ----
+      touring = false; if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
+      pOn = false; if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } if (pActor) { pActor.setVisibility(false); pActor.getProperty().setColor(0.32, 0.62, 0.95); }
+      if (heatFrames) switchFrames(yearFrames);
+      document.getElementById('heatOn').checked = false;
+      LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.actor.getProperty().setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
+      if (objs.wire) objs.wire.actor.setVisibility(document.getElementById('wireOn').checked);
+      if (volume) volume.setVisibility(colMode === 'temperature' && document.getElementById('volOn').checked);
+      renderer.resetCamera(); renderWindow.render();
+    }
+    const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = runTour; }
 
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
