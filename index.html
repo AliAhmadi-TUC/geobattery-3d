@@ -1285,9 +1285,14 @@ function main() {
         //     domain box (like Gif_creating.py -> CAMERA_WALLS), then sweep the walls in along the drift axis.
         if (!touring) throw 0;
         if (faceActs.length) {
-          faceActs.forEach(a => a.setVisibility(true));
-          await _tween(2000, (e) => _place(_L3(sideV, wallCam, e), _L3(cen, bcen, e), UP));   // zoom out + orbit to the 3/4 domain view
-          await _tween(2600, (e, u) => { sweep4.setOrigin(0, _L(rb[2], rb[3], u), 0); });     // the six coloured walls rise along Y
+          await _tween(2000, (e) => _place(_L3(sideV, wallCam, e), _L3(cen, bcen, e), UP));   // zoom out + orbit to the 3/4 view; camera STOPS
+          sweep4.setOrigin(0, rb[3], 0);                       // full geometry — reveal is now per-wall visibility
+          const order = faceActs.length === 6 ? [3, 1, 4, 0, 2, 5] : faceActs.map((_, i) => i);   // camera-facing faces first
+          for (const idx of order) {                           // the six walls POP in one-by-one, AFTER the camera has settled
+            if (!touring) break;
+            faceActs[idx].setVisibility(true);
+            await _tween(430, () => {});                       // a beat between each wall
+          }
           await _tween(1000, () => {});                        // hold on the finished domain box
         }
       } catch (e) { console.warn('tour', e); }
