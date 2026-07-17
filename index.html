@@ -1166,13 +1166,31 @@ function main() {
         LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity(0.0); });
         if (objs.wire) objs.wire.actor.getProperty().setOpacity(0.0);
 
-        // PHASE 1 — construction: far -> overview, wireframe then surfaces fade in
-        const far = [ctr[0]+span*0.85, ctr[1]-span*1.15, ctr[2]+span*0.9];
-        const ov  = [drift[0]+42, drift[1]-58, drift[2]+42];
+        // PHASE 1 — construction: a plane sweeps the domain revealing POINTS -> EDGES ->
+        // SURFACES, so the mesh builds itself (like Gif_creating.py)
+        const ymn = B[2], ymx = B[3];
+        const camA = [ctr[0]+span*0.55, ctr[1]-span*0.80, ctr[2]+span*0.55];   // whole-domain 3/4 view
+        const ov   = [ctr[0]+span*0.40, ctr[1]-span*0.55, ctr[2]+span*0.40];   // closer, end of build
+        const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0,-1,0);
+        const W = objs.wire;
+        if (W) { W.actor.setVisibility(true); W.actor.getProperty().setOpacity(0.75);
+          W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
+          W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(2.5); }
+        LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.actor.getProperty().setOpacity(0.0); o.actor.setVisibility(true); } });
+        _place(camA, drift);
         if (!touring) throw 0;
-        await _tween(2600, e => { _place(_L3(far, ov, e), _L3(ctr, drift, e));
-          if (objs.wire) objs.wire.actor.getProperty().setOpacity(0.5 * e); });
-        await _tween(1700, e => { LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity((OPQ[L.name] ?? 0.3) * e); }); });
+        // 1a — mesh POINTS build across the domain
+        await _tween(1700, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0); _place(_L3(camA, ov, e*0.34), drift); });
+        // 1b — EDGE lattice builds
+        if (W) W.actor.getProperty().setRepresentation(1);
+        await _tween(2000, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0); _place(_L3(camA, ov, 0.34 + e*0.34), drift); });
+        // 1c — SURFACES form
+        LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.mapper.removeAllClippingPlanes(); o.mapper.addClippingPlane(sweep); } });
+        await _tween(1900, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0);
+          LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity((OPQ[L.name] ?? 0.3) * e); });
+          _place(_L3(camA, ov, 0.68 + e*0.32), drift); });
+        if (W) W.mapper.removeAllClippingPlanes();
+        LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.mapper.removeAllClippingPlanes(); });
 
         // PHASE 2 — zoom to the inlet; surfaces go glassy; red hot-water glyphs stream out
         if (pActor) { pActor.getProperty().setColor(0.95, 0.22, 0.12); pActor.setVisibility(true); startParticleAnim(); }
