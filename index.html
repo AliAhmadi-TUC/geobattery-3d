@@ -1154,6 +1154,7 @@ function main() {
       touring = true; if (btn) btn.textContent = '✕ end';
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
+      let eAct = null;                                   // edges (node connections) actor
       try {
         const B = renderer.computeVisiblePropBounds();
         const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
@@ -1176,14 +1177,30 @@ function main() {
         W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
         _place(camA, drift, UP);
         if (!touring) throw 0;
-        // 1a — water/rock interface POINTS build, then STOP
+        // 1a — water/rock interface POINTS build
         await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); _place(_L3(camA, ov, e*0.4), drift, UP); });
         W.mapper.removeAllClippingPlanes();
-        await _tween(2400, () => _place(ov, drift, UP));    // hold on the point cloud
+        await _tween(1600, () => _place(ov, drift, UP));    // hold on the point cloud
+
+        // 1b — smoothly move closer, in front of the drift, then CONNECT the nodes (edges)
+        const ov2 = [drift[0], drift[1] - 34, drift[2] + 15];
+        await _tween(1700, e => _place(_L3(ov, ov2, e), drift, UP));
+        const eMap = vtk.Rendering.Core.vtkMapper.newInstance();
+        eMap.setInputData(W.mapper.getInputData()); eMap.setScalarVisibility(false);
+        const sweep2 = vtk.Common.DataModel.vtkPlane.newInstance(); sweep2.setNormal(0, -1, 0); sweep2.setOrigin(0, symn, 0);
+        eMap.addClippingPlane(sweep2);
+        eAct = vtk.Rendering.Core.vtkActor.newInstance(); eAct.setMapper(eMap);
+        eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light — visible on dark
+        eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.9);
+        renderer.addActor(eAct);
+        if (!touring) throw 0;
+        await _tween(3600, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
+        await _tween(1800, () => _place(ov2, drift, UP));   // hold on the meshed interface, then STOP
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
       touring = false; if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
+      if (eAct) { renderer.removeActor(eAct); eAct = null; }
       const eOn = document.getElementById('edges').checked, rep = +document.getElementById('repr').value;
       LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
         pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
