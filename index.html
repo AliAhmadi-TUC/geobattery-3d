@@ -1156,7 +1156,7 @@ function main() {
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
       tCam.setViewAngle(baseFov);               // restore the app's real fov (consistent across runs)
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
-      let eAct = null;                                   // edges (node connections) actor
+      let eAct = null, sAct = null;                      // edges (connections) + surface (shiny fill) actors
       try {
         const B = renderer.computeVisiblePropBounds();
         const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
@@ -1194,13 +1194,27 @@ function main() {
         eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light — visible on dark
         eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.9);
         renderer.addActor(eAct);
-        // WARM-UP: a throwaway render with the camera thrown far away (sub-pixel), both meshes open —
+        // pre-create the SURFACE actor (shiny/metallic, distinct from the flat edges), fully clipped
+        const sMap = vtk.Rendering.Core.vtkMapper.newInstance();
+        sMap.setInputData(W.mapper.getInputData()); sMap.setScalarVisibility(false);
+        if (sMap.setResolveCoincidentTopologyToPolygonOffset) {
+          sMap.setResolveCoincidentTopologyToPolygonOffset();
+          sMap.setResolveCoincidentTopologyPolygonOffsetParameters(2, 2);   // push surface back so edges read on top
+        }
+        const sweep3 = vtk.Common.DataModel.vtkPlane.newInstance(); sweep3.setNormal(0, -1, 0); sweep3.setOrigin(0, symn, 0);
+        sMap.addClippingPlane(sweep3);
+        sAct = vtk.Rendering.Core.vtkActor.newInstance(); sAct.setMapper(sMap);
+        { const sp = sAct.getProperty(); sp.setRepresentation(2); sp.setInterpolationToPhong();
+          sp.setColor(0.55, 0.63, 0.76); sp.setAmbient(0.16); sp.setDiffuse(0.5);
+          sp.setSpecular(1.0); sp.setSpecularPower(55); sp.setSpecularColor(1, 1, 1); }   // metallic sheen
+        renderer.addActor(sAct);
+        // WARM-UP: a throwaway render with the camera thrown far away (sub-pixel), all meshes open —
         // forces the GPU to upload geometry + compile shaders NOW, so nothing stalls mid-animation
-        sweep.setOrigin(0, symx + 50, 0); sweep2.setOrigin(0, symx + 50, 0);
+        sweep.setOrigin(0, symx + 50, 0); sweep2.setOrigin(0, symx + 50, 0); sweep3.setOrigin(0, symx + 50, 0);
         tCam.setPosition(cen[0], cen[1] - 4000, cen[2]); tCam.setFocalPoint(cen[0], cen[1], cen[2]);
         tCam.setViewUp(0, 0, 1); tCam.setClippingRange(0.5, 8000);
         renderWindow.render();
-        sweep2.setOrigin(0, symn, 0);            // edges hidden again for the points phase
+        sweep2.setOrigin(0, symn, 0); sweep3.setOrigin(0, symn, 0);   // edges + surface hidden again for the points phase
         _place(front, focalP, UP);
         if (!touring) throw 0;
         // 1a — POINTS build + rotation to the side view in ONE continuous tween, so there's no
@@ -1215,12 +1229,17 @@ function main() {
         // 1b — CONNECT the nodes (edges) from the side view (actor pre-created above -> no hitch)
         if (!touring) throw 0;
         await _tween(3600, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
-        await _tween(1800, () => _place(sideV, cen, UP));   // hold on the meshed interface, then STOP
+        await _tween(900, () => {});                        // brief hold on the wireframe
+        // 1c — fill the SURFACE over the edges (shiny/metallic shading sets it apart from the flat edge lines)
+        if (!touring) throw 0;
+        await _tween(3400, (e, u) => { sweep3.setOrigin(0, _L(symn, symx, u), 0); });   // surface skins over the mesh
+        await _tween(1800, () => _place(sideV, cen, UP));   // hold on the finished shaded surface, then STOP
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
       touring = false; if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
       if (eAct) { renderer.removeActor(eAct); eAct = null; }
+      if (sAct) { renderer.removeActor(sAct); sAct = null; }
       if (objs.water) objs.water.mapper.removeAllClippingPlanes();   // clear the tour's sweep clip
       const eOn = document.getElementById('edges').checked, rep = +document.getElementById('repr').value;
       LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
