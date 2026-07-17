@@ -1177,8 +1177,8 @@ function main() {
         const cen = [sx/np, sy/np, sz/np];
         const ax = [out[0]-inl[0], out[1]-inl[1], 0], an = Math.hypot(ax[0], ax[1]) || 1;
         const perp = [ax[1]/an, -ax[0]/an, 0];   // horizontal, perpendicular to the tilted drift axis
-        const front  = [cen[0] - 8, cen[1] - 67, cen[2] + 24];   // FRONT view (points): zoomed in, low, drift nudged toward centre
-        const focalP = [cen[0] - 8, cen[1],      cen[2] - 6];     // aim -> drift centred; lowered Z -> sits down
+        const front  = [cen[0] - 8, cen[1] - 67, cen[2] + 27];   // FRONT view (points): centred, a bit higher
+        const focalP = [cen[0] - 8, cen[1],      cen[2] - 3];     // aim -> drift centred, nudged up a bit
         const sideV = [cen[0] - perp[0]*58, cen[1] - perp[1]*58, cen[2] + 7];   // SIDE (Y-Z) other side (180°), more zoomed in
         W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
         W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(1.0);
@@ -1186,12 +1186,15 @@ function main() {
         W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
         _place(front, focalP, UP);
         if (!touring) throw 0;
-        // 1a — POINTS build, camera STATIC
-        await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); });
+        // 1a — POINTS build; the camera begins easing toward the side view before the sweep finishes
+        await _tween(4600, (e, u) => {
+          sweep.setOrigin(0, _L(symn, symx, u), 0);
+          const r = Math.max(0, (u - 0.7) / 0.3) * 0.4;      // last 30%: ease into 40% of the rotation
+          _place(_L3(front, sideV, r), _L3(focalP, cen, r), UP);
+        });
         W.mapper.removeAllClippingPlanes();
-        await _tween(1400, () => {});                        // hold on the points
-        // rotate smoothly from the front view round to the side view (aim eases back to centre)
-        await _tween(2800, e => _place(_L3(front, sideV, e), _L3(focalP, cen, e), UP));
+        // finish rotating round to the side view
+        await _tween(2400, e => _place(_L3(front, sideV, 0.4 + e*0.6), _L3(focalP, cen, 0.4 + e*0.6), UP));
 
         // 1b — CONNECT the nodes (edges) from the side view
         const eMap = vtk.Rendering.Core.vtkMapper.newInstance();
