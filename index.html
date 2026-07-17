@@ -381,13 +381,13 @@
 
     <div class="grp fold" id="cutGrp"><h2>Clip &amp; slice</h2>
       <div class="row"><input type="checkbox" id="clipOn"><label for="clipOn">clip surfaces</label></div>
-      <div class="row"><input type="checkbox" id="sliceOn"><label for="sliceOn">temperature plane (cap)</label></div>
+      <div class="row"><input type="checkbox" id="sliceOn"><label for="sliceOn">field plane (cross-section)</label></div>
       <div class="row"><label>axis</label>
         <select id="cutAxis" class="seg-src"><option value="0">X</option><option value="1">Y</option><option value="2" selected>Z</option></select>
       </div>
       <div class="row"><input type="checkbox" id="clipFlip"><label for="clipFlip">flip side</label></div>
       <div class="row"><input type="range" id="cutPos" min="0" max="1" step="0.005" value="0.5"></div>
-      <p class="note">plane shows T across the whole domain</p>
+      <p class="note">plane shows the active field (heat · stress · material · flow) through the rock</p>
     </div>
 
     <div class="grp fold"><h2>Representation</h2>
@@ -488,6 +488,7 @@ const TCLIM = [-15, 80];       // colour-mapping range: 10 C ambient lands on ma
 const SPEED_COLORS = [[0.23,0.30,0.75],[0.15,0.65,0.90],[0.20,0.80,0.35],[0.95,0.85,0.15],[0.90,0.25,0.15]];
 const STRESS_COLORS = [[0.267,0.005,0.329],[0.229,0.322,0.545],[0.128,0.567,0.551],
                        [0.369,0.789,0.383],[0.993,0.906,0.144]];             // viridis
+const MAT_COLORS = { 1:[0.44,0.47,0.54], 2:[0.38,0.41,0.46], 3:[0.24,0.52,0.85], 4:[0.42,0.62,0.82] };
 const cssGrad = cols => 'linear-gradient(90deg,' + cols.map(c =>
   `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`).join(',') + ')';
 function rampSlice(cols, f0, f1, n) {                    // sample a sub-range of a ramp
@@ -576,7 +577,8 @@ function main() {
 
   // ---- volumetric temperature (ImageData) — transient time series ----
   let volume = null, otf = null, volImage = null, volMapper = null;
-  let imgSlice = null, imgMapper = null;                 // interior slice (hoisted for frame swap)
+  let imgSlice = null, imgMapper = null;                 // cross-section plane (hoisted for frame swap)
+  let domainVti = null, sliceLoading = false;            // multi-field domain volume for the plane
   let frames = [], frameIdx = 0, playing = false, playTimer = null;
   let colMode = 'material';                              // tracks the "colour surfaces by" toggle
   const fn = i => 'T' + String(i).padStart(2, '0');      // water-surface per-frame array name
@@ -602,7 +604,9 @@ function main() {
     return loadFrameImage(frameIdx).then(img => {
       volImage = img;
       if (volMapper) volMapper.setInputData(img);
-      if (imgMapper) imgMapper.setInputData(img);
+      if (imgSlice && domainVti && colMode === 'temperature') {   // advance the plane's temperature frame
+        domainVti.getPointData().setActiveScalars(fn(frameIdx)); imgMapper.modified(); domainVti.modified();
+      }
       if (objs.water && colMode === 'temperature') {     // animate the water surface too
         objs.water.mapper.setColorByArrayName(fn(frameIdx));
         objs.water.mapper.setScalarVisibility(true);
@@ -677,28 +681,49 @@ function main() {
     document.getElementById('edges').onchange = e => {
       Object.values(objs).forEach(o=>o.actor.getProperty().setEdgeVisibility(e.target.checked)); renderWindow.render(); };
 
-    // ---- interior slice: axis-aligned plane of the volume, transparent outside the domain ----
-    try {
-      if (volImage) {
-        const dims0 = volImage.getDimensions();
+    // ---- cross-section plane: reads the multi-field domain volume, coloured by
+    //      the active mode (heat / stress / material / flow), through the rock ----
+    function setSliceField(mode) {
+      if (!imgSlice || !domainVti) return;
+      const ip = imgSlice.getProperty();
+      const pwf = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
+      let ctf, arr;
+      if (mode === 'vm' && stressLUT && stressMeta) {
+        arr = 'vm'; ctf = stressLUT;
+        pwf.addPoint(-1, 0); pwf.addPoint(-0.01, 0); pwf.addPoint(0, 1); pwf.addPoint(stressMeta.vmax, 1);
+      } else if (mode === 'flow' && flowMeta) {
+        arr = 'speed'; ctf = speedLUT;
+        pwf.addPoint(-1, 0); pwf.addPoint(-0.01, 0); pwf.addPoint(0, 1); pwf.addPoint(flowMeta.clip, 1);
+      } else if (mode === 'material') {
+        arr = 'mat'; ctf = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+        Object.keys(MAT_COLORS).forEach(id => { const v = +id, c = MAT_COLORS[id];
+          ctf.addRGBPoint(v - 0.35, c[0], c[1], c[2]); ctf.addRGBPoint(v + 0.35, c[0], c[1], c[2]); });
+        pwf.addPoint(0, 0); pwf.addPoint(0.5, 0); pwf.addPoint(0.6, 1); pwf.addPoint(4, 1);
+      } else {                                          // temperature (per frame)
+        arr = fn(frameIdx); ctf = tempCTF();
+        pwf.addPoint(-100, 0); pwf.addPoint(9.9, 0); pwf.addPoint(10, 1); pwf.addPoint(80, 1);
+      }
+      domainVti.getPointData().setActiveScalars(arr);
+      ip.setRGBTransferFunction(0, ctf); ip.setPiecewiseFunction(0, pwf);
+      if (ip.setUseLookupTableScalarRange) ip.setUseLookupTableScalarRange(true);
+      imgMapper.modified(); domainVti.modified(); renderWindow.render();
+    }
+    function loadDomainSlice() {
+      setStatus('loading cross-section…');
+      const rd = vtk.IO.XML.vtkXMLImageDataReader.newInstance();
+      rd.setUrl(DATA + 'domain.vti').then(() => {
+        domainVti = rd.getOutputData(0);
         imgMapper = vtk.Rendering.Core.vtkImageMapper.newInstance();
-        imgMapper.setInputData(volImage);
-        imgMapper.setSlicingMode(2);
-        imgMapper.setSlice(Math.floor(dims0[2] / 2));
+        imgMapper.setInputData(domainVti);
+        imgMapper.setSlicingMode(+document.getElementById('cutAxis').value);
         imgSlice = vtk.Rendering.Core.vtkImageSlice.newInstance();
         imgSlice.setMapper(imgMapper);
-        const ip = imgSlice.getProperty();
-        ip.setRGBTransferFunction(0, tempCTF());
-        const spwf = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
-        spwf.addPoint(-100, 0.0); spwf.addPoint(5, 0.0); spwf.addPoint(9.9, 0.0);
-        spwf.addPoint(10, 1.0); spwf.addPoint(80, 1.0);
-        ip.setPiecewiseFunction(0, spwf);              // sentinel (outside mesh) -> transparent
-        if (ip.setUseLookupTableScalarRange) ip.setUseLookupTableScalarRange(true);
-        ip.setColorWindow(180); ip.setColorLevel(-10); // fallback mapping over [-100, 80]
-        imgSlice.setVisibility(false);
         renderer.addViewProp(imgSlice);
-      }
-    } catch (e) { imgSlice = null; console.warn('slice setup failed', e); }
+        setSliceField(colMode);
+        applyCut();
+        sliceLoading = false; setStatus('ready');
+      }).catch(err => { sliceLoading = false; setStatus('cross-section load failed: ' + err, true); });
+    }
 
     // ---- clip & slice: ONE plane — clips the checked surfaces and (optionally)
     //      caps the cut with the full-domain temperature cross-section ----
@@ -716,11 +741,12 @@ function main() {
         clipPlane.setNormal(n[0], n[1], n[2]); clipPlane.setOrigin(o[0], o[1], o[2]);
         Object.values(objs).forEach(o2 => o2.mapper.addClippingPlane(clipPlane));
       }
-      if (imgSlice) {
+      if (sliceOn && !domainVti && !sliceLoading) { sliceLoading = true; loadDomainSlice(); }
+      if (imgSlice && domainVti) {
         imgSlice.setVisibility(sliceOn);
-        if (sliceOn && volImage) {
+        if (sliceOn) {
           imgMapper.setSlicingMode(ax);
-          const org = volImage.getOrigin(), sp = volImage.getSpacing(), dm = volImage.getDimensions();
+          const org = domainVti.getOrigin(), sp = domainVti.getSpacing(), dm = domainVti.getDimensions();
           const idx = Math.max(0, Math.min(dm[ax]-1, Math.round((w - org[ax]) / sp[ax])));
           imgMapper.setSlice(idx);
         }
@@ -776,6 +802,7 @@ function main() {
         }
       });
       colorWire(mode);
+      if (imgSlice) setSliceField(mode);
       setFieldVis();
       updateColorbar();
       renderWindow.render();
@@ -831,6 +858,9 @@ function main() {
       } else if (colMode === 'flow' && flowMeta) {
         g.style.background = cssGrad(SPEED_COLORS);
         lo.textContent = '0'; mid.textContent = '|u| [m/s]'; hi.textContent = flowMeta.clip.toExponential(1);
+      } else if (colMode === 'material') {
+        g.style.background = cssGrad([MAT_COLORS[1], MAT_COLORS[2], MAT_COLORS[3], MAT_COLORS[4]]);
+        lo.textContent = 'rock'; mid.textContent = 'material'; hi.textContent = 'air';
       } else {
         g.style.background = cssGrad(rampSlice(INFERNO, (10 - TCLIM[0]) / (TCLIM[1] - TCLIM[0]), 1, 8));
         lo.textContent = '10 °C'; mid.textContent = 'temperature'; hi.textContent = '80 °C';
