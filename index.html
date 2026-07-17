@@ -1164,23 +1164,29 @@ function main() {
         const span = Math.max(B[1]-B[0], B[3]-B[2], B[5]-B[4]);
         const symn = Math.min(inl[1], out[1]) - 5, symx = Math.max(inl[1], out[1]) + 7;  // sweep over the drift
         const UP = [0, 0, 1];
-        const camA = [drift[0], drift[1] - 60, drift[2] + 32];   // FRONT view of the drift (looking +y, raised)
-        const ov   = [drift[0], drift[1] - 44, drift[2] + 24];   // front, a touch closer
         // everything OFF except the water/rock interface points
         if (volume) volume.setVisibility(false);
         LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.setVisibility(false); });
         const W = objs.water;    // the water surface IS the water/rock interface
         if (!W) throw 0;
+        // true drift centre + horizontal axis (drift is tilted ~18° from Y toward X)
+        const wp = W.mapper.getInputData().getPoints().getData(); let sx = 0, sy = 0, sz = 0; const np = wp.length / 3;
+        for (let i = 0; i < wp.length; i += 3) { sx += wp[i]; sy += wp[i+1]; sz += wp[i+2]; }
+        const cen = [sx/np, sy/np, sz/np];
+        const ax = [out[0]-inl[0], out[1]-inl[1], 0], an = Math.hypot(ax[0], ax[1]) || 1;
+        const perp = [ax[1]/an, -ax[0]/an, 0];   // horizontal, perpendicular to the tilted drift axis
+        const camA = [cen[0]+perp[0]*86, cen[1]+perp[1]*86, cen[2]+9];   // SIDE view (Y-Z), tilt-corrected
+        const ov   = [cen[0]+perp[0]*70, cen[1]+perp[1]*70, cen[2]+6];   // side, framed
         W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
         W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(1.0);
         W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(3.5);   // POINTS only
         W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
-        _place(camA, drift, UP);
+        _place(camA, cen, UP);
         if (!touring) throw 0;
         // 1a — water/rock interface POINTS build
-        await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); _place(_L3(camA, ov, e*0.4), drift, UP); });
+        await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); _place(_L3(camA, ov, e*0.4), cen, UP); });
         W.mapper.removeAllClippingPlanes();
-        await _tween(1600, () => _place(ov, drift, UP));    // hold on the point cloud
+        await _tween(1600, () => _place(ov, cen, UP));      // hold on the point cloud
 
         // 1b — CONNECT the nodes (edges) at the same front view the points used
         const eMap = vtk.Rendering.Core.vtkMapper.newInstance();
@@ -1193,7 +1199,7 @@ function main() {
         renderer.addActor(eAct);
         if (!touring) throw 0;
         await _tween(3600, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
-        await _tween(1800, () => _place(ov, drift, UP));    // hold on the meshed interface, then STOP
+        await _tween(1800, () => _place(ov, cen, UP));      // hold on the meshed interface, then STOP
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
