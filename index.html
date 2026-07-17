@@ -353,6 +353,7 @@
       <p class="tagline">Seasonal heat storage in a flooded mine drift — a live 3-D simulation.</p>
       <div class="scene-line"><span id="sceneLabel">As-built drift · end of charge</span></div>
       <button id="tourBtn" class="tourbtn" style="display:none">▶ guided tour</button>
+      <button id="tourPause" class="tourbtn" style="display:none">⏸ pause</button>
     </div>
   </header>
   <div id="status">initialising renderer…</div>
@@ -671,7 +672,7 @@ function main() {
     window.uiView = { renderer, renderWindow };          // handle for the UI layer (idle orbit)
     setStatus('ready');
     const b = renderer.computeVisiblePropBounds();
-    let touring = false;                                 // guided-tour (cinematic) flag
+    let touring = false, tourPaused = false;             // guided-tour (cinematic) flags
 
     // ---- stress (von Mises) colour data ----
     let stressMeta = null, stressLUT = null;
@@ -1136,15 +1137,51 @@ function main() {
       tCam.setClippingRange(0.5, 4000);        // fixed range -> tour framing is deterministic across runs
     }
     function _tween(ms, fn) {
-      return new Promise(res => { let t0 = null;
+      return new Promise(res => { let t0 = null, pausedAt = null, pausedTot = 0;
         function loop(ts) { if (!touring) return res();
-          if (t0 === null) t0 = ts; const u = Math.min(1, (ts - t0) / ms);
+          if (t0 === null) t0 = ts;
+          if (tourPaused) { if (pausedAt === null) pausedAt = ts; requestAnimationFrame(loop); return; }   // freeze
+          if (pausedAt !== null) { pausedTot += ts - pausedAt; pausedAt = null; }                          // resumed
+          const u = Math.min(1, (ts - t0 - pausedTot) / ms);
           try { fn(_e(u), u); } catch (e) {} renderWindow.render();
           if (u < 1) requestAnimationFrame(loop); else res(); }
         requestAnimationFrame(loop); });
     }
     function _poll(cond) { return new Promise(res => { if (cond()) return res();
       const iv = setInterval(() => { if (cond() || !touring) { clearInterval(iv); res(); } }, 100); }); }
+    // ---- part-name labels (HTML/SVG overlay projected from world coords) ----
+    let tourSVG = null; const _SVGNS = 'http://www.w3.org/2000/svg';
+    const _apiRW = () => view.getApiSpecificRenderWindow ? view.getApiSpecificRenderWindow() : view.getOpenGLRenderWindow();
+    function _project(w) {
+      const cv = document.querySelector('#view canvas'); if (!cv) return [0, 0];
+      const d = _apiRW().worldToDisplay(w[0], w[1], w[2], renderer);   // device px, origin bottom-left
+      return [d[0] / cv.width * cv.clientWidth, (cv.height - d[1]) / cv.height * cv.clientHeight];
+    }
+    function _hideLabels() { if (tourSVG) { tourSVG.remove(); tourSVG = null; } }
+    function _showLabels(list) {
+      _hideLabels();
+      tourSVG = document.createElementNS(_SVGNS, 'svg');
+      tourSVG.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:6;';
+      document.getElementById('view').appendChild(tourSVG);
+      list.forEach(it => {
+        it._ln = document.createElementNS(_SVGNS, 'line'); it._ln.setAttribute('stroke', 'rgba(255,255,255,0.7)'); it._ln.setAttribute('stroke-width', '1');
+        it._dot = document.createElementNS(_SVGNS, 'circle'); it._dot.setAttribute('r', '4'); it._dot.setAttribute('fill', it.color || '#fff'); it._dot.setAttribute('stroke', 'rgba(0,0,0,0.55)'); it._dot.setAttribute('stroke-width', '1');
+        it._tx = document.createElementNS(_SVGNS, 'text'); it._tx.textContent = it.text;
+        it._tx.style.cssText = 'fill:#fff; font:600 13px system-ui,sans-serif; paint-order:stroke; stroke:rgba(0,0,0,0.85); stroke-width:3.2px; stroke-linejoin:round;';
+        tourSVG.appendChild(it._ln); tourSVG.appendChild(it._dot); tourSVG.appendChild(it._tx);
+      });
+      tourSVG._list = list; _positionLabels();
+    }
+    function _positionLabels() {
+      if (!tourSVG || !tourSVG._list) return;
+      tourSVG._list.forEach(it => {
+        const p = _project(it.world), ax = p[0], ay = p[1], lx = ax + it.off[0], ly = ay + it.off[1];
+        it._ln.setAttribute('x1', ax); it._ln.setAttribute('y1', ay); it._ln.setAttribute('x2', lx); it._ln.setAttribute('y2', ly);
+        it._dot.setAttribute('cx', ax); it._dot.setAttribute('cy', ay);
+        it._tx.setAttribute('x', lx + (it.off[0] < 0 ? -5 : 5)); it._tx.setAttribute('y', ly);
+        it._tx.setAttribute('text-anchor', it.off[0] < 0 ? 'end' : 'start'); it._tx.setAttribute('dominant-baseline', 'middle');
+      });
+    }
     const OPQ = { water: 0.8, rock: 0.22, concrete: 0.95, air: 0.32 };
 
     // Construction only for now: mesh POINTS build, then the SURFACE is meshed
@@ -1154,6 +1191,8 @@ function main() {
       const btn = document.getElementById('tourBtn');
       if (touring) { touring = false; return; }           // second click = end
       touring = true; if (btn) btn.textContent = '✕ end';
+      tourPaused = false; const pBtn = document.getElementById('tourPause');
+      if (pBtn) { pBtn.style.display = ''; pBtn.textContent = '⏸ pause'; }
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
       tCam.setViewAngle(baseFov);               // restore the app's real fov (consistent across runs)
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
@@ -1263,6 +1302,7 @@ function main() {
           mkExt(G.ba, AIR, botPts); mkExt(G.bc, CONC, botPts);   // bottom end
           MIR.src = fp; MIR.topPts = topPts; MIR.botPts = botPts;
           MIR.hTop = hTop; MIR.hBot = hBot; MIR.Ltot = ymx - ymn;
+          MIR.axis = [ax, ayv, az]; MIR.hl = (ymx - ymn) / 2;   // for the part-name label anchors
           MIR.swing = f => {                                 // f: 0 (copies lie on the centre) -> 1 (ends fully mirrored out)
             const src = MIR.src, th = Math.PI * f, ct = Math.cos(th), st = Math.sin(th);
             const rot = (dst, h) => { const hx=h[0], hy=h[1];
@@ -1378,6 +1418,19 @@ function main() {
               MIR.sIn.s.setCenter(pi[0], pi[1], pi[2]); MIR.sOut.s.setCenter(po[0], po[1], po[2]); });
             await _tween(700, () => {});
           }
+          // pause here and NAME each part (colour alone is hard to read this far out)
+          if (!touring) throw 0;
+          const AX = MIR.axis || [0,1,0], hl = MIR.hl || 12;
+          const airBot = [MIR.hBot[0]-AX[0]*hl*0.55, MIR.hBot[1]-AX[1]*hl*0.55, MIR.hBot[2]-AX[2]*hl*0.55];
+          _showLabels([
+            { text:'Water/rock drift', world: cen,      off:[0,-64],   color:'#9db4d6' },
+            { text:'Air drift',        world: airBot,   off:[-88,-42], color:'#a9c3e0' },
+            { text:'Concrete plug',    world: MIR.hTop, off:[84,32],   color:'#8f9298' },
+            { text:'Inlet',            world: inl,      off:[-86,40],  color:'#33e56b' },
+            { text:'Outlet',           world: out,      off:[86,-34],  color:'#f55926' },
+          ]);
+          await _tween(5200, () => _positionLabels());   // hold (pausable) while the labels are shown
+          _hideLabels();
         }
         // 4 — ADD THE SURROUNDING ROCK DOMAIN (outer walls). Pull the camera back to frame the whole
         //     domain box (like Gif_creating.py -> CAMERA_WALLS), then sweep the walls in along the drift axis.
@@ -1398,7 +1451,9 @@ function main() {
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
-      touring = false; if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
+      touring = false; tourPaused = false; _hideLabels();
+      if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
+      { const pb = document.getElementById('tourPause'); if (pb) pb.style.display = 'none'; }
       if (eAct) { renderer.removeActor(eAct); eAct = null; }
       if (sAct) { renderer.removeActor(sAct); sAct = null; }
       if (objs.water) objs.water.mapper.removeAllClippingPlanes();   // clear the tour's sweep clip
@@ -1414,6 +1469,8 @@ function main() {
       renderer.resetCamera(); renderWindow.render();
     }
     const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = runTour; }
+    const _pb = document.getElementById('tourPause');
+    if (_pb) _pb.onclick = () => { if (!touring) return; tourPaused = !tourPaused; _pb.textContent = tourPaused ? '▶ resume' : '⏸ pause'; };
 
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
