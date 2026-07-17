@@ -904,6 +904,7 @@ function main() {
 
     // ---- flow field (drift only): arrows + moving arrows, lazy-loaded ----
     let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
+    const wellActors = [];   // the scene's inlet/outlet marker spheres (hidden during the tour)
     let pActor = null, pLoading = false, pOn = false, pRAF = null, pLastT = null, pAccum = 0;
     let pLines = null, pList = null, pCoords = null, pSpd = null, pDir = null, pScl = null, pPts = null, pScal = null, pDirArr = null, pSclArr = null, pPoly = null;
     const PPL_BASE = 4, PPL_MIN = 3, CURV_GAIN = 1.8, P_SPEED = 6.0, P_SIZE = 7;
@@ -968,7 +969,7 @@ function main() {
       const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
       a.getProperty().setColor(color[0], color[1], color[2]);
       a.getProperty().setAmbient(0.35); a.getProperty().setDiffuse(0.75);
-      renderer.addActor(a);
+      renderer.addActor(a); wellActors.push(a);
     }
     function startParticleAnim() {
       if (pRAF) cancelAnimationFrame(pRAF);
@@ -1168,6 +1169,7 @@ function main() {
         const UP = [0, 0, 1];
         // everything OFF except the water/rock interface points
         if (volume) volume.setVisibility(false);
+        wellActors.forEach(a => a.setVisibility(false));   // hide the scene's own inlet/outlet markers (the tour flies its own in)
         LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.setVisibility(false); });
         const W = objs.water;    // the water surface IS the water/rock interface
         if (!W) throw 0;
@@ -1400,6 +1402,7 @@ function main() {
       faceActs.forEach(a => renderer.removeActor(a)); faceActs.length = 0;   // drop the 6 coloured wall actors
       mirActs.forEach(a => renderer.removeActor(a)); mirActs.length = 0;     // drop the mirror-assembly parts
       if (MIR.sIn) renderer.removeActor(MIR.sIn.a); if (MIR.sOut) renderer.removeActor(MIR.sOut.a);   // and the inlet/outlet spheres
+      wellActors.forEach(a => a.setVisibility(true));     // restore the scene's inlet/outlet markers
       const eOn = document.getElementById('edges').checked, rep = +document.getElementById('repr').value;
       LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
         pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
