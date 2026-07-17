@@ -1194,6 +1194,13 @@ function main() {
         eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light — visible on dark
         eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.9);
         renderer.addActor(eAct);
+        // WARM-UP: a throwaway render with the camera thrown far away (sub-pixel), both meshes open —
+        // forces the GPU to upload geometry + compile shaders NOW, so nothing stalls mid-animation
+        sweep.setOrigin(0, symx + 50, 0); sweep2.setOrigin(0, symx + 50, 0);
+        tCam.setPosition(cen[0], cen[1] - 4000, cen[2]); tCam.setFocalPoint(cen[0], cen[1], cen[2]);
+        tCam.setViewUp(0, 0, 1); tCam.setClippingRange(0.5, 8000);
+        renderWindow.render();
+        sweep2.setOrigin(0, symn, 0);            // edges hidden again for the points phase
         _place(front, focalP, UP);
         if (!touring) throw 0;
         // 1a — POINTS build; the camera begins easing toward the side view before the sweep finishes
