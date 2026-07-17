@@ -1145,11 +1145,15 @@ function main() {
       const iv = setInterval(() => { if (cond() || !touring) { clearInterval(iv); res(); } }, 100); }); }
     const OPQ = { water: 0.8, rock: 0.22, concrete: 0.95, air: 0.32 };
 
+    // Construction only for now: mesh POINTS build, then the SURFACE is meshed
+    // (triangulated surface reveals), in light colours. Next parts are guided later.
+    const PT = [0.90, 0.93, 0.98], SURF = [0.72, 0.77, 0.84], EDGE = [0.38, 0.42, 0.50];
     async function runTour() {
       const btn = document.getElementById('tourBtn');
       if (touring) { touring = false; return; }           // second click = end
-      touring = true; if (btn) btn.textContent = '✕ end tour';
+      touring = true; if (btn) btn.textContent = '✕ end';
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
+      const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
       try {
         const B = renderer.computeVisiblePropBounds();
         const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
@@ -1157,68 +1161,44 @@ function main() {
         const out = (flowMeta && flowMeta.outlet) || [14,43,1.2];
         const drift = [(inl[0]+out[0])/2, (inl[1]+out[1])/2, (inl[2]+out[2])/2];
         const span = Math.max(B[1]-B[0], B[3]-B[2], B[5]-B[4]);
-        document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
-        if (volume) volume.setVisibility(false);
-        const wcb = document.getElementById('wireOn'); if (wcb && !wcb.checked) { wcb.checked = true; wcb.dispatchEvent(new Event('change')); }
-        pOn = true; if (!pActor && !pLoading) { pLoading = true; loadParticles(); }
-        if (!heatFrames) { try { heatFrames = await fetch(DATA + 'heat.json').then(r => r.json()); } catch (e) {} }
-        await _poll(() => objs.wire || !touring);
-        LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity(0.0); });
-        if (objs.wire) objs.wire.actor.getProperty().setOpacity(0.0);
-
-        // PHASE 1 — construction: a plane sweeps the domain revealing POINTS -> EDGES ->
-        // SURFACES, so the mesh builds itself (like Gif_creating.py)
         const ymn = B[2], ymx = B[3];
         const camA = [ctr[0]+span*0.55, ctr[1]-span*0.80, ctr[2]+span*0.55];   // whole-domain 3/4 view
         const ov   = [ctr[0]+span*0.40, ctr[1]-span*0.55, ctr[2]+span*0.40];   // closer, end of build
-        const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0,-1,0);
+        if (volume) volume.setVisibility(false);
+        const wcb = document.getElementById('wireOn'); if (wcb && !wcb.checked) { wcb.checked = true; wcb.dispatchEvent(new Event('change')); }
+        await _poll(() => objs.wire || !touring);
         const W = objs.wire;
-        if (W) { W.actor.setVisibility(true); W.actor.getProperty().setOpacity(0.75);
-          W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
-          W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(2.5); }
-        LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.actor.getProperty().setOpacity(0.0); o.actor.setVisibility(true); } });
+        if (W) { W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
+          W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(0.95);
+          W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(2.5);
+          W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep); }
+        LAYERS.forEach(L => { const o = objs[L.name]; if (o) {
+          o.mapper.setScalarVisibility(false); o.actor.getProperty().setColor(SURF[0], SURF[1], SURF[2]);
+          o.actor.getProperty().setLighting(true); o.actor.getProperty().setEdgeVisibility(true);
+          if (o.actor.getProperty().setEdgeColor) o.actor.getProperty().setEdgeColor(EDGE[0], EDGE[1], EDGE[2]);
+          o.actor.getProperty().setOpacity(0.0); o.actor.setVisibility(true); } });
         _place(camA, drift);
         if (!touring) throw 0;
         // 1a — mesh POINTS build across the domain
-        await _tween(1700, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0); _place(_L3(camA, ov, e*0.34), drift); });
-        // 1b — EDGE lattice builds
-        if (W) W.actor.getProperty().setRepresentation(1);
-        await _tween(2000, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0); _place(_L3(camA, ov, 0.34 + e*0.34), drift); });
-        // 1c — SURFACES form
+        await _tween(1900, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0); _place(_L3(camA, ov, e*0.4), drift); });
+        // 1b — SURFACE MESHING: the triangulated surface reveals + fills over the points
         LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.mapper.removeAllClippingPlanes(); o.mapper.addClippingPlane(sweep); } });
-        await _tween(1900, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0);
-          LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity((OPQ[L.name] ?? 0.3) * e); });
-          _place(_L3(camA, ov, 0.68 + e*0.32), drift); });
-        if (W) W.mapper.removeAllClippingPlanes();
+        if (W) W.actor.getProperty().setOpacity(0.3);
+        await _tween(3000, (e, u) => { sweep.setOrigin(0, _L(ymn, ymx, u), 0);
+          LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.getProperty().setOpacity((L.name === 'rock' ? 0.55 : 0.9) * e); });
+          _place(_L3(camA, ov, 0.4 + e*0.55), drift); });
+        if (W) { W.mapper.removeAllClippingPlanes(); W.actor.setVisibility(false); }
         LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.mapper.removeAllClippingPlanes(); });
-
-        // PHASE 2 — zoom to the inlet; surfaces go glassy; red hot-water glyphs stream out
-        if (pActor) { pActor.getProperty().setColor(0.95, 0.22, 0.12); pActor.setVisibility(true); startParticleAnim(); }
-        const inCam = [inl[0]-6, inl[1]-7, inl[2]+3];
-        await _tween(2600, e => { _place(_L3(ov, inCam, e), _L3(drift, inl, e));
-          LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const c = o.actor.getProperty().getOpacity(); o.actor.getProperty().setOpacity(_L(c, L.name==='rock'?0.05:0.13, e)); } }); });
-        await _tween(1800, () => _place(inCam, inl));      // watch the pump
-
-        // PHASE 3 — walk the drift while it heats (10 charge steps)
-        if (heatFrames) { switchFrames(heatFrames); if (volume) volume.setVisibility(true); }
-        let curH = -1; const nH = heatFrames ? heatFrames.length : 1;
-        await _tween(9000, (e, u) => {
-          const p = _L3(inl, out, u), ah = _L3(inl, out, Math.min(1, u + 0.14));
-          _place([p[0], p[1], p[2]+1.2], [ah[0], ah[1], ah[2]+0.6], [0,0,1]);
-          const hi = Math.min(nH - 1, Math.floor(u * (nH - 0.001)));
-          if (hi !== curH && heatFrames) { curH = hi; showFrame(hi); }
-        });
-        await _tween(1600, () => _place([out[0]-5, out[1]-6, out[2]+3], out));
+        await _tween(1600, () => _place(ov, drift));        // hold on the finished mesh
       } catch (e) { console.warn('tour', e); }
 
-      // ---- restore ----
+      // ---- hand over: restore the normal interactive view ----
       touring = false; if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
-      pOn = false; if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } if (pActor) { pActor.setVisibility(false); pActor.getProperty().setColor(0.32, 0.62, 0.95); }
-      if (heatFrames) switchFrames(yearFrames);
-      document.getElementById('heatOn').checked = false;
-      LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.actor.getProperty().setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
-      if (objs.wire) objs.wire.actor.setVisibility(document.getElementById('wireOn').checked);
-      if (volume) volume.setVisibility(colMode === 'temperature' && document.getElementById('volOn').checked);
+      const eOn = document.getElementById('edges').checked;
+      LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.actor.getProperty().setEdgeVisibility(eOn); o.actor.getProperty().setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
+      if (objs.wire) { objs.wire.actor.getProperty().setRepresentation(1); objs.wire.actor.getProperty().setPointSize(1); objs.wire.actor.setVisibility(document.getElementById('wireOn').checked); }
+      document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
+      if (volume) volume.setVisibility(document.getElementById('volOn').checked);
       renderer.resetCamera(); renderWindow.render();
     }
     const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = runTour; }
