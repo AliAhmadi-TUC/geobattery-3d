@@ -1177,9 +1177,9 @@ function main() {
         const cen = [sx/np, sy/np, sz/np];
         const ax = [out[0]-inl[0], out[1]-inl[1], 0], an = Math.hypot(ax[0], ax[1]) || 1;
         const perp = [ax[1]/an, -ax[0]/an, 0];   // horizontal, perpendicular to the tilted drift axis
-        const front  = [cen[0] + 6, cen[1] - 122, cen[2] + 71];  // FRONT view (fixed for points): panned left+down
-        const focalP = [cen[0] + 6, cen[1],       cen[2] + 5];    // aim offset -> drift sits a bit left & down
-        const sideV = [cen[0] - perp[0]*136, cen[1] - perp[1]*136, cen[2] + 13];   // SIDE (Y-Z) from the OTHER side (180°), zoomed out
+        const front  = [cen[0] + 4, cen[1] - 55, cen[2] + 32];   // FRONT view (fixed for points): zoomed in, panned left+down
+        const focalP = [cen[0] + 4, cen[1],      cen[2] + 3];     // aim offset -> drift sits a bit left & down
+        const sideV = [cen[0] - perp[0]*86, cen[1] - perp[1]*86, cen[2] + 10];   // SIDE (Y-Z) from the OTHER side (180°)
         W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
         W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(1.0);
         W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(3.5);   // POINTS only
