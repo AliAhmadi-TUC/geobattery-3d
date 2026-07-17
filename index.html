@@ -1192,7 +1192,7 @@ function main() {
         eMap.addClippingPlane(sweep2);
         eAct = vtk.Rendering.Core.vtkActor.newInstance(); eAct.setMapper(eMap);
         eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light blue — visible on dark
-        eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(3); eAct.getProperty().setOpacity(0.95);   // step 2: THICK + opaque
+        eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.95);   // step 2: thin + opaque
         renderer.addActor(eAct);
         // pre-create the SURFACE actor (shiny/metallic, distinct from the flat edges), fully clipped
         const sMap = vtk.Rendering.Core.vtkMapper.newInstance();
@@ -1205,8 +1205,8 @@ function main() {
         sMap.addClippingPlane(sweep3);
         sAct = vtk.Rendering.Core.vtkActor.newInstance(); sAct.setMapper(sMap);
         { const sp = sAct.getProperty(); sp.setRepresentation(2); sp.setInterpolationToPhong();
-          sp.setColor(0.60, 0.62, 0.66); sp.setAmbient(0.32); sp.setDiffuse(0.88);
-          sp.setSpecular(0.28); sp.setSpecularPower(14); sp.setSpecularColor(1, 1, 1); }   // lit grey — clearly not the blue edges
+          sp.setColor(0.46, 0.48, 0.52); sp.setAmbient(0.30); sp.setDiffuse(0.86);
+          sp.setSpecular(0.28); sp.setSpecularPower(14); sp.setSpecularColor(1, 1, 1); }   // darker lit grey — clearly not the blue edges
         renderer.addActor(sAct);
         // WARM-UP: a throwaway render with the camera thrown far away (sub-pixel), all meshes open —
         // forces the GPU to upload geometry + compile shaders NOW, so nothing stalls mid-animation
@@ -1231,7 +1231,7 @@ function main() {
         W.actor.getProperty().setPointSize(3.5 / 3);                                      // points shrink to a third as the edges take over
         await _tween(2200, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
         W.actor.setVisibility(false);                                                    // POINTS removed the instant step 2 finishes
-        eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.13);         // edges recede: THIN + faint under the surface
+        eAct.getProperty().setOpacity(0.07);         // edges recede: same thin width, much fainter under the surface
         // 3 — fill the SURFACE over the edges (lit grey shading sets it apart from the thin faint edges)
         if (!touring) throw 0;
         await _tween(2000, (e, u) => { sweep3.setOrigin(0, _L(symn, symx, u), 0); });   // surface skins over the mesh
