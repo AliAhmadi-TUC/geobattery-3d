@@ -766,7 +766,7 @@ function main() {
     let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
     let pActor = null, pLoading = false, pOn = false, pRAF = null, pLastT = null, pAccum = 0;
     let pLines = null, pList = null, pCoords = null, pSpd = null, pDir = null, pScl = null, pPts = null, pScal = null, pDirArr = null, pSclArr = null, pPoly = null;
-    const PPL_BASE = 4, PPL_MIN = 3, CURV_GAIN = 1.8, P_SPEED = 4.2, P_SIZE = 7;
+    const PPL_BASE = 4, PPL_MIN = 3, CURV_GAIN = 1.8, P_SPEED = 6.0, P_SIZE = 7;
 
     function syncFlowVis() {                 // flow actors follow the "water velocity" mode
       const on = colMode === 'flow' && !!flowMeta;
