@@ -685,6 +685,7 @@ function main() {
     //      the active mode (heat / stress / material / flow), through the rock ----
     function setSliceField(mode) {
       if (!imgSlice || !domainVti) return;
+      if (mode === 'flow') { imgSlice.setVisibility(false); renderWindow.render(); return; }  // plane N/A for velocity
       const ip = imgSlice.getProperty();
       const pwf = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
       let ctf, arr;
@@ -706,6 +707,7 @@ function main() {
       domainVti.getPointData().setActiveScalars(arr);
       ip.setRGBTransferFunction(0, ctf); ip.setPiecewiseFunction(0, pwf);
       if (ip.setUseLookupTableScalarRange) ip.setUseLookupTableScalarRange(true);
+      imgSlice.setVisibility(document.getElementById('sliceOn').checked);
       imgMapper.modified(); domainVti.modified(); renderWindow.render();
     }
     function loadDomainSlice() {
@@ -743,7 +745,7 @@ function main() {
       }
       if (sliceOn && !domainVti && !sliceLoading) { sliceLoading = true; loadDomainSlice(); }
       if (imgSlice && domainVti) {
-        imgSlice.setVisibility(sliceOn);
+        imgSlice.setVisibility(sliceOn && colMode !== 'flow');
         if (sliceOn) {
           imgMapper.setSlicingMode(ax);
           const org = domainVti.getOrigin(), sp = domainVti.getSpacing(), dm = domainVti.getDimensions();
@@ -756,6 +758,20 @@ function main() {
     ['clipOn','sliceOn','cutAxis','clipFlip','cutPos'].forEach(id => {
       document.getElementById(id).addEventListener('input', applyCut);
       document.getElementById(id).addEventListener('change', applyCut); });
+    // field plane on -> hide the surrounding surfaces for a clean cross-section; restore on off
+    let savedSurfVis = null;
+    document.getElementById('sliceOn').addEventListener('change', e => {
+      const layers = ['water','rock','concrete','air'];
+      if (e.target.checked) {
+        savedSurfVis = {};
+        layers.forEach(nm => { const cb = document.getElementById('vis_' + nm);
+          if (cb) { savedSurfVis[nm] = cb.checked; if (cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); } } });
+      } else if (savedSurfVis) {
+        layers.forEach(nm => { const cb = document.getElementById('vis_' + nm);
+          if (cb && savedSurfVis[nm] && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); } });
+        savedSurfVis = null;
+      }
+    });
 
     // ---- colour surfaces: material / temperature / von Mises / water velocity ----
     function setFieldVis() {
