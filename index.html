@@ -1154,7 +1154,6 @@ function main() {
       touring = true; if (btn) btn.textContent = '✕ end';
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
-      let wireWas = false;
       try {
         const B = renderer.computeVisiblePropBounds();
         const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
@@ -1164,33 +1163,30 @@ function main() {
         const span = Math.max(B[1]-B[0], B[3]-B[2], B[5]-B[4]);
         const symn = Math.min(inl[1], out[1]) - 5, symx = Math.max(inl[1], out[1]) + 7;  // sweep over the drift
         const UP = [0, 0, 1];
-        const camA = [drift[0], drift[1] - 96, drift[2] + 26];   // straight-on FRONT view (looking +y)
-        const ov   = [drift[0], drift[1] - 70, drift[2] + 20];   // front, a touch closer
-        // everything OFF — only the point cloud shows
+        const camA = [drift[0], drift[1] - 60, drift[2] + 32];   // FRONT view of the drift (looking +y, raised)
+        const ov   = [drift[0], drift[1] - 44, drift[2] + 24];   // front, a touch closer
+        // everything OFF except the water/rock interface points
         if (volume) volume.setVisibility(false);
         LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.setVisibility(false); });
-        const wcb = document.getElementById('wireOn'); wireWas = !!(wcb && wcb.checked);
-        if (wcb && !wcb.checked) { wcb.checked = true; wcb.dispatchEvent(new Event('change')); }
-        await _poll(() => objs.wire || !touring);
-        const W = objs.wire;
-        if (W) { W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
-          W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(0.98);
-          W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(3.0);   // POINTS only, no lattice
-          W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep); }
+        const W = objs.water;    // the water surface IS the water/rock interface
+        if (!W) throw 0;
+        W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
+        W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(1.0);
+        W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(3.5);   // POINTS only
+        W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
         _place(camA, drift, UP);
         if (!touring) throw 0;
-        // 1a — mesh POINTS build (phase_tunnel_points), then STOP
+        // 1a — water/rock interface POINTS build, then STOP
         await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); _place(_L3(camA, ov, e*0.4), drift, UP); });
-        if (W) W.mapper.removeAllClippingPlanes();
+        W.mapper.removeAllClippingPlanes();
         await _tween(2400, () => _place(ov, drift, UP));    // hold on the point cloud
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
       touring = false; if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
-      const eOn = document.getElementById('edges').checked;
-      LAYERS.forEach(L => { const o = objs[L.name]; if (o) { o.actor.getProperty().setEdgeVisibility(eOn); o.actor.getProperty().setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
-      const wcb2 = document.getElementById('wireOn'); if (wcb2) wcb2.checked = wireWas;
-      if (objs.wire) { objs.wire.actor.getProperty().setRepresentation(1); objs.wire.actor.getProperty().setPointSize(1); objs.wire.actor.setVisibility(wireWas); }
+      const eOn = document.getElementById('edges').checked, rep = +document.getElementById('repr').value;
+      LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
+        pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
       document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
       if (volume) volume.setVisibility(document.getElementById('volOn').checked);
       renderer.resetCamera(); renderWindow.render();
