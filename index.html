@@ -1228,9 +1228,10 @@ function main() {
 
         // 2 — CONNECT the nodes (edges: THICK + opaque) from the side view (actor pre-created above -> no hitch)
         if (!touring) throw 0;
+        W.actor.getProperty().setPointSize(3.5 / 3);                                      // points shrink to a third as the edges take over
         await _tween(2200, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
         W.actor.setVisibility(false);                                                    // POINTS removed the instant step 2 finishes
-        eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.3);          // edges recede: THIN + faint under the surface
+        eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.13);         // edges recede: THIN + faint under the surface
         // 3 — fill the SURFACE over the edges (lit grey shading sets it apart from the thin faint edges)
         if (!touring) throw 0;
         await _tween(2000, (e, u) => { sweep3.setOrigin(0, _L(symn, symx, u), 0); });   // surface skins over the mesh
