@@ -1131,7 +1131,7 @@ function main() {
     function _place(p, f, up) {
       tCam.setPosition(p[0],p[1],p[2]); tCam.setFocalPoint(f[0],f[1],f[2]);
       if (up) tCam.setViewUp(up[0],up[1],up[2]);
-      renderer.resetCameraClippingRange();
+      tCam.setClippingRange(0.5, 4000);        // fixed range -> tour framing is deterministic across runs
     }
     function _tween(ms, fn) {
       return new Promise(res => { let t0 = null;
@@ -1153,6 +1153,7 @@ function main() {
       if (touring) { touring = false; return; }           // second click = end
       touring = true; if (btn) btn.textContent = '✕ end';
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
+      tCam.setViewAngle(30);                    // consistent fov across runs
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
       let eAct = null;                                   // edges (node connections) actor
       try {
@@ -1175,20 +1176,21 @@ function main() {
         const cen = [sx/np, sy/np, sz/np];
         const ax = [out[0]-inl[0], out[1]-inl[1], 0], an = Math.hypot(ax[0], ax[1]) || 1;
         const perp = [ax[1]/an, -ax[0]/an, 0];   // horizontal, perpendicular to the tilted drift axis
-        const front = [cen[0], cen[1] - 122, cen[2] + 66];   // FRONT view (fixed for the points), more zoomed out
+        const front  = [cen[0] + 6, cen[1] - 122, cen[2] + 71];  // FRONT view (fixed for points): panned left+down
+        const focalP = [cen[0] + 6, cen[1],       cen[2] + 5];    // aim offset -> drift sits a bit left & down
         const sideV = [cen[0] - perp[0]*136, cen[1] - perp[1]*136, cen[2] + 13];   // SIDE (Y-Z) from the OTHER side (180°), zoomed out
         W.actor.setVisibility(true); W.mapper.setScalarVisibility(false);
         W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(1.0);
         W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(3.5);   // POINTS only
         W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
-        _place(front, cen, UP);
+        _place(front, focalP, UP);
         if (!touring) throw 0;
         // 1a — POINTS build, camera STATIC
         await _tween(4200, (e, u) => { sweep.setOrigin(0, _L(symn, symx, u), 0); });
         W.mapper.removeAllClippingPlanes();
         await _tween(1400, () => {});                        // hold on the points
-        // rotate smoothly from the front view round to the side view
-        await _tween(2800, e => _place(_L3(front, sideV, e), cen, UP));
+        // rotate smoothly from the front view round to the side view (aim eases back to centre)
+        await _tween(2800, e => _place(_L3(front, sideV, e), _L3(focalP, cen, e), UP));
 
         // 1b — CONNECT the nodes (edges) from the side view
         const eMap = vtk.Rendering.Core.vtkMapper.newInstance();
