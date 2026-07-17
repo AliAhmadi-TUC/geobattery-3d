@@ -1184,6 +1184,16 @@ function main() {
         W.actor.getProperty().setColor(PT[0], PT[1], PT[2]); W.actor.getProperty().setOpacity(1.0);
         W.actor.getProperty().setRepresentation(0); W.actor.getProperty().setPointSize(3.5);   // POINTS only
         W.mapper.removeAllClippingPlanes(); W.mapper.addClippingPlane(sweep);
+        // pre-create the EDGES actor, fully clipped -> its geometry uploads to the GPU during
+        // the points phase, so the transition doesn't hitch when the edges appear
+        const eMap = vtk.Rendering.Core.vtkMapper.newInstance();
+        eMap.setInputData(W.mapper.getInputData()); eMap.setScalarVisibility(false);
+        const sweep2 = vtk.Common.DataModel.vtkPlane.newInstance(); sweep2.setNormal(0, -1, 0); sweep2.setOrigin(0, symn, 0);
+        eMap.addClippingPlane(sweep2);
+        eAct = vtk.Rendering.Core.vtkActor.newInstance(); eAct.setMapper(eMap);
+        eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light — visible on dark
+        eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.9);
+        renderer.addActor(eAct);
         _place(front, focalP, UP);
         if (!touring) throw 0;
         // 1a — POINTS build; the camera begins easing toward the side view before the sweep finishes
@@ -1196,15 +1206,7 @@ function main() {
         // finish rotating round to the side view
         await _tween(2400, e => _place(_L3(front, sideV, 0.4 + e*0.6), _L3(focalP, cen, 0.4 + e*0.6), UP));
 
-        // 1b — CONNECT the nodes (edges) from the side view
-        const eMap = vtk.Rendering.Core.vtkMapper.newInstance();
-        eMap.setInputData(W.mapper.getInputData()); eMap.setScalarVisibility(false);
-        const sweep2 = vtk.Common.DataModel.vtkPlane.newInstance(); sweep2.setNormal(0, -1, 0); sweep2.setOrigin(0, symn, 0);
-        eMap.addClippingPlane(sweep2);
-        eAct = vtk.Rendering.Core.vtkActor.newInstance(); eAct.setMapper(eMap);
-        eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light — visible on dark
-        eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.9);
-        renderer.addActor(eAct);
+        // 1b — CONNECT the nodes (edges) from the side view (actor pre-created above -> no hitch)
         if (!touring) throw 0;
         await _tween(3600, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
         await _tween(1800, () => _place(sideV, cen, UP));   // hold on the meshed interface, then STOP
