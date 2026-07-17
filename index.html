@@ -1231,42 +1231,43 @@ function main() {
           if (ayv < 0) { ax=-ax; ayv=-ayv; az=-az; }
           const AY = i => (fp[i*3]-cx)*ax + (fp[i*3+1]-cy)*ayv + (fp[i*3+2]-cz)*az;   // position along the drift
           let ymn=Infinity, ymx=-Infinity; for (let i=0;i<Np;i++){ const y=AY(i); if(y<ymn)ymn=y; if(y>ymx)ymx=y; }
-          const Ltot=ymx-ymn, Lh=Ltot/2, yA=ymn+Lh/2, yB=ymx-Lh/2, BAND=1.0;
-          const hinge = yv => { let hx=0,hy=0,hz=0,k=0; const tol=0.02*Ltot;
+          const midw = (ymn + ymx) / 2, BAND = 1.0;
+          const hinge = yv => { let hx=0,hy=0,hz=0,k=0; const tol=0.02*(ymx-ymn);
             for (let i=0;i<Np;i++){ if(Math.abs(AY(i)-yv)<tol){ hx+=fp[i*3]; hy+=fp[i*3+1]; hz+=fp[i*3+2]; k++; } }
             return k ? [hx/k, hy/k, hz/k] : [cx,cy,cz]; };
-          const hTop = hinge(yB), hBot = hinge(yA);
-          const G = { be:[], bb:[], ce:[], tb:[], te:[] };   // bottom-ext, bottom-band, centre, top-band, top-ext
+          const hTop = hinge(ymx), hBot = hinge(ymn);        // hinges at the ENDS of the water/rock centre
+          // The AIR + CONCRETE ends are MIRROR copies of the water halves: reflect each half about the end
+          // hinge (near-hinge 1 m band -> concrete, the rest -> air). At f=0 they sit on the centre; f=1 = extended.
+          const G = { ta:[], tc:[], ba:[], bc:[] };          // top-air, top-concrete, bottom-air, bottom-concrete
           for (let p=0; p+3<wpl.length; p+=4) { const a=wpl[p+1], b=wpl[p+2], c2=wpl[p+3];
             const yc=(AY(a)+AY(b)+AY(c2))/3; let g;
-            if (yc<yA) g='be'; else if (yc<yA+BAND) g='bb'; else if (yc<=yB-BAND) g='ce'; else if (yc<=yB) g='tb'; else g='te';
+            if (yc > ymx - BAND) g='tc'; else if (yc > midw) g='ta';
+            else if (yc < ymn + BAND) g='bc'; else g='ba';
             G[g].push(a, b, c2); }
-          const BODY=[0.60,0.62,0.66], CONC=[0.32,0.34,0.37];   // lighter grey = drift/air · darker grey = concrete
-          const mkActor = (tri, col, ownPts) => {
+          const AIR=[0.66,0.68,0.71], CONC=[0.30,0.32,0.35];   // lighter grey = air · darker grey = concrete
+          const topPts = fp.slice(), botPts = fp.slice(); MIR.extPds = [];
+          const mkExt = (tri, col, pts) => {
             const conn = new Uint32Array(tri.length/3*4);
             for (let t=0,w=0; t<tri.length; t+=3){ conn[w++]=3; conn[w++]=tri[t]; conn[w++]=tri[t+1]; conn[w++]=tri[t+2]; }
             const pd = vtk.Common.DataModel.vtkPolyData.newInstance();
-            const pts = ownPts ? fp.slice() : fp;            // extensions get their own (rotatable) copy
             pd.getPoints().setData(pts, 3); pd.getPolys().setData(conn);
             const mp = vtk.Rendering.Core.vtkMapper.newInstance(); mp.setInputData(pd); mp.setScalarVisibility(false);
             const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(mp);
             const pr = a.getProperty(); pr.setInterpolationToPhong(); pr.setColor(col[0],col[1],col[2]);
             pr.setAmbient(0.30); pr.setDiffuse(0.85); pr.setSpecular(0.25); pr.setSpecularPower(14);
-            a.setVisibility(false); renderer.addActor(a); mirActs.push(a);
-            return { a, pd, pts };
+            a.setVisibility(false); renderer.addActor(a); mirActs.push(a); MIR.extPds.push(pd);
           };
-          mkActor(G.ce, BODY, false); mkActor(G.tb, CONC, false); mkActor(G.bb, CONC, false);
-          const TE = mkActor(G.te, BODY, true), BE = mkActor(G.be, BODY, true);
-          MIR.src = fp; MIR.teP = TE.pts; MIR.tePd = TE.pd; MIR.beP = BE.pts; MIR.bePd = BE.pd;
-          MIR.hTop = hTop; MIR.hBot = hBot; MIR.Ltot = Ltot;
-          MIR.swing = th => {                                // rotate each extension about vertical Z through its hinge
-            const src = MIR.src, ct = Math.cos(th), st = Math.sin(th);
+          mkExt(G.ta, AIR, topPts); mkExt(G.tc, CONC, topPts);   // top end (both share one rotatable copy)
+          mkExt(G.ba, AIR, botPts); mkExt(G.bc, CONC, botPts);   // bottom end
+          MIR.src = fp; MIR.topPts = topPts; MIR.botPts = botPts;
+          MIR.hTop = hTop; MIR.hBot = hBot; MIR.Ltot = ymx - ymn;
+          MIR.swing = f => {                                 // f: 0 (copies lie on the centre) -> 1 (ends fully mirrored out)
+            const src = MIR.src, th = Math.PI * f, ct = Math.cos(th), st = Math.sin(th);
             const rot = (dst, h) => { const hx=h[0], hy=h[1];
               for (let i=0;i<src.length;i+=3){ const x=src[i]-hx, y=src[i+1]-hy;
                 dst[i]=hx+x*ct-y*st; dst[i+1]=hy+x*st+y*ct; dst[i+2]=src[i+2]; } };
-            rot(MIR.teP, MIR.hTop); rot(MIR.beP, MIR.hBot);
-            MIR.tePd.getPoints().modified(); MIR.tePd.modified();
-            MIR.bePd.getPoints().modified(); MIR.bePd.modified();
+            rot(MIR.topPts, MIR.hTop); rot(MIR.botPts, MIR.hBot);
+            MIR.extPds.forEach(pd => { pd.getPoints().modified(); pd.modified(); });
           };
           const mkSph = pos => { const s = vtk.Filters.Sources.vtkSphereSource.newInstance({ radius:0.7, thetaResolution:24, phiResolution:24, center:pos });
             const mp = vtk.Rendering.Core.vtkMapper.newInstance(); mp.setInputConnection(s.getOutputPort());
@@ -1356,16 +1357,15 @@ function main() {
         // 3b — MIRROR-ASSEMBLY (drift_pipline_anim.py 1-4): show how the drift was reconstructed by mirroring.
         if (!touring) throw 0;
         if (mirActs.length) {
-          const fovR2 = baseFov * Math.PI / 180;                       // elevated 3/4 view so the horizontal swing reads
+          const fovR2 = baseFov * Math.PI / 180;                       // elevated 3/4 view framing the FULL (extended) drift
           const md = [0.28, -0.5, 0.82], ml = Math.hypot(md[0], md[1], md[2]);
-          const mdist = (MIR.Ltot || 49) * 0.5 / Math.tan(fovR2 / 2) * 0.95;
+          const mdist = (MIR.Ltot || 49) / Math.tan(fovR2 / 2) * 1.05;
           const mirCam = [cen[0] + md[0]/ml*mdist, cen[1] + md[1]/ml*mdist, cen[2] + md[2]/ml*mdist];
-          await _tween(1500, (e) => _place(_L3(sideV, mirCam, e), cen, UP));   // move to the assembly view
-          if (sAct) sAct.setVisibility(false);                         // hand off: full surface -> split parts (assembled, so seamless)
-          mirActs.forEach(a => a.setVisibility(true)); MIR.swing(0);
-          await _tween(1600, (e) => MIR.swing(Math.PI * e));           // FOLD in -> collapse to the scanned centre
-          await _tween(700, () => {});                                 // hold on the centre section
-          await _tween(2200, (e) => MIR.swing(Math.PI * (1 - e)));     // SWING-mirror back out -> full drift + concrete joints
+          await _tween(1600, (e) => _place(_L3(sideV, mirCam, e), cen, UP));   // pull back to the assembly view
+          // the centre STAYS = the water/rock surface (sAct); its two halves are MIRRORED outward to CREATE the ends
+          MIR.swing(0); mirActs.forEach(a => a.setVisibility(true));
+          await _tween(2400, (e) => MIR.swing(e));                     // mirror the halves out -> air + concrete ends appear
+          await _tween(600, () => {});                                 // hold on the assembled drift
           if (MIR.sIn) {                                               // inlet / outlet spheres fly IN from outside the ends
             MIR.sIn.a.setVisibility(true); MIR.sOut.a.setVisibility(true);
             const H = 8.0, i0 = [inl[0], inl[1], inl[2] + H], o0 = [out[0], out[1], out[2] - H];
