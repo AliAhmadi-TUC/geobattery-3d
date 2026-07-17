@@ -1190,6 +1190,9 @@ function main() {
         eMap.setInputData(W.mapper.getInputData()); eMap.setScalarVisibility(false);
         const sweep2 = vtk.Common.DataModel.vtkPlane.newInstance(); sweep2.setNormal(0, -1, 0); sweep2.setOrigin(0, symn, 0);
         eMap.addClippingPlane(sweep2);
+        // erase plane: in step 3 the advancing surface consumes the edges (they survive only AHEAD of the surface front)
+        const eraseP = vtk.Common.DataModel.vtkPlane.newInstance(); eraseP.setNormal(0, 1, 0); eraseP.setOrigin(0, symn, 0);
+        eMap.addClippingPlane(eraseP);
         eAct = vtk.Rendering.Core.vtkActor.newInstance(); eAct.setMapper(eMap);
         eAct.getProperty().setRepresentation(1); eAct.getProperty().setColor(0.58, 0.74, 0.94);   // light blue — visible on dark
         eAct.getProperty().setLighting(false); eAct.getProperty().setLineWidth(1); eAct.getProperty().setOpacity(0.95);   // step 2: thin + opaque
@@ -1276,10 +1279,13 @@ function main() {
         W.actor.getProperty().setPointSize(3.5 / 3);                                      // points shrink to a third as the edges take over
         await _tween(2200, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
         W.actor.setVisibility(false);                                                    // POINTS removed the instant step 2 finishes
-        eAct.getProperty().setOpacity(0.07);         // edges recede: same thin width, much fainter under the surface
-        // 3 — fill the SURFACE over the edges (lit grey shading sets it apart from the thin faint edges)
+        // 3 — the SURFACE skins over the mesh and CONSUMES the bright edges as it advances (cinematic)
         if (!touring) throw 0;
-        await _tween(2000, (e, u) => { sweep3.setOrigin(0, _L(symn, symx, u), 0); });   // surface skins over the mesh
+        await _tween(2000, (e, u) => {
+          const y = _L(symn, symx, u);
+          sweep3.setOrigin(0, y, 0);       // surface fills up to the front y
+          eraseP.setOrigin(0, y, 0);       // ...erasing the edges behind it — they remain only ahead of the surface
+        });
         await _tween(1100, () => _place(sideV, cen, UP));   // hold on the finished shaded surface
         // 4 — ADD THE SURROUNDING ROCK DOMAIN (outer walls). Pull the camera back to frame the whole
         //     domain box (like Gif_creating.py -> CAMERA_WALLS), then sweep the walls in along the drift axis.
@@ -1287,7 +1293,8 @@ function main() {
         if (faceActs.length) {
           await _tween(2000, (e) => _place(_L3(sideV, wallCam, e), _L3(cen, bcen, e), UP));   // zoom out + orbit to the 3/4 view; camera STOPS
           sweep4.setOrigin(0, rb[3], 0);                       // full geometry — reveal is now per-wall visibility
-          const order = faceActs.length === 6 ? [3, 1, 4, 0, 2, 5] : faceActs.map((_, i) => i);   // camera-facing faces first
+          // bottom -> the 3 other side walls -> top -> the nearest (front, -x) wall LAST
+          const order = faceActs.length === 6 ? [5, 0, 2, 3, 4, 1] : faceActs.map((_, i) => i);
           for (const idx of order) {                           // the six walls POP in one-by-one, AFTER the camera has settled
             if (!touring) break;
             faceActs[idx].setVisibility(true);
