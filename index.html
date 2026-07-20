@@ -639,10 +639,10 @@ function main() {
   function walkLUT() {                                    // walk-through: neutral wall grey (cold) -> red (hot), no magenta
     if (_walkLUT) return _walkLUT;
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-    lut.addRGBPoint(10, 0.56, 0.58, 0.62);               // cold = the surface's own neutral grey
-    lut.addRGBPoint(28, 0.66, 0.52, 0.50);               // ramp spread over the whole range -> gradual warming
-    lut.addRGBPoint(45, 0.76, 0.40, 0.32);
-    lut.addRGBPoint(62, 0.86, 0.26, 0.18);
+    lut.addRGBPoint(10, 0.52, 0.51, 0.49);               // cold = the wall's own neutral grey (R>=G>=B, never blue)
+    lut.addRGBPoint(22, 0.62, 0.53, 0.47);               // barely-warm neutral grey
+    lut.addRGBPoint(40, 0.76, 0.45, 0.32);               // warming
+    lut.addRGBPoint(60, 0.88, 0.28, 0.16);
     lut.addRGBPoint(80, 0.96, 0.10, 0.06);               // hot = red (only at the top)
     _walkLUT = lut; return lut;
   }
@@ -1614,16 +1614,18 @@ function main() {
           renderer.addActor(meshEdge); renderWindow.render();   // pre-render -> compile before the visible sweep
           await _tween(3200, (e, u) => eSweep.setOrigin(0, sweepY(u), 0));   // edges connect bottom->top, slow at the drift
           await _tween(900, () => {});                        // hold on the full 3-D cell mesh
-          // 6 — REMOVE THE CELLS, DIVE INSIDE to just behind the inlet, looking at it
+          // 9 — REMOVE THE CELLS *while* DIVING to just behind the real inlet (both motions overlap)
           _title('9', 'Diving inside the drift');
           if (!touring) throw 0;
-          await _tween(1500, (e, u) => { const y = _L(rb[3], rb[2], u);   // lattice + rock walls sweep back out together
-            pSweep.setOrigin(0, y, 0); eSweep.setOrigin(0, y, 0); if (sweep4) sweep4.setOrigin(0, y, 0); });
-          if (meshPts) { renderer.removeActor(meshPts); meshPts = null; }
-          if (meshEdge) { renderer.removeActor(meshEdge); meshEdge = null; }
-          faceActs.forEach(a => a.setVisibility(false));      // box gone (already swept)
-          if (sAct) sAct.setVisibility(false);                // hide the plain-grey centre; the heat-coloured water (W2) replaces it
-          // KEEP the air/concrete ends (mirActs) + the inlet/outlet markers visible for context
+          mirActs.forEach(a => { if (a.getProperty().getColor()[0] < 0.5) a.setVisibility(false); });   // hide the dark CONCRETE caps (they block the dive); keep the lighter AIR ends for context
+          if (MIR.sIn) MIR.sIn.a.setVisibility(false);         // drop the oversized inlet ball — the real void is baked into the W2 surface
+          if (MIR.sOut) MIR.sOut.a.setVisibility(false);       // drop the stray outlet ball sitting behind the far cap
+          const sweepP = _tween(1500, (e, u) => { const y = _L(rb[3], rb[2], u);   // lattice + walls sweep out WHILE the camera dives
+              pSweep.setOrigin(0, y, 0); eSweep.setOrigin(0, y, 0); if (sweep4) sweep4.setOrigin(0, y, 0); })
+            .then(() => { if (meshPts) { renderer.removeActor(meshPts); meshPts = null; }
+              if (meshEdge) { renderer.removeActor(meshEdge); meshEdge = null; }
+              faceActs.forEach(a => a.setVisibility(false)); });   // drop the lattice + box only once fully swept
+          if (sAct) sAct.setVisibility(false);                 // hide the plain-grey centre; the heat-coloured water (W2) replaces it
           const ax2 = MIR.axis || [0, 1, 0], W2 = objs.water;   // the drift walls (water/rock interface), heat-coloured
           if (W2) {
             W2.mapper.removeAllClippingPlanes();
@@ -1631,11 +1633,10 @@ function main() {
             W2.mapper.setColorByArrayName('hc00'); W2.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
             W2.mapper.setScalarVisibility(true); W2.mapper.setInterpolateScalarsBeforeMapping(true);
             const pr = W2.actor.getProperty(); pr.setRepresentation(2); pr.setOpacity(1); pr.setPointSize(1);
-            pr.setInterpolationToPhong(); pr.setAmbient(0.22); pr.setDiffuse(0.62);
-            pr.setSpecular(0.8); pr.setSpecularPower(45); pr.setSpecularColor(1, 1, 1); pr.setLighting(true);   // shinier, metallic walls
+            pr.setInterpolationToPhong(); pr.setAmbient(0.24); pr.setDiffuse(0.66);
+            pr.setSpecular(0.4); pr.setSpecularPower(18); pr.setSpecularColor(1, 1, 1); pr.setLighting(true);   // a little metallic sheen, not steel-blue
             W2.actor.setVisibility(true);
           }
-          if (MIR.sIn) { MIR.sIn.s.setRadius(0.6); MIR.sIn.a.setVisibility(true); }   // enlarge the inlet marker
           // ---- water CENTRELINE through the bent tube (bucket centroids) — computed once, used by dive + walk ----
           let cam = [], camP = t => [inl[0], inl[1], inl[2] + 0.4];
           if (W2) {
@@ -1655,28 +1656,34 @@ function main() {
               a = cam[i], b = cam[Math.min(cam.length-1, i+1)];
               return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; };
           }
-          const START = 1, AHEAD = 3;                          // land a step INSIDE the tube
-          // DIVE from overhead down INSIDE the tube, looking forward along the centreline
+          const AHEAD = 3, BEHIND = 2.6;                        // stand a bit BEHIND the real inlet, looking in
+          const inEye = [inl[0] - ax2[0]*BEHIND, inl[1] - ax2[1]*BEHIND, inl[2] - ax2[2]*BEHIND + 0.4];
+          const walkPath = [inEye].concat(cam);                // the walk starts behind the inlet, then follows the centreline
+          const walkP = s => { const t = Math.max(0, Math.min(walkPath.length-1, s)), i = Math.floor(t), f = t - i,
+            a = walkPath[i], b = walkPath[Math.min(walkPath.length-1, i+1)];
+            return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; };
+          const inFoc = walkP(AHEAD);                           // look forward into the drift (matches the walk's first frame)
+          // DIVE from overhead down to just behind the real inlet, looking in
           const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint(), up0 = tCam.getViewUp();
-          const inEye = camP(START), inFoc = camP(START + AHEAD);
           await _tween(3000, (e) => {
             const p = _L3(p0, inEye, e), f = _L3(f0, inFoc, e);
             const u3 = _L3(up0, [0, 0, 1], e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;   // interpolate viewUp -> no snap
             tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
             tCam.setViewAngle(_L(baseFov, 55, e)); tCam.setClippingRange(0.03, 2000);
           });
-          await _tween(900, () => {});                         // hold inside, inlet + arrows just ahead
+          await sweepP;                                        // make sure the lattice/wall teardown finished (also covers the seek path)
+          await _tween(900, () => {});                         // hold behind the inlet, arrows about to pour
           // 10 — WALK IN to a chamber as RED hot-water arrows pour from the inlet; walls heat smoothly
           _title('10', 'Charging · walking in as it heats');
           if (!touring) throw 0;
           if (pActor) { pActor.getProperty().setColor(0.96, 0.28, 0.14); pActor.setVisibility(true); pSpeedMul = 1.6; pOn = true; startParticleAnim(); }   // red = hot water
-          if (cam.length > START + AHEAD + 2) {
-            const WALK_FRAC = 0.6, span = (cam.length - 1 - AHEAD) - START;   // walk far enough to reach a chamber
+          if (walkPath.length > AHEAD + 3) {
+            const WALK_FRAC = 0.6, span = walkPath.length - 1 - AHEAD;   // walk from behind the inlet far enough to reach a chamber
             await _tween(900, () => {});                       // watch the arrows first
-            let lastHc = -1, endS = START;
+            let lastHc = -1, endS = 0;
             await _tween(13000, (e, u) => {                    // faster walk, into a chamber
-              endS = START + u * WALK_FRAC * span;
-              const pos = camP(endS), foc = camP(endS + AHEAD);
+              endS = u * WALK_FRAC * span;
+              const pos = walkP(endS), foc = walkP(endS + AHEAD);
               tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(foc[0], foc[1], foc[2]); tCam.setViewUp(0, 0, 1);
               tCam.setViewAngle(55); tCam.setClippingRange(0.03, 2000);
               const hc = Math.min(9, Math.round(u * 9));
@@ -1686,7 +1693,7 @@ function main() {
             _title('11', 'Storage · the water cools');
             if (!touring) throw 0;
             if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } }   // no flow during storage: arrows gone
-            { const pos = camP(endS), back = camP(Math.max(0, endS - 8)), dF = tCam.getFocalPoint();
+            { const pos = walkP(endS), back = walkP(Math.max(0, endS - 8)), dF = tCam.getFocalPoint();
               const aF = Math.atan2(dF[1]-pos[1], dF[0]-pos[0]), aB = Math.atan2(back[1]-pos[1], back[0]-pos[0]);
               let dA = aB - aF; while (dA > Math.PI) dA -= 2*Math.PI; while (dA < -Math.PI) dA += 2*Math.PI;
               const zF = dF[2]-pos[2], zB = back[2]-pos[2];
@@ -1746,8 +1753,7 @@ function main() {
         pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
       document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
       if (volume) volume.setVisibility(document.getElementById('volOn').checked);
-      tCam.setViewAngle(baseFov);                          // undo the walk-through's widened fov
-      renderer.resetCamera(); renderWindow.render();
+      renderer.resetCameraClippingRange(); renderWindow.render();   // keep the tour's final camera pose; only refresh the clip range
       if (tourGoto >= 0) { const g = tourGoto; tourGoto = -1; tourTargetStep = g; setTimeout(runTour, 60); }   // back-jump: replay + fast-forward
     }
     const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = () => { if (!touring) { tourTargetStep = 0; tourGoto = -1; } runTour(); }; }
