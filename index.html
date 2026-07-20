@@ -1581,11 +1581,12 @@ function main() {
             const pr = W2.actor.getProperty(); pr.setRepresentation(2); pr.setOpacity(1); pr.setPointSize(1); pr.setLighting(true);
             W2.actor.setVisibility(true);
           }
-          const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint();
+          const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint(), up0 = tCam.getViewUp();
           const inEye = [inl[0] - ax2[0]*6, inl[1] - ax2[1]*6, inl[2] + 1.2];
           await _tween(3000, (e) => {                         // fly down to behind the inlet, widen fov for the interior
             const p = _L3(p0, inEye, e), f = _L3(f0, inl, e);
-            tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(0, 0, 1);
+            const u3 = _L3(up0, [0, 0, 1], e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;   // interpolate viewUp -> no snap
+            tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
             tCam.setViewAngle(_L(baseFov, 58, e)); tCam.setClippingRange(0.05, 2000);
           });
           await _tween(1000, () => {});                       // hold behind the inlet, looking at it
