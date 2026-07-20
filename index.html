@@ -1513,18 +1513,23 @@ function main() {
           }
           await _tween(1000, () => {});                        // hold on the finished domain box
         }
-        // 5 — OPEN THE TOP, GO OVERHEAD, REVEAL THE INTERNAL 3-D CELL MESH (points -> edges)
+        // 5 — OPEN THE TOP, TILT OVERHEAD, REVEAL THE INTERNAL 3-D CELL MESH of the WHOLE DOMAIN (points -> edges)
         if (!touring) throw 0;
         const mesh = await tourMeshP;
-        if (mesh) {
-          if (faceActs.length === 6) faceActs[4].setVisibility(false);   // remove the top (+z) wall to see inside
-          mirActs.forEach(a => a.setVisibility(false));                  // hide the drift surfaces so the mesh reads
+        if (mesh && rb) {
+          if (faceActs.length === 6) { faceActs[4].setVisibility(false);          // remove the top wall
+            faceActs.forEach((a, i) => { if (i !== 4) a.getProperty().setOpacity(0.12); }); }   // others -> glass, mesh shows through
+          mirActs.forEach(a => a.setVisibility(false));
           if (MIR.sIn) { MIR.sIn.a.setVisibility(false); MIR.sOut.a.setVisibility(false); }
-          const overH = (MIR.Ltot || 48) * 1.25;
-          const overCam = [cen[0], cen[1], cen[2] + overH];             // straight above the drift, looking down
-          const p1 = tCam.getPosition(), f1 = tCam.getFocalPoint(), up1 = MIR.axis || [0, 1, 0];
-          await _tween(2200, (e) => _place(_L3(p1, overCam, e), _L3(f1, cen, e), up1));
-          // POINTS (the tet nodes) fade in
+          // tilt to a high overhead of the WHOLE box (same distance as the walls view -> no big zoom), viewUp stays +Z
+          const fovR = baseFov * Math.PI / 180;
+          const bdiag = Math.hypot(rb[1]-rb[0], rb[3]-rb[2], rb[5]-rb[4]);
+          const od = [0.16, -0.22, 0.96], odl = Math.hypot(od[0], od[1], od[2]);
+          const overDist = (bdiag / 2) / Math.sin(fovR / 2) * 0.95;
+          const overCam = [bcen[0] + od[0]/odl*overDist, bcen[1] + od[1]/odl*overDist, bcen[2] + od[2]/odl*overDist];
+          const p1 = tCam.getPosition(), f1 = tCam.getFocalPoint();
+          await _tween(2400, (e) => _place(_L3(p1, overCam, e), _L3(f1, bcen, e), UP));   // smooth tilt overhead
+          // POINTS (all tet nodes across the domain) fade in
           const mpm = vtk.Rendering.Core.vtkMapper.newInstance(); mpm.setInputData(mesh); mpm.setScalarVisibility(false);
           meshPts = vtk.Rendering.Core.vtkActor.newInstance(); meshPts.setMapper(mpm);
           { const pr = meshPts.getProperty(); pr.setRepresentation(0); pr.setPointSize(2.5); pr.setColor(0.74, 0.84, 0.98); pr.setLighting(false); pr.setOpacity(0); }
@@ -1536,7 +1541,7 @@ function main() {
           meshEdge = vtk.Rendering.Core.vtkActor.newInstance(); meshEdge.setMapper(mem);
           { const pr = meshEdge.getProperty(); pr.setRepresentation(1); pr.setLineWidth(1); pr.setColor(0.55, 0.70, 0.92); pr.setLighting(false); pr.setOpacity(0); }
           renderer.addActor(meshEdge);
-          await _tween(1800, (e) => meshEdge.getProperty().setOpacity(e * 0.55));
+          await _tween(1800, (e) => meshEdge.getProperty().setOpacity(e * 0.45));
           await _tween(900, () => {});                        // hold on the full 3-D cell mesh
         }
       } catch (e) { console.warn('tour', e); }
