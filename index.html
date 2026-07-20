@@ -603,25 +603,30 @@ function main() {
     return f;
   }
   const HEAT_SURFS = ['water', 'air', 'concrete'];        // drift surfaces recoloured through the phases
-  const HEAT_CLIM = [11, 80], HEAT_YELLOW = 15;           // all phases: dark at 11, full yellow by 15, axis to 80
+  const HEAT_CLIM = [10, 80], HEAT_TSPLIT = 15, HEAT_SPLIT = 0.66;   // magma high part reached by 15 C, then keeps gradating to 80
   let _heatLUT = null;
   function infernoAt(f) {                                 // sample the magma ramp at fraction f
     const n = INFERNO.length, x = Math.max(0, Math.min(1, f)) * (n - 1), i = Math.floor(x), t = x - i;
     const a = INFERNO[i], b = INFERNO[Math.min(n - 1, i + 1)];
     return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
   }
-  function heatLUT() {                                    // magma packed into [11,15], held yellow to 80
+  function heatFrac(t) {                                  // temperature -> colour fraction (continuous, two linear legs)
+    if (t <= HEAT_TSPLIT) return HEAT_SPLIT * (t - HEAT_CLIM[0]) / (HEAT_TSPLIT - HEAT_CLIM[0]);
+    return HEAT_SPLIT + (1 - HEAT_SPLIT) * (t - HEAT_TSPLIT) / (HEAT_CLIM[1] - HEAT_TSPLIT);
+  }
+  function heatLUT() {                                    // continuous: [10,15] -> low..high magma, [15,80] -> high..top
     if (_heatLUT) return _heatLUT;
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
-    for (let i = 0; i < M; i++) { const c = INFERNO[i];
-      lut.addRGBPoint(HEAT_CLIM[0] + (HEAT_YELLOW - HEAT_CLIM[0]) * (i / (M - 1)), c[0], c[1], c[2]); }
-    const y = INFERNO[M - 1]; lut.addRGBPoint(HEAT_CLIM[1], y[0], y[1], y[2]);   // hold yellow to the top
+    for (let i = 0; i < M; i++) { const f = i / (M - 1), c = INFERNO[i];
+      const T = f <= HEAT_SPLIT
+        ? HEAT_CLIM[0] + (HEAT_TSPLIT - HEAT_CLIM[0]) * (f / HEAT_SPLIT)
+        : HEAT_TSPLIT + (HEAT_CLIM[1] - HEAT_TSPLIT) * ((f - HEAT_SPLIT) / (1 - HEAT_SPLIT));
+      lut.addRGBPoint(T, c[0], c[1], c[2]); }
     _heatLUT = lut; return lut;
   }
-  function heatBarGrad() {                                // colourbar that reflects the compressed mapping
+  function heatBarGrad() {                                // colourbar mirrors the two-leg mapping
     const stops = [];
-    for (let k = 0; k <= 10; k++) { const tt = HEAT_CLIM[0] + k / 10 * (HEAT_CLIM[1] - HEAT_CLIM[0]);
-      stops.push(infernoAt(tt <= HEAT_YELLOW ? (tt - HEAT_CLIM[0]) / (HEAT_YELLOW - HEAT_CLIM[0]) : 1)); }
+    for (let k = 0; k <= 12; k++) stops.push(infernoAt(heatFrac(HEAT_CLIM[0] + k / 12 * (HEAT_CLIM[1] - HEAT_CLIM[0]))));
     return cssGrad(stops);
   }
   function applyHeatSurfaces(arr) {                        // colour the drift surfaces by a step's field
