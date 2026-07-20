@@ -1753,7 +1753,8 @@ function main() {
         pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
       document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
       if (volume) volume.setVisibility(document.getElementById('volOn').checked);
-      renderer.resetCameraClippingRange(); renderWindow.render();   // keep the tour's final camera pose; only refresh the clip range
+      if (tourGoto < 0 && tourStep < 13) { tCam.setViewAngle(baseFov); renderer.resetCamera(); }   // aborted early (✕ end / short walk): reframe to a usable overview
+      renderer.resetCameraClippingRange(); renderWindow.render();   // a clean step-13 finish keeps the tour's final overview pose; only the clip range is refreshed
       if (tourGoto >= 0) { const g = tourGoto; tourGoto = -1; tourTargetStep = g; setTimeout(runTour, 60); }   // back-jump: replay + fast-forward
     }
     const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = () => { if (!touring) { tourTargetStep = 0; tourGoto = -1; } runTour(); }; }
