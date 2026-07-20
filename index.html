@@ -1238,7 +1238,7 @@ function main() {
     function _hideLabels() { if (_labelRAF) { cancelAnimationFrame(_labelRAF); _labelRAF = null; } if (tourSVG) { tourSVG.remove(); tourSVG = null; } }
     function _labelLoop() { if (!tourSVG) { _labelRAF = null; return; } _positionLabels(); _labelRAF = requestAnimationFrame(_labelLoop); }
     function _title(n, t) { const el = document.getElementById('tourTitle');   // step caption at the top of the screen
-      if (!el) return; if (t) { el.innerHTML = '<b>' + n + '</b>' + t; el.style.display = ''; } else { el.style.display = 'none'; } }
+      if (!el) return; if (t) { el.innerHTML = '<b>' + n + '</b>' + t; el.style.display = 'block'; } else { el.style.display = 'none'; } }
     function _showLabels(list, perp, axis) {
       _hideLabels();
       tourSVG = document.createElementNS(_SVGNS, 'svg');
@@ -1266,13 +1266,14 @@ function main() {
                     it.world[1] + perp[1]*it.side*it.dist + aX[1]*along,
                     it.world[2] + perp[2]*it.side*it.dist + aX[2]*along + 2];
         const l = _project(lw), ax = a[0], ay = a[1], lx = l[0], ly = l[1];
-        const leftText = lx < ax, hx = lx + (leftText ? 12 : -12);
-        it._dot.setAttribute('cx', ax); it._dot.setAttribute('cy', ay);
-        it._ln.setAttribute('points', `${ax},${ay} ${hx},${ly} ${lx},${ly}`);
+        const leftText = lx < ax;
         const outEnd = leftText ? 'end' : 'start';           // normal: text extends outward from the leader
         const anch = it.flip ? (outEnd === 'end' ? 'start' : 'end') : outEnd;   // flip: text extends inward (clears a neighbour's line)
+        const hx = lx + (anch === 'end' ? 12 : -12);         // horizontal elbow opposite the text side (flips with it)
+        it._dot.setAttribute('cx', ax); it._dot.setAttribute('cy', ay);
+        it._ln.setAttribute('points', `${ax},${ay} ${hx},${ly} ${lx},${ly}`);
         it._tx.setAttribute('text-anchor', anch);
-        it._tx.setAttribute('x', lx + ((anch === 'end') ? -5 : 5)); it._tx.setAttribute('y', ly);
+        it._tx.setAttribute('x', lx + (anch === 'end' ? -5 : 5)); it._tx.setAttribute('y', ly);
         it._tx.setAttribute('dominant-baseline', 'middle');
       });
     }
@@ -1533,12 +1534,12 @@ function main() {
           const AX = MIR.axis || [0,1,0], hl = MIR.hl || 12;
           const airBot = [MIR.hBot[0]-AX[0]*hl*0.55, MIR.hBot[1]-AX[1]*hl*0.55, MIR.hBot[2]-AX[2]*hl*0.55];
           const perp3 = [AX[1], -AX[0], 0]; { const pl = Math.hypot(perp3[0], perp3[1]) || 1; perp3[0] /= pl; perp3[1] /= pl; }   // horizontal ⟂ drift
-          _showLabels([                                          // outlet+concrete one side; inlet+air the opposite; water parallel
-            { text:'Outlet',           world: out,          side: +1, dist: 15, along: -6, flip: true },   // name flipped inward so it clears the concrete leader
-            { text:'Concrete plug',    world: MIR.hTop,     side: +1, dist: 30, along: 12 },
-            { text:'Water/rock drift', world: cen,          side: +1, dist: 22, along: 0 },
-            { text:'Inlet',            world: inl,          side: -1, dist: 15, along: 0 },
-            { text:'Air drift',        world: MIR.airC||airBot, side: -1, dist: 30, along: 0 },
+          _showLabels([                                          // parallel leaders: outlet+concrete one side, inlet+air the opposite, water parallel
+            { text:'Outlet',           world: out,          side: +1, dist: 14, flip: true },   // name flipped inward so it clears the concrete leader
+            { text:'Concrete plug',    world: MIR.hTop,     side: +1, dist: 34 },
+            { text:'Water/rock drift', world: cen,          side: +1, dist: 22 },
+            { text:'Inlet',            world: inl,          side: -1, dist: 14 },
+            { text:'Air drift',        world: MIR.airC||airBot, side: -1, dist: 34 },
           ], perp3, AX);
           await _tween(2800, () => _positionLabels());   // hold (pausable) while the labels are shown
           _hideLabels();
@@ -1607,8 +1608,8 @@ function main() {
           if (meshPts) { renderer.removeActor(meshPts); meshPts = null; }
           if (meshEdge) { renderer.removeActor(meshEdge); meshEdge = null; }
           faceActs.forEach(a => a.setVisibility(false));      // box gone (already swept)
-          mirActs.forEach(a => a.setVisibility(false));       // now drop the drift surfaces — going inside the water
-          if (MIR.sIn) { MIR.sIn.a.setVisibility(false); MIR.sOut.a.setVisibility(false); }
+          if (sAct) sAct.setVisibility(false);                // hide the plain-grey centre; the heat-coloured water (W2) replaces it
+          // KEEP the air/concrete ends (mirActs) + the inlet/outlet markers visible for context
           const ax2 = MIR.axis || [0, 1, 0], W2 = objs.water;   // the drift walls (water/rock interface), heat-coloured
           if (W2) {
             W2.mapper.removeAllClippingPlanes();
@@ -1620,13 +1621,13 @@ function main() {
             W2.actor.setVisibility(true);
           }
           const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint(), up0 = tCam.getViewUp();
-          const inEye = [inl[0] + ax2[0]*1.5, inl[1] + ax2[1]*1.5, inl[2] + 0.4];   // INSIDE the water, just past the inlet
-          const inFoc = [inl[0] + ax2[0]*9, inl[1] + ax2[1]*9, inl[2] + 0.4];       // look forward down the drift
-          await _tween(3000, (e) => {                         // fly down INSIDE, widen fov for the interior
+          const inEye = [inl[0] - ax2[0]*3.5, inl[1] - ax2[1]*3.5, inl[2] + 0.6];   // behind the inlet, in the (translucent) air
+          const inFoc = [inl[0], inl[1], inl[2]];                                    // look AT the inlet
+          await _tween(3000, (e) => {                         // fly down behind the inlet, widen fov a touch for the interior
             const p = _L3(p0, inEye, e), f = _L3(f0, inFoc, e);
             const u3 = _L3(up0, [0, 0, 1], e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;   // interpolate viewUp -> no snap
             tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
-            tCam.setViewAngle(_L(baseFov, 58, e)); tCam.setClippingRange(0.05, 2000);
+            tCam.setViewAngle(_L(baseFov, 50, e)); tCam.setClippingRange(0.05, 2000);
           });
           await _tween(1000, () => {});                       // hold behind the inlet, looking at it
           // 7 — THE WALK: glide along the water centreline, walls warming to yellow as the hot water advances
@@ -1655,7 +1656,7 @@ function main() {
             await _tween(11000, (e, u) => {
               const s = u * (cam.length - 1 - AHEAD), pos = camP(s), foc = camP(s + AHEAD);
               tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(foc[0], foc[1], foc[2]); tCam.setViewUp(0, 0, 1);
-              tCam.setViewAngle(58); tCam.setClippingRange(0.05, 2000);
+              tCam.setViewAngle(50); tCam.setClippingRange(0.05, 2000);
               const hc = Math.min(9, 2 + Math.floor(u * 7));   // hc02 -> hc09: inlet already warm, heat advances as we go
               if (hc !== lastHc) { W2.mapper.setColorByArrayName('hc' + String(hc).padStart(2, '0')); lastHc = hc; }
             });
