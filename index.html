@@ -73,6 +73,11 @@
     background:var(--heat-900); border:1px solid var(--heat-700); border-radius:999px; padding:7px 13px;
     transition:color .15s, border-color .15s; }
   .tourbtn:hover{ color:var(--heat-200); border-color:var(--heat); }
+  #tourTitle{ position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:7; display:none;
+    font:600 14px/1.3 system-ui,sans-serif; letter-spacing:.02em; color:#eaf2ff; white-space:nowrap;
+    background:rgba(10,16,28,.62); padding:7px 16px; border-radius:999px; border:1px solid rgba(140,180,240,.28);
+    backdrop-filter:blur(6px); pointer-events:none; text-shadow:0 1px 6px rgba(0,0,0,.6); }
+  #tourTitle b{ color:var(--heat-300); font-weight:700; margin-right:8px; }
 
   /* status — instrument telemetry chip */
   #status{ align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
@@ -423,6 +428,7 @@
 </button>
 
 <div id="hint" aria-hidden="true"><span class="coarse">drag to rotate · pinch to zoom</span><span class="fine">drag to rotate · scroll to zoom</span></div>
+<div id="tourTitle" aria-live="polite"></div>
 
 <div id="deck">
   <div id="timeGrp">
@@ -1231,6 +1237,8 @@ function main() {
     }
     function _hideLabels() { if (_labelRAF) { cancelAnimationFrame(_labelRAF); _labelRAF = null; } if (tourSVG) { tourSVG.remove(); tourSVG = null; } }
     function _labelLoop() { if (!tourSVG) { _labelRAF = null; return; } _positionLabels(); _labelRAF = requestAnimationFrame(_labelLoop); }
+    function _title(n, t) { const el = document.getElementById('tourTitle');   // step caption at the top of the screen
+      if (!el) return; if (t) { el.innerHTML = '<b>' + n + '</b>' + t; el.style.display = ''; } else { el.style.display = 'none'; } }
     function _showLabels(list, perp, axis) {
       _hideLabels();
       tourSVG = document.createElementNS(_SVGNS, 'svg');
@@ -1473,6 +1481,7 @@ function main() {
         _place(front, focalP, UP);
         if (!touring) throw 0;
         // 1a — POINTS build + rotation to the side view in ONE continuous tween, so there's no
+        _title('1', 'Surveyed drift · interface points');
         // mid-motion hand-off between tweens (that hand-off was the residual stutter).
         // W's clip is left swept-open here; it's cleared on restore.
         await _tween(4400, (e, u) => {
@@ -1482,11 +1491,13 @@ function main() {
         });
 
         // 2 — CONNECT the nodes (edges: THICK + opaque) from the side view (actor pre-created above -> no hitch)
+        _title('2', 'Meshing · connecting the nodes');
         if (!touring) throw 0;
         W.actor.getProperty().setPointSize(3.5 / 3);                                      // points shrink to a third as the edges take over
         await _tween(2200, (e, u) => { sweep2.setOrigin(0, _L(symn, symx, u), 0); });   // connect nodes along the drift
         W.actor.setVisibility(false);                                                    // POINTS removed the instant step 2 finishes
         // 3 — the SURFACE skins over the mesh and CONSUMES the bright edges as it advances (cinematic)
+        _title('3', 'The water / rock surface');
         if (!touring) throw 0;
         await _tween(2000, (e, u) => {
           const y = _L(symn, symx, u);
@@ -1495,6 +1506,7 @@ function main() {
         });
         await _tween(1100, () => _place(sideV, cen, UP));   // hold on the finished shaded surface
         // 3b — MIRROR-ASSEMBLY (drift_pipline_anim.py 1-4): show how the drift was reconstructed by mirroring.
+        _title('4', 'Mirroring the halves → air + concrete ends');
         if (!touring) throw 0;
         if (mirActs.length) {
           const fovR2 = baseFov * Math.PI / 180;                       // elevated 3/4 view framing the FULL (extended) drift
@@ -1507,6 +1519,7 @@ function main() {
           await _tween(2400, (e) => MIR.swing(e));                     // mirror the halves out -> air + concrete ends appear
           await _tween(600, () => {});                                 // hold on the assembled drift
           if (MIR.sIn) {                                               // inlet / outlet spheres fly IN from OPPOSITE sides of the drift
+            _title('5', 'Placing the inlet & outlet');
             MIR.sIn.a.setVisibility(true); MIR.sOut.a.setVisibility(true);
             const H = 7.0, Hu = 6.0;
             const i0 = [inl[0] + perp[0]*H, inl[1] + perp[1]*H, inl[2] + Hu];    // one side (+perp), up & clear of the surface
@@ -1515,6 +1528,7 @@ function main() {
               MIR.sIn.s.setCenter(pi[0], pi[1], pi[2]); MIR.sOut.s.setCenter(po[0], po[1], po[2]); });
           }
           // NAME each part right away (no dead pause before the labels)
+          _title('6', 'The parts of the drift');
           if (!touring) throw 0;
           const AX = MIR.axis || [0,1,0], hl = MIR.hl || 12;
           const airBot = [MIR.hBot[0]-AX[0]*hl*0.55, MIR.hBot[1]-AX[1]*hl*0.55, MIR.hBot[2]-AX[2]*hl*0.55];
@@ -1530,6 +1544,7 @@ function main() {
           _hideLabels();
         }
         // 4 — ADD THE SURROUNDING ROCK DOMAIN (outer walls). Pull the camera back to frame the whole
+        _title('7', 'The surrounding rock domain');
         //     domain box (like Gif_creating.py -> CAMERA_WALLS), then sweep the walls in along the drift axis.
         if (!touring) throw 0;
         if (faceActs.length) {
@@ -1546,6 +1561,7 @@ function main() {
           await _tween(1000, () => {});                        // hold on the finished domain box
         }
         // 5 — OPEN THE TOP, TILT OVERHEAD, REVEAL THE INTERNAL 3-D CELL MESH of the WHOLE DOMAIN (points -> edges)
+        _title('8', 'The internal 3-D cell mesh');
         if (!touring) throw 0;
         const mesh = await tourMeshP;
         if (mesh && rb) {
@@ -1584,6 +1600,7 @@ function main() {
           await _tween(3200, (e, u) => eSweep.setOrigin(0, sweepY(u), 0));   // edges connect bottom->top, slow at the drift
           await _tween(900, () => {});                        // hold on the full 3-D cell mesh
           // 6 — REMOVE THE CELLS, DIVE INSIDE to just behind the inlet, looking at it
+          _title('9', 'Diving inside the drift');
           if (!touring) throw 0;
           await _tween(1500, (e, u) => { const y = _L(rb[3], rb[2], u);   // lattice + rock walls sweep back out together
             pSweep.setOrigin(0, y, 0); eSweep.setOrigin(0, y, 0); if (sweep4) sweep4.setOrigin(0, y, 0); });
@@ -1613,6 +1630,7 @@ function main() {
           });
           await _tween(1000, () => {});                       // hold behind the inlet, looking at it
           // 7 — THE WALK: glide along the water centreline, walls warming to yellow as the hot water advances
+          _title('10', 'Walking the drift · charging (hot water)');
           if (!touring) throw 0;
           if (W2) {
             const wp = W2.mapper.getInputData().getPoints().getData();
@@ -1643,6 +1661,7 @@ function main() {
             });
             await _tween(900, () => {});                       // hold at the far (outlet) end
             // 8 — LOOK BACK down the tunnel, then the water COOLS (yellow -> cold)
+            _title('11', 'Looking back');
             if (!touring) throw 0;
             const ep = tCam.getPosition(), ef = tCam.getFocalPoint();
             const dd = [ef[0]-ep[0], ef[1]-ep[1], ef[2]-ep[2]];
@@ -1662,6 +1681,7 @@ function main() {
             });
             await _tween(800, () => {});
             // 9 — ZOOM OUT to the default overview, restore the real fov
+            _title('12', 'Cooling down, then zoom out');
             if (!touring) throw 0;
             const zp = tCam.getPosition(), zf = tCam.getFocalPoint(), zu = tCam.getViewUp();
             const zoomTo = [cen[0] - 26, cen[1] - 64, cen[2] + 46];
@@ -1676,7 +1696,7 @@ function main() {
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
-      touring = false; tourPaused = false; _hideLabels();
+      touring = false; tourPaused = false; _hideLabels(); _title('', '');
       if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
       { const pb = document.getElementById('tourPause'); if (pb) pb.style.display = 'none'; }
       if (eAct) { renderer.removeActor(eAct); eAct = null; }
