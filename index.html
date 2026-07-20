@@ -602,33 +602,41 @@ function main() {
     f.addPoint(64, 0.30*scale);  f.addPoint(80, 0.55*scale);
     return f;
   }
-  let _heatLUT = null, _heatCmapKey = null;
   const HEAT_SURFS = ['water', 'air', 'concrete'];        // drift surfaces recoloured through the phases
+  const HEAT_CLIM = [11, 80], HEAT_YELLOW = 15;           // all phases: dark at 11, full yellow by 15, axis to 80
+  let _heatLUT = null;
   function infernoAt(f) {                                 // sample the magma ramp at fraction f
     const n = INFERNO.length, x = Math.max(0, Math.min(1, f)) * (n - 1), i = Math.floor(x), t = x - i;
     const a = INFERNO[i], b = INFERNO[Math.min(n - 1, i + 1)];
     return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
   }
-  function heatCTFfromCmap(cmap) {                        // magma stops placed at the phase's (gamma) temperatures
-    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-    const M = cmap.length;
-    for (let i = 0; i < M; i++) { const c = infernoAt(i / (M - 1)); lut.addRGBPoint(cmap[i], c[0], c[1], c[2]); }
-    return lut;
+  function heatLUT() {                                    // magma packed into [11,15], held yellow to 80
+    if (_heatLUT) return _heatLUT;
+    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
+    for (let i = 0; i < M; i++) { const c = INFERNO[i];
+      lut.addRGBPoint(HEAT_CLIM[0] + (HEAT_YELLOW - HEAT_CLIM[0]) * (i / (M - 1)), c[0], c[1], c[2]); }
+    const y = INFERNO[M - 1]; lut.addRGBPoint(HEAT_CLIM[1], y[0], y[1], y[2]);   // hold yellow to the top
+    _heatLUT = lut; return lut;
   }
-  function applyHeatSurfaces(arr, clim, cmap) {           // colour the drift surfaces by a step's field
-    const key = cmap.join(',');
-    if (key !== _heatCmapKey) { _heatLUT = heatCTFfromCmap(cmap); _heatCmapKey = key; }
+  function heatBarGrad() {                                // colourbar that reflects the compressed mapping
+    const stops = [];
+    for (let k = 0; k <= 10; k++) { const tt = HEAT_CLIM[0] + k / 10 * (HEAT_CLIM[1] - HEAT_CLIM[0]);
+      stops.push(infernoAt(tt <= HEAT_YELLOW ? (tt - HEAT_CLIM[0]) / (HEAT_YELLOW - HEAT_CLIM[0]) : 1)); }
+    return cssGrad(stops);
+  }
+  function applyHeatSurfaces(arr) {                        // colour the drift surfaces by a step's field
+    const lut = heatLUT();
     HEAT_SURFS.forEach(nm => { const o = objs[nm]; if (!o) return;
-      o.mapper.setLookupTable(_heatLUT); o.mapper.setScalarModeToUsePointFieldData();
-      o.mapper.setColorByArrayName(arr); o.mapper.setScalarRange(clim[0], clim[1]);
+      o.mapper.setLookupTable(lut); o.mapper.setScalarModeToUsePointFieldData();
+      o.mapper.setColorByArrayName(arr); o.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
       o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
       o.actor.getProperty().setLighting(false); o.actor.setVisibility(true); });
     if (volume) volume.setVisibility(false);              // glow not needed once the surfaces recolour
     const g = document.getElementById('cbGrad');
-    if (g) { g.style.background = cssGrad(INFERNO);
-      document.getElementById('cbLo').textContent = clim[0].toFixed(0) + ' °C';
+    if (g) { g.style.background = heatBarGrad();
+      document.getElementById('cbLo').textContent = HEAT_CLIM[0] + ' °C';
       document.getElementById('cbMid').textContent = 'temperature';
-      document.getElementById('cbHi').textContent = clim[1].toFixed(0) + ' °C'; }
+      document.getElementById('cbHi').textContent = HEAT_CLIM[1] + ' °C'; }
   }
   function loadFrameImage(i) {
     if (frameCache[i]) return Promise.resolve(frameCache[i]);
@@ -641,7 +649,7 @@ function main() {
     frameIdx = (i + frames.length) % frames.length;
     if (heatMode) {                                        // surface-based phases: no volume file to load
       const f = frames[frameIdx];
-      applyHeatSurfaces(f.arr, f.clim, f.cmap);
+      applyHeatSurfaces(f.arr);
       const lab = document.getElementById('timeLabel'); if (lab) lab.textContent = f.label;
       const sl = document.getElementById('timeSlider'); if (sl) sl.value = frameIdx;
       renderWindow.render();
@@ -669,7 +677,7 @@ function main() {
   function switchFrames(list) {                          // swap the timeline's frame source (year cycle <-> heating)
     if (!list) return Promise.resolve();
     heatMode = (list === heatFrames);
-    frames = list; frameIdx = 0; _heatCmapKey = null;
+    frames = list; frameIdx = 0;
     Object.keys(frameCache).forEach(k => delete frameCache[k]);
     const sl = document.getElementById('timeSlider'); if (sl) { sl.max = frames.length - 1; sl.value = 0; }
     if (window.uiTicks) uiTicks(frames);
