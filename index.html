@@ -78,10 +78,9 @@
     background:rgba(10,16,28,.62); padding:7px 16px; border-radius:999px; border:1px solid rgba(140,180,240,.28);
     backdrop-filter:blur(6px); pointer-events:none; text-shadow:0 1px 6px rgba(0,0,0,.6); }
   #tourTitle b{ color:var(--heat-300); font-weight:700; margin-right:8px; }
-  /* during the tour: hide every widget/panel except the tour controls */
+  /* during the tour: hide the control widgets but KEEP the Geobattery hero card */
   body.touring #panel, body.touring #deck, body.touring #panelBtn, body.touring #infoBtn,
   body.touring #hint, body.touring #status, body.touring #infoCard, body.touring #infoScrim{ display:none !important; }
-  body.touring .htx > :not(.tourbtn){ display:none !important; }
 
   /* status — instrument telemetry chip */
   #status{ align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
@@ -1322,6 +1321,8 @@ function main() {
         // everything OFF except the water/rock interface points
         if (volume) volume.setVisibility(false);
         wellActors.forEach(a => a.setVisibility(false));   // hide the scene's own inlet/outlet markers (the tour flies its own in)
+        if (objs.wire) objs.wire.actor.setVisibility(false);   // hide the internal lattice until the tour reveals it (step 8)
+        if (flowActor) flowActor.setVisibility(false);         // hide any static flow arrows too
         LAYERS.forEach(L => { const o = objs[L.name]; if (o) o.actor.setVisibility(false); });
         const W = objs.water;    // the water surface IS the water/rock interface
         if (!W) throw 0;
@@ -1585,7 +1586,7 @@ function main() {
           // tilt to a high overhead of the WHOLE box (same distance as the walls view -> no big zoom), viewUp stays +Z
           const fovR = baseFov * Math.PI / 180;
           const od = [0.16, -0.22, 0.96], odl = Math.hypot(od[0], od[1], od[2]);
-          const overDist = (MIR.Ltot || 48) * 1.2 / Math.tan(fovR / 2);        // zoom in toward the drift region
+          const overDist = (MIR.Ltot || 48) * 0.9 / Math.tan(fovR / 2);        // zoom in closer on the drift region
           const overCam = [cen[0] + od[0]/odl*overDist, cen[1] + od[1]/odl*overDist, cen[2] + od[2]/odl*overDist];
           const ax = MIR.axis || [0, 1, 0];
           const p1 = tCam.getPosition(), f1 = tCam.getFocalPoint();
@@ -1630,65 +1631,69 @@ function main() {
             W2.mapper.setColorByArrayName('hc00'); W2.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
             W2.mapper.setScalarVisibility(true); W2.mapper.setInterpolateScalarsBeforeMapping(true);
             const pr = W2.actor.getProperty(); pr.setRepresentation(2); pr.setOpacity(1); pr.setPointSize(1);
-            pr.setInterpolationToPhong(); pr.setAmbient(0.3); pr.setDiffuse(0.72);
-            pr.setSpecular(0.55); pr.setSpecularPower(28); pr.setSpecularColor(1, 1, 1); pr.setLighting(true);   // shiny walls
+            pr.setInterpolationToPhong(); pr.setAmbient(0.22); pr.setDiffuse(0.62);
+            pr.setSpecular(0.8); pr.setSpecularPower(45); pr.setSpecularColor(1, 1, 1); pr.setLighting(true);   // shinier, metallic walls
             W2.actor.setVisibility(true);
           }
-          if (MIR.sIn) { MIR.sIn.s.setRadius(0.6); MIR.sIn.a.setVisibility(true); }   // enlarge the inlet marker so it reads ahead
+          if (MIR.sIn) { MIR.sIn.s.setRadius(0.6); MIR.sIn.a.setVisibility(true); }   // enlarge the inlet marker
+          // ---- water CENTRELINE through the bent tube (bucket centroids) — computed once, used by dive + walk ----
+          let cam = [], camP = t => [inl[0], inl[1], inl[2] + 0.4];
+          if (W2) {
+            const wp = W2.mapper.getInputData().getPoints().getData();
+            const cAY = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
+            const NB = 34, buck = Array.from({ length: NB }, () => [0, 0, 0, 0]);
+            let amn = Infinity, amx = -Infinity;
+            for (let i = 0; i < wp.length; i += 3) { const a = cAY(wp[i], wp[i+1], wp[i+2]); if (a < amn) amn = a; if (a > amx) amx = a; }
+            for (let i = 0; i < wp.length; i += 3) { const a = cAY(wp[i], wp[i+1], wp[i+2]);
+              const b = Math.max(0, Math.min(NB-1, Math.floor((a-amn)/((amx-amn)||1)*(NB-1))));
+              buck[b][0]+=wp[i]; buck[b][1]+=wp[i+1]; buck[b][2]+=wp[i+2]; buck[b][3]++; }
+            cam = buck.filter(b => b[3] > 3).map(b => [b[0]/b[3], b[1]/b[3], b[2]/b[3] + 0.35]);   // inlet->outlet, INSIDE the tube
+            const zs = cam.map(p => p[2]);                     // smooth z (no bobbing)
+            const zsm = zs.map((_, i) => { let s = 0, n = 0; for (let k = -4; k <= 4; k++) { const j = i + k; if (j >= 0 && j < zs.length) { s += zs[j]; n++; } } return s / n; });
+            cam.forEach((p, i) => { p[2] = zsm[i]; });
+            camP = t => { const s = Math.max(0, Math.min(cam.length-1, t)), i = Math.floor(s), f = s - i,
+              a = cam[i], b = cam[Math.min(cam.length-1, i+1)];
+              return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; };
+          }
+          const START = 1, AHEAD = 3;                          // land a step INSIDE the tube
+          // DIVE from overhead down INSIDE the tube, looking forward along the centreline
           const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint(), up0 = tCam.getViewUp();
-          const inEye = [inl[0] - ax2[0]*3.5, inl[1] - ax2[1]*3.5, inl[2] + 0.6];   // behind the inlet, inside the translucent air
-          const inFoc = [inl[0], inl[1], inl[2]];                                    // look AT the inlet (marker 3.5 m ahead)
-          await _tween(3000, (e) => {                         // fly down inside, widen fov a touch for the interior
+          const inEye = camP(START), inFoc = camP(START + AHEAD);
+          await _tween(3000, (e) => {
             const p = _L3(p0, inEye, e), f = _L3(f0, inFoc, e);
             const u3 = _L3(up0, [0, 0, 1], e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;   // interpolate viewUp -> no snap
             tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
-            tCam.setViewAngle(_L(baseFov, 50, e)); tCam.setClippingRange(0.05, 2000);
+            tCam.setViewAngle(_L(baseFov, 55, e)); tCam.setClippingRange(0.03, 2000);
           });
-          await _tween(1000, () => {});                       // hold behind the inlet, looking at it
-          // 10 — WALK IN a few steps as RED hot-water arrows pour from the inlet and the walls heat smoothly
+          await _tween(900, () => {});                         // hold inside, inlet + arrows just ahead
+          // 10 — WALK IN to a chamber as RED hot-water arrows pour from the inlet; walls heat smoothly
           _title('10', 'Charging · walking in as it heats');
           if (!touring) throw 0;
-          if (pActor) { pActor.getProperty().setColor(0.96, 0.28, 0.14); pActor.setVisibility(true); pSpeedMul = 1.6; pOn = true; startParticleAnim(); }   // red = hot water, a bit faster
-          if (W2) {
-            const wp = W2.mapper.getInputData().getPoints().getData();
-            const ayOf = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
-            const NB = 30, buck = Array.from({ length: NB }, () => [0, 0, 0, 0]);
-            let amn = Infinity, amx = -Infinity;
-            for (let i = 0; i < wp.length; i += 3) { const a = ayOf(wp[i], wp[i+1], wp[i+2]); if (a < amn) amn = a; if (a > amx) amx = a; }
-            for (let i = 0; i < wp.length; i += 3) { const a = ayOf(wp[i], wp[i+1], wp[i+2]);
-              const b = Math.max(0, Math.min(NB-1, Math.floor((a-amn)/((amx-amn)||1)*(NB-1))));
-              buck[b][0]+=wp[i]; buck[b][1]+=wp[i+1]; buck[b][2]+=wp[i+2]; buck[b][3]++; }
-            const EYE = 0.4, AHEAD = 3, startAY = ayOf(inEye[0], inEye[1], inEye[2]);
-            const cam = buck.filter(b => b[3] > 3 && ayOf(b[0]/b[3], b[1]/b[3], b[2]/b[3]) > startAY)   // only buckets ahead of the dive spot
-              .map(b => [b[0]/b[3], b[1]/b[3], b[2]/b[3] + EYE]);   // eye positions on the centreline (centred in x)
-            cam.unshift([inEye[0], inEye[1], inEye[2]]);                                                 // start from the dive spot (no jump)
-            const zs = cam.map(p => p[2]), Wd = 4;                                                       // SMOOTH the z -> steady eye height (no bobbing)
-            const zsm = zs.map((_, i) => { let s = 0, n = 0; for (let k = -Wd; k <= Wd; k++) { const j = i + k; if (j >= 0 && j < zs.length) { s += zs[j]; n++; } } return s / n; });
-            cam.forEach((p, i) => { p[2] = zsm[i]; });
-            const camP = t => { const s = Math.max(0, Math.min(cam.length-1, t)), i = Math.floor(s), f = s - i,
-              a = cam[i], b = cam[Math.min(cam.length-1, i+1)];
-              return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; };
-            const WALK_FRAC = 0.42;                            // walk only a few steps in (not to the end)
-            await _tween(1000, () => {});                      // wait a beat first: watch the arrows pour from the inlet
-            let lastHc = -1;
-            await _tween(18000, (e, u) => {                    // MUCH slower walk (slower than the flow), walls heat slowly
-              const s = u * WALK_FRAC * (cam.length - 1 - AHEAD), pos = camP(s), foc = camP(s + AHEAD);
+          if (pActor) { pActor.getProperty().setColor(0.96, 0.28, 0.14); pActor.setVisibility(true); pSpeedMul = 1.6; pOn = true; startParticleAnim(); }   // red = hot water
+          if (cam.length > START + AHEAD + 2) {
+            const WALK_FRAC = 0.6, span = (cam.length - 1 - AHEAD) - START;   // walk far enough to reach a chamber
+            await _tween(900, () => {});                       // watch the arrows first
+            let lastHc = -1, endS = START;
+            await _tween(13000, (e, u) => {                    // faster walk, into a chamber
+              endS = START + u * WALK_FRAC * span;
+              const pos = camP(endS), foc = camP(endS + AHEAD);
               tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(foc[0], foc[1], foc[2]); tCam.setViewUp(0, 0, 1);
-              tCam.setViewAngle(50); tCam.setClippingRange(0.05, 2000);
-              const hc = Math.min(9, Math.round(u * 9));       // hc00 -> hc09: heat builds up as we walk
+              tCam.setViewAngle(55); tCam.setClippingRange(0.03, 2000);
+              const hc = Math.min(9, Math.round(u * 9));
               if (hc !== lastHc) { W2.mapper.setColorByArrayName('hc' + String(hc).padStart(2, '0')); lastHc = hc; }
             });
-            // 11 — LOOK BACK down the tunnel, then watch STORAGE cool the water
+            // 11 — LOOK BACK ALONG the tube (toward the inlet, not into a wall), then STORAGE cools
             _title('11', 'Storage · the water cools');
             if (!touring) throw 0;
             if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } }   // no flow during storage: arrows gone
-            { const ep = tCam.getPosition(), ef = tCam.getFocalPoint();
-              const dd = [ef[0]-ep[0], ef[1]-ep[1], ef[2]-ep[2]];
-              await _tween(2400, (e) => {                      // turn 180° about vertical to look back
-                const th = Math.PI * e, ct = Math.cos(th), st = Math.sin(th);
-                const rx = dd[0]*ct - dd[1]*st, ry = dd[0]*st + dd[1]*ct;
-                tCam.setPosition(ep[0], ep[1], ep[2]); tCam.setFocalPoint(ep[0]+rx, ep[1]+ry, ep[2]+dd[2]); tCam.setViewUp(0, 0, 1);
-                tCam.setViewAngle(50); tCam.setClippingRange(0.05, 2000);
+            { const pos = camP(endS), back = camP(Math.max(0, endS - 8)), dF = tCam.getFocalPoint();
+              const aF = Math.atan2(dF[1]-pos[1], dF[0]-pos[0]), aB = Math.atan2(back[1]-pos[1], back[0]-pos[0]);
+              let dA = aB - aF; while (dA > Math.PI) dA -= 2*Math.PI; while (dA < -Math.PI) dA += 2*Math.PI;
+              const zF = dF[2]-pos[2], zB = back[2]-pos[2];
+              await _tween(2400, (e) => {                      // rotate the look-angle back along the tube's curve
+                const a = aF + dA*e, hz = _L(zF, zB, e);
+                tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(pos[0]+Math.cos(a)*6, pos[1]+Math.sin(a)*6, pos[2]+hz); tCam.setViewUp(0, 0, 1);
+                tCam.setViewAngle(55); tCam.setClippingRange(0.03, 2000);
               }); }
             let lastS = -1;
             await _tween(6000, (e, u) => {
