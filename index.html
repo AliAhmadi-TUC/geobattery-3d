@@ -363,7 +363,9 @@
       <p class="tagline">Seasonal heat storage in a flooded mine drift — a live 3-D simulation.</p>
       <div class="scene-line"><span id="sceneLabel">As-built drift · end of charge</span></div>
       <button id="tourBtn" class="tourbtn" style="display:none">▶ guided tour</button>
+      <button id="tourBack" class="tourbtn" style="display:none" title="previous step" aria-label="previous step">◀</button>
       <button id="tourPause" class="tourbtn" style="display:none">⏸ pause</button>
+      <button id="tourFwd" class="tourbtn" style="display:none" title="next step" aria-label="next step">▶</button>
     </div>
   </header>
   <div id="status">initialising renderer…</div>
@@ -743,6 +745,7 @@ function main() {
     setStatus('ready');
     const b = renderer.computeVisiblePropBounds();
     let touring = false, tourPaused = false;             // guided-tour (cinematic) flags
+    let tourStep = 0, tourTargetStep = 0, tourGoto = -1; // step index, fast-forward target, and pending back-jump
 
     // ---- stress (von Mises) colour data ----
     let stressMeta = null, stressLUT = null;
@@ -1221,6 +1224,7 @@ function main() {
     function _tween(ms, fn) {
       return new Promise(res => { let t0 = null, pausedAt = null, pausedTot = 0;
         function loop(ts) { if (!touring) return res();
+          if (_ff()) { try { fn(1, 1); } catch (e) {} return res(); }   // fast-forward: jump to this tween's end
           if (t0 === null) t0 = ts;
           if (tourPaused) { if (pausedAt === null) pausedAt = ts; requestAnimationFrame(loop); return; }   // freeze
           if (pausedAt !== null) { pausedTot += ts - pausedAt; pausedAt = null; }                          // resumed
@@ -1229,8 +1233,8 @@ function main() {
           if (u < 1) requestAnimationFrame(loop); else res(); }
         requestAnimationFrame(loop); });
     }
-    function _poll(cond) { return new Promise(res => { if (cond()) return res();
-      const iv = setInterval(() => { if (cond() || !touring) { clearInterval(iv); res(); } }, 100); }); }
+    function _poll(cond) { return new Promise(res => { if (cond() || _ff()) return res();
+      const iv = setInterval(() => { if (cond() || !touring || _ff()) { clearInterval(iv); res(); } }, 100); }); }
     // ---- part-name labels (HTML/SVG overlay projected from world coords) ----
     let tourSVG = null, _labelRAF = null; const _SVGNS = 'http://www.w3.org/2000/svg';
     const _apiRW = () => view.getApiSpecificRenderWindow ? view.getApiSpecificRenderWindow() : view.getOpenGLRenderWindow();
@@ -1242,7 +1246,9 @@ function main() {
     function _hideLabels() { if (_labelRAF) { cancelAnimationFrame(_labelRAF); _labelRAF = null; } if (tourSVG) { tourSVG.remove(); tourSVG = null; } }
     function _labelLoop() { if (!tourSVG) { _labelRAF = null; return; } _positionLabels(); _labelRAF = requestAnimationFrame(_labelLoop); }
     function _title(n, t) { const el = document.getElementById('tourTitle');   // step caption at the top of the screen
-      if (!el) return; if (t) { el.innerHTML = '<b>' + n + '</b>' + t; el.style.display = 'block'; } else { el.style.display = 'none'; } }
+      if (t) tourStep = parseInt(n, 10) || 0;            // mark the current step (drives seek/fast-forward)
+      if (!el) return; if (t) { el.innerHTML = '<b>' + n + '</b>' + t; el.style.display = tourStep < tourTargetStep ? 'none' : 'block'; } else { el.style.display = 'none'; } }
+    const _ff = () => tourStep < tourTargetStep;         // true while fast-forwarding to a target step
     function _showLabels(list, perp, axis) {
       _hideLabels();
       tourSVG = document.createElementNS(_SVGNS, 'svg');
@@ -1290,8 +1296,10 @@ function main() {
       if (touring) { touring = false; return; }           // second click = end
       touring = true; if (btn) btn.textContent = '✕ end';
       document.body.classList.add('touring');              // hide all other widgets/panels for the tour
-      tourPaused = false; const pBtn = document.getElementById('tourPause');
+      tourPaused = false; tourStep = 0; const pBtn = document.getElementById('tourPause');
       if (pBtn) { pBtn.style.display = ''; pBtn.textContent = '⏸ pause'; }
+      { const bk = document.getElementById('tourBack'), fw = document.getElementById('tourFwd');
+        if (bk) bk.style.display = ''; if (fw) fw.style.display = ''; }
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
       tCam.setViewAngle(baseFov);               // restore the app's real fov (consistent across runs)
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
@@ -1718,7 +1726,7 @@ function main() {
       document.body.classList.remove('touring');           // restore the normal UI
       if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } } pSpeedMul = 1;   // stop the tour's flow arrows, reset speed
       if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
-      { const pb = document.getElementById('tourPause'); if (pb) pb.style.display = 'none'; }
+      ['tourPause', 'tourBack', 'tourFwd'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = 'none'; });
       if (eAct) { renderer.removeActor(eAct); eAct = null; }
       if (sAct) { renderer.removeActor(sAct); sAct = null; }
       if (objs.water) objs.water.mapper.removeAllClippingPlanes();   // clear the tour's sweep clip
@@ -1735,10 +1743,14 @@ function main() {
       if (volume) volume.setVisibility(document.getElementById('volOn').checked);
       tCam.setViewAngle(baseFov);                          // undo the walk-through's widened fov
       renderer.resetCamera(); renderWindow.render();
+      if (tourGoto >= 0) { const g = tourGoto; tourGoto = -1; tourTargetStep = g; setTimeout(runTour, 60); }   // back-jump: replay + fast-forward
     }
-    const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = runTour; }
+    const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = () => { if (!touring) { tourTargetStep = 0; tourGoto = -1; } runTour(); }; }
     const _pb = document.getElementById('tourPause');
     if (_pb) _pb.onclick = () => { if (!touring) return; tourPaused = !tourPaused; _pb.textContent = tourPaused ? '▶ resume' : '⏸ pause'; };
+    { const fw = document.getElementById('tourFwd'), bk = document.getElementById('tourBack');
+      if (fw) fw.onclick = () => { if (touring) { tourPaused = false; tourTargetStep = Math.max(tourTargetStep, tourStep) + 1; } };   // skip to the next step
+      if (bk) bk.onclick = () => { if (touring) { tourGoto = Math.max(0, tourStep - 1); touring = false; } }; }   // restart + fast-forward to the previous step
 
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
