@@ -1532,11 +1532,11 @@ function main() {
           const AX = MIR.axis || [0,1,0], hl = MIR.hl || 12;
           const airBot = [MIR.hBot[0]-AX[0]*hl*0.55, MIR.hBot[1]-AX[1]*hl*0.55, MIR.hBot[2]-AX[2]*hl*0.55];
           const perp3 = [AX[1], -AX[0], 0]; { const pl = Math.hypot(perp3[0], perp3[1]) || 1; perp3[0] /= pl; perp3[1] /= pl; }   // horizontal ⟂ drift
-          _showLabels([                                          // parallel leaders: outlet+concrete one side, inlet+air the opposite, water parallel
-            { text:'Outlet',           world: out,          side: +1, dist: 14, flip: true },   // name flipped inward so it clears the concrete leader
-            { text:'Concrete plug',    world: MIR.hTop,     side: +1, dist: 34 },
-            { text:'Water/rock drift', world: cen,          side: +1, dist: 22 },
-            { text:'Inlet',            world: inl,          side: -1, dist: 14 },
+          _showLabels([                                          // all leaders share the perp direction -> parallel; grouped so none collide
+            { text:'Outlet',           world: out,          side: +1, dist: 20 },
+            { text:'Water/rock drift', world: cen,          side: +1, dist: 24 },
+            { text:'Concrete plug',    world: MIR.hTop,     side: -1, dist: 20 },
+            { text:'Inlet',            world: inl,          side: -1, dist: 15 },
             { text:'Air drift',        world: MIR.airC||airBot, side: -1, dist: 34 },
           ], perp3, AX);
           await _tween(2800, () => _positionLabels());   // hold (pausable) while the labels are shown
@@ -1666,7 +1666,7 @@ function main() {
               const s = u * (cam.length - 1 - AHEAD), pos = camP(s), foc = camP(s + AHEAD);
               tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(foc[0], foc[1], foc[2]); tCam.setViewUp(0, 0, 1);
               tCam.setViewAngle(50); tCam.setClippingRange(0.05, 2000);
-              const hc = Math.min(9, 2 + Math.floor(u * 7));   // hc02 -> hc09: inlet already warm, heat advances as we go
+              const hc = Math.min(9, Math.round(u * 9));       // hc00 -> hc09: start cold, heat builds up smoothly as we walk
               if (hc !== lastHc) { W2.mapper.setColorByArrayName('hc' + String(hc).padStart(2, '0')); lastHc = hc; }
             });
             await _tween(900, () => {});                       // hold at the far (outlet) end
