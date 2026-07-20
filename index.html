@@ -950,7 +950,7 @@ function main() {
             go(); setStatus('ready'); })
           .catch(err => setStatus('phase load failed: ' + err, true)); }
       } else {
-        _heatCmapKey = null; switchFrames(yearFrames);
+        switchFrames(yearFrames);
         setColorMode('temperature');                       // restore normal surface colouring
         HEAT_SURFS.forEach(nm => { const cb = document.getElementById('vis_' + nm), o = objs[nm];
           if (o && cb) o.actor.setVisibility(cb.checked); });   // restore each layer's visibility
