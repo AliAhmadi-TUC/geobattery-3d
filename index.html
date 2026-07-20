@@ -1210,15 +1210,16 @@ function main() {
     function _poll(cond) { return new Promise(res => { if (cond()) return res();
       const iv = setInterval(() => { if (cond() || !touring) { clearInterval(iv); res(); } }, 100); }); }
     // ---- part-name labels (HTML/SVG overlay projected from world coords) ----
-    let tourSVG = null; const _SVGNS = 'http://www.w3.org/2000/svg';
+    let tourSVG = null, _labelRAF = null; const _SVGNS = 'http://www.w3.org/2000/svg';
     const _apiRW = () => view.getApiSpecificRenderWindow ? view.getApiSpecificRenderWindow() : view.getOpenGLRenderWindow();
     function _project(w) {
       const cv = document.querySelector('#view canvas'); if (!cv) return [0, 0];
       const d = _apiRW().worldToDisplay(w[0], w[1], w[2], renderer);   // device px, origin bottom-left
       return [d[0] / cv.width * cv.clientWidth, (cv.height - d[1]) / cv.height * cv.clientHeight];
     }
-    function _hideLabels() { if (tourSVG) { tourSVG.remove(); tourSVG = null; } }
-    function _showLabels(list, perp) {
+    function _hideLabels() { if (_labelRAF) { cancelAnimationFrame(_labelRAF); _labelRAF = null; } if (tourSVG) { tourSVG.remove(); tourSVG = null; } }
+    function _labelLoop() { if (!tourSVG) { _labelRAF = null; return; } _positionLabels(); _labelRAF = requestAnimationFrame(_labelLoop); }
+    function _showLabels(list, perp, axis) {
       _hideLabels();
       tourSVG = document.createElementNS(_SVGNS, 'svg');
       tourSVG.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:6;';
@@ -1231,15 +1232,19 @@ function main() {
         it._tx.style.cssText = 'fill:#ffffff; font:600 14px system-ui,sans-serif; paint-order:stroke; stroke:rgba(6,10,20,0.85); stroke-width:3px; stroke-linejoin:round;';
         tourSVG.appendChild(it._ln); tourSVG.appendChild(it._dot); tourSVG.appendChild(it._tx);
       });
-      tourSVG._list = list; tourSVG._perp = perp || [1, 0, 0]; _positionLabels();
+      tourSVG._list = list; tourSVG._perp = perp || [1, 0, 0]; tourSVG._ax = axis || [0, 1, 0];
+      if (_labelRAF) cancelAnimationFrame(_labelRAF); _labelLoop();   // keep labels locked to their 3-D anchors every frame (survives rotation)
     }
     function _positionLabels() {
       if (!tourSVG || !tourSVG._list) return;
-      const perp = tourSVG._perp;
+      const perp = tourSVG._perp, aX = tourSVG._ax;
       tourSVG._list.forEach(it => {
-        // label sits at a 3-D point offset perpendicular to the drift -> stays attached, rows come out parallel
+        // label sits at a 3-D point offset ⟂ the drift (+ optional slide along it) -> stays attached, rows parallel
+        const along = it.along || 0;
         const a = _project(it.world);
-        const lw = [it.world[0] + perp[0]*it.side*it.dist, it.world[1] + perp[1]*it.side*it.dist, it.world[2] + 2];
+        const lw = [it.world[0] + perp[0]*it.side*it.dist + aX[0]*along,
+                    it.world[1] + perp[1]*it.side*it.dist + aX[1]*along,
+                    it.world[2] + perp[2]*it.side*it.dist + aX[2]*along + 2];
         const l = _project(lw), ax = a[0], ay = a[1], lx = l[0], ly = l[1];
         const leftText = lx < ax, hx = lx + (leftText ? 12 : -12);
         it._dot.setAttribute('cx', ax); it._dot.setAttribute('cy', ay);
@@ -1496,12 +1501,12 @@ function main() {
           const airBot = [MIR.hBot[0]-AX[0]*hl*0.55, MIR.hBot[1]-AX[1]*hl*0.55, MIR.hBot[2]-AX[2]*hl*0.55];
           const perp3 = [AX[1], -AX[0], 0]; { const pl = Math.hypot(perp3[0], perp3[1]) || 1; perp3[0] /= pl; perp3[1] /= pl; }   // horizontal ⟂ drift
           _showLabels([                                          // outlet+concrete one side; inlet+air the opposite; water parallel
-            { text:'Outlet',           world: out,      side: +1, dist: 15 },
-            { text:'Concrete plug',    world: MIR.hTop, side: +1, dist: 32 },
-            { text:'Water/rock drift', world: cen,      side: +1, dist: 20 },
-            { text:'Inlet',            world: inl,      side: -1, dist: 15 },
-            { text:'Air drift',        world: airBot,   side: -1, dist: 32 },
-          ], perp3);
+            { text:'Outlet',           world: out,      side: +1, dist: 15, along: -6 },
+            { text:'Concrete plug',    world: MIR.hTop, side: +1, dist: 30, along: 12 },
+            { text:'Water/rock drift', world: cen,      side: +1, dist: 22, along: 0 },
+            { text:'Inlet',            world: inl,      side: -1, dist: 15, along: 0 },
+            { text:'Air drift',        world: airBot,   side: -1, dist: 30, along: 0 },
+          ], perp3, AX);
           await _tween(2800, () => _positionLabels());   // hold (pausable) while the labels are shown
           _hideLabels();
         }
