@@ -99,6 +99,7 @@
 
   /* ── round glass icon buttons ── */
   .orb{ width:40px; height:40px; flex:none; border-radius:50%; cursor:pointer;
+    pointer-events:auto;                         /* #hero is pointer-events:none — re-enable so the orb is clickable */
     display:inline-flex; align-items:center; justify-content:center;
     background:var(--glass); border:1px solid var(--line); color:var(--mut);
     backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
