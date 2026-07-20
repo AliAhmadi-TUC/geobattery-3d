@@ -377,7 +377,7 @@
       <div id="tempCtl">
         <div class="row"><input type="checkbox" id="volOn" checked><label for="volOn">volumetric glow</label></div>
         <div class="row"><label for="volInt">intensity</label><input type="range" id="volInt" min="0.2" max="3.5" step="0.05" value="2.2"></div>
-        <div class="row"><input type="checkbox" id="heatOn"><label for="heatOn">charge heating · 10 steps to 60&nbsp;°C</label></div>
+        <div class="row"><input type="checkbox" id="heatOn"><label for="heatOn">phase steps · heating · storage · cooling</label></div>
       </div>
       <div id="flowCtl" style="display:none">
         <div class="row"><input type="checkbox" id="flowOn" checked><label for="flowOn">static arrow field</label></div>
@@ -602,6 +602,29 @@ function main() {
     f.addPoint(64, 0.30*scale);  f.addPoint(80, 0.55*scale);
     return f;
   }
+  let _lastHeatClim = null;
+  function heatCTF(lo, hi) {                              // magma over an arbitrary [lo,hi]
+    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+    INFERNO.forEach((c, i) => lut.addRGBPoint(lo + (i/(INFERNO.length-1))*(hi-lo), c[0], c[1], c[2]));
+    return lut;
+  }
+  function heatOTF(lo, hi, scale) {                       // opacity ramps across the phase range
+    const f = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
+    const s = (hi - lo) || 1;
+    f.addPoint(-100, 0); f.addPoint(lo - 0.01*s, 0);
+    f.addPoint(lo + 0.25*s, 0.05*scale); f.addPoint(lo + 0.60*s, 0.18*scale); f.addPoint(hi, 0.55*scale);
+    return f;
+  }
+  function applyHeatClim(clim) {                          // recolour the volume + colourbar to a phase's range
+    const sc = +document.getElementById('volInt').value || 1.0;
+    if (volume) { const p = volume.getProperty();
+      p.setRGBTransferFunction(0, heatCTF(clim[0], clim[1])); p.setScalarOpacity(0, heatOTF(clim[0], clim[1], sc)); }
+    const g = document.getElementById('cbGrad');
+    if (g) { g.style.background = cssGrad(INFERNO);
+      document.getElementById('cbLo').textContent = clim[0].toFixed(0) + ' °C';
+      document.getElementById('cbMid').textContent = 'temperature';
+      document.getElementById('cbHi').textContent = clim[1].toFixed(0) + ' °C'; }
+  }
   function loadFrameImage(i) {
     if (frameCache[i]) return Promise.resolve(frameCache[i]);
     const rd = vtk.IO.XML.vtkXMLImageDataReader.newInstance();
@@ -614,6 +637,8 @@ function main() {
     return loadFrameImage(frameIdx).then(img => {
       volImage = img;
       if (volMapper) volMapper.setInputData(img);
+      if (heatMode) { const cl = frames[frameIdx].clim;   // per-phase colour range (heating / storage / cooling)
+        if (cl && (!_lastHeatClim || cl[0] !== _lastHeatClim[0] || cl[1] !== _lastHeatClim[1])) { applyHeatClim(cl); _lastHeatClim = cl; } }
       if (!heatMode && imgSlice && domainVti && colMode === 'temperature') {   // advance the plane's temperature frame
         domainVti.getPointData().setActiveScalars(fn(frameIdx)); imgMapper.modified(); domainVti.modified();
       }
@@ -633,7 +658,7 @@ function main() {
   function switchFrames(list) {                          // swap the timeline's frame source (year cycle <-> heating)
     if (!list) return Promise.resolve();
     heatMode = (list === heatFrames);
-    frames = list; frameIdx = 0;
+    frames = list; frameIdx = 0; _lastHeatClim = null;
     Object.keys(frameCache).forEach(k => delete frameCache[k]);
     const sl = document.getElementById('timeSlider'); if (sl) { sl.max = frames.length - 1; sl.value = 0; }
     if (window.uiTicks) uiTicks(frames);
@@ -870,6 +895,8 @@ function main() {
       if (imgSlice) setSliceField(mode);
       setFieldVis();
       updateColorbar();
+      const _tg = document.getElementById('timeGrp');   // timeline is temperature-only: hide it for stress & flow
+      if (_tg && frames.length > 1) _tg.style.display = (mode === 'vm' || mode === 'flow') ? 'none' : '';
       renderWindow.render();
     }
     document.getElementById('colMode').onchange = e => setColorMode(e.target.value);
@@ -894,11 +921,22 @@ function main() {
     // ---- charge heating: swap the timeline to the 10 intra-charge steps (0 -> outlet 60 C) ----
     document.getElementById('heatOn').onchange = e => {
       if (e.target.checked) {
-        if (heatFrames) switchFrames(heatFrames);
-        else { setStatus('loading heating steps…'); fetch(DATA + 'heat.json').then(r => r.json())
-          .then(list => { heatFrames = list; switchFrames(list); setStatus('ready'); })
-          .catch(err => setStatus('heating load failed: ' + err, true)); }
-      } else { switchFrames(yearFrames); }
+        document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
+        document.getElementById('volOn').checked = true; if (volume) volume.setVisibility(true);
+        const go = () => switchFrames(heatFrames);
+        if (heatFrames) go();
+        else { setStatus('loading phase steps…'); fetch(DATA + 'heat.json').then(r => r.json())
+          .then(data => { heatFrames = [];
+            (data.phases || []).forEach(ph => (ph.frames || []).forEach(f =>
+              heatFrames.push({ file: f.file, label: f.label, clim: ph.clim })));
+            go(); setStatus('ready'); })
+          .catch(err => setStatus('phase load failed: ' + err, true)); }
+      } else {
+        _lastHeatClim = null; switchFrames(yearFrames);
+        if (volume) { const p = volume.getProperty(); p.setRGBTransferFunction(0, tempCTF());
+          p.setScalarOpacity(0, buildOTF(+document.getElementById('volInt').value || 1.0)); }
+        updateColorbar();
+      }
     };
     fetch(DATA + 'heat.json', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
       .catch(() => { const h = document.getElementById('heatOn'); if (h) h.closest('.row').style.display = 'none'; });
