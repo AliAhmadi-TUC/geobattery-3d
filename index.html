@@ -623,6 +623,18 @@ function main() {
       lut.addRGBPoint(T, c[0], c[1], c[2]); }
     _heatLUT = lut; return lut;
   }
+  let _walkLUT = null;
+  function walkLUT() {                                    // walk-through: cold reads as dim grey (visible), warms to yellow
+    if (_walkLUT) return _walkLUT;
+    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
+    lut.addRGBPoint(HEAT_CLIM[0], 0.30, 0.32, 0.36);     // 10 C -> dim grey (so cold walls aren't black-on-black)
+    for (let i = 0; i < M; i++) { const f = i / (M - 1), c = INFERNO[i];
+      const T = f <= HEAT_SPLIT
+        ? 13 + (HEAT_TSPLIT - 13) * (f / HEAT_SPLIT)
+        : HEAT_TSPLIT + (HEAT_CLIM[1] - HEAT_TSPLIT) * ((f - HEAT_SPLIT) / (1 - HEAT_SPLIT));
+      lut.addRGBPoint(T, c[0], c[1], c[2]); }
+    _walkLUT = lut; return lut;
+  }
   function heatBarGrad() {                                // colourbar mirrors the two-leg mapping
     const stops = [];
     for (let k = 0; k <= 12; k++) stops.push(infernoAt(heatFrac(HEAT_CLIM[0] + k / 12 * (HEAT_CLIM[1] - HEAT_CLIM[0]))));
@@ -1575,10 +1587,11 @@ function main() {
           const ax2 = MIR.axis || [0, 1, 0], W2 = objs.water;   // the drift walls (water/rock interface), heat-coloured
           if (W2) {
             W2.mapper.removeAllClippingPlanes();
-            W2.mapper.setLookupTable(heatLUT()); W2.mapper.setScalarModeToUsePointFieldData();
+            W2.mapper.setLookupTable(walkLUT()); W2.mapper.setScalarModeToUsePointFieldData();
             W2.mapper.setColorByArrayName('hc00'); W2.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
             W2.mapper.setScalarVisibility(true); W2.mapper.setInterpolateScalarsBeforeMapping(true);
-            const pr = W2.actor.getProperty(); pr.setRepresentation(2); pr.setOpacity(1); pr.setPointSize(1); pr.setLighting(true);
+            const pr = W2.actor.getProperty(); pr.setRepresentation(2); pr.setOpacity(1); pr.setPointSize(1);
+            pr.setInterpolationToPhong(); pr.setAmbient(0.35); pr.setDiffuse(0.7); pr.setSpecular(0.1); pr.setLighting(true);
             W2.actor.setVisibility(true);
           }
           const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint(), up0 = tCam.getViewUp();
@@ -1590,6 +1603,33 @@ function main() {
             tCam.setViewAngle(_L(baseFov, 58, e)); tCam.setClippingRange(0.05, 2000);
           });
           await _tween(1000, () => {});                       // hold behind the inlet, looking at it
+          // 7 — THE WALK: glide along the water centreline, walls warming to yellow as the hot water advances
+          if (!touring) throw 0;
+          if (W2) {
+            const wp = W2.mapper.getInputData().getPoints().getData();
+            const ayOf = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
+            const NB = 30, buck = Array.from({ length: NB }, () => [0, 0, 0, 0]);
+            let amn = Infinity, amx = -Infinity;
+            for (let i = 0; i < wp.length; i += 3) { const a = ayOf(wp[i], wp[i+1], wp[i+2]); if (a < amn) amn = a; if (a > amx) amx = a; }
+            for (let i = 0; i < wp.length; i += 3) { const a = ayOf(wp[i], wp[i+1], wp[i+2]);
+              const b = Math.max(0, Math.min(NB-1, Math.floor((a-amn)/((amx-amn)||1)*(NB-1))));
+              buck[b][0]+=wp[i]; buck[b][1]+=wp[i+1]; buck[b][2]+=wp[i+2]; buck[b][3]++; }
+            const path = buck.filter(b => b[3] > 3).map(b => [b[0]/b[3], b[1]/b[3], b[2]/b[3]]);   // centreline, inlet->outlet
+            const EYE = 0.2, AHEAD = 3;
+            path.unshift([inEye[0], inEye[1], inEye[2] - EYE]);                                    // start from the dive spot (no jump)
+            const patP = t => { const s = Math.max(0, Math.min(path.length-1, t)), i = Math.floor(s), f = s - i,
+              a = path[i], b = path[Math.min(path.length-1, i+1)];
+              return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; };
+            let lastHc = -1;
+            await _tween(9000, (e, u) => {
+              const pos = patP(u * (path.length - 1 - AHEAD)), foc = patP(u * (path.length - 1 - AHEAD) + AHEAD);
+              tCam.setPosition(pos[0], pos[1], pos[2] + EYE); tCam.setFocalPoint(foc[0], foc[1], foc[2] + EYE); tCam.setViewUp(0, 0, 1);
+              tCam.setViewAngle(58); tCam.setClippingRange(0.05, 2000);
+              const hc = Math.min(9, 2 + Math.floor(u * 7));   // hc02 -> hc09: inlet already warm, heat advances as we go
+              if (hc !== lastHc) { W2.mapper.setColorByArrayName('hc' + String(hc).padStart(2, '0')); lastHc = hc; }
+            });
+            await _tween(900, () => {});                       // hold at the far (outlet) end
+          }
         }
       } catch (e) { console.warn('tour', e); }
 
