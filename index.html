@@ -602,23 +602,28 @@ function main() {
     f.addPoint(64, 0.30*scale);  f.addPoint(80, 0.55*scale);
     return f;
   }
-  let _lastHeatClim = null;
-  function heatCTF(lo, hi) {                              // magma over an arbitrary [lo,hi]
+  let _heatLUT = null, _heatCmapKey = null;
+  const HEAT_SURFS = ['water', 'air', 'concrete'];        // drift surfaces recoloured through the phases
+  function infernoAt(f) {                                 // sample the magma ramp at fraction f
+    const n = INFERNO.length, x = Math.max(0, Math.min(1, f)) * (n - 1), i = Math.floor(x), t = x - i;
+    const a = INFERNO[i], b = INFERNO[Math.min(n - 1, i + 1)];
+    return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+  }
+  function heatCTFfromCmap(cmap) {                        // magma stops placed at the phase's (gamma) temperatures
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-    INFERNO.forEach((c, i) => lut.addRGBPoint(lo + (i/(INFERNO.length-1))*(hi-lo), c[0], c[1], c[2]));
+    const M = cmap.length;
+    for (let i = 0; i < M; i++) { const c = infernoAt(i / (M - 1)); lut.addRGBPoint(cmap[i], c[0], c[1], c[2]); }
     return lut;
   }
-  function heatOTF(lo, hi, scale) {                       // opacity ramps across the phase range
-    const f = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
-    const s = (hi - lo) || 1;
-    f.addPoint(-100, 0); f.addPoint(lo - 0.01*s, 0);
-    f.addPoint(lo + 0.25*s, 0.05*scale); f.addPoint(lo + 0.60*s, 0.18*scale); f.addPoint(hi, 0.55*scale);
-    return f;
-  }
-  function applyHeatClim(clim) {                          // recolour the volume + colourbar to a phase's range
-    const sc = +document.getElementById('volInt').value || 1.0;
-    if (volume) { const p = volume.getProperty();
-      p.setRGBTransferFunction(0, heatCTF(clim[0], clim[1])); p.setScalarOpacity(0, heatOTF(clim[0], clim[1], sc)); }
+  function applyHeatSurfaces(arr, clim, cmap) {           // colour the drift surfaces by a step's field
+    const key = cmap.join(',');
+    if (key !== _heatCmapKey) { _heatLUT = heatCTFfromCmap(cmap); _heatCmapKey = key; }
+    HEAT_SURFS.forEach(nm => { const o = objs[nm]; if (!o) return;
+      o.mapper.setLookupTable(_heatLUT); o.mapper.setScalarModeToUsePointFieldData();
+      o.mapper.setColorByArrayName(arr); o.mapper.setScalarRange(clim[0], clim[1]);
+      o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
+      o.actor.getProperty().setLighting(false); o.actor.setVisibility(true); });
+    if (volume) volume.setVisibility(false);              // glow not needed once the surfaces recolour
     const g = document.getElementById('cbGrad');
     if (g) { g.style.background = cssGrad(INFERNO);
       document.getElementById('cbLo').textContent = clim[0].toFixed(0) + ' °C';
@@ -634,11 +639,17 @@ function main() {
   function showFrame(i) {
     if (!frames.length) return Promise.resolve();
     frameIdx = (i + frames.length) % frames.length;
+    if (heatMode) {                                        // surface-based phases: no volume file to load
+      const f = frames[frameIdx];
+      applyHeatSurfaces(f.arr, f.clim, f.cmap);
+      const lab = document.getElementById('timeLabel'); if (lab) lab.textContent = f.label;
+      const sl = document.getElementById('timeSlider'); if (sl) sl.value = frameIdx;
+      renderWindow.render();
+      return Promise.resolve();
+    }
     return loadFrameImage(frameIdx).then(img => {
       volImage = img;
       if (volMapper) volMapper.setInputData(img);
-      if (heatMode) { const cl = frames[frameIdx].clim;   // per-phase colour range (heating / storage / cooling)
-        if (cl && (!_lastHeatClim || cl[0] !== _lastHeatClim[0] || cl[1] !== _lastHeatClim[1])) { applyHeatClim(cl); _lastHeatClim = cl; } }
       if (!heatMode && imgSlice && domainVti && colMode === 'temperature') {   // advance the plane's temperature frame
         domainVti.getPointData().setActiveScalars(fn(frameIdx)); imgMapper.modified(); domainVti.modified();
       }
@@ -658,11 +669,11 @@ function main() {
   function switchFrames(list) {                          // swap the timeline's frame source (year cycle <-> heating)
     if (!list) return Promise.resolve();
     heatMode = (list === heatFrames);
-    frames = list; frameIdx = 0; _lastHeatClim = null;
+    frames = list; frameIdx = 0; _heatCmapKey = null;
     Object.keys(frameCache).forEach(k => delete frameCache[k]);
     const sl = document.getElementById('timeSlider'); if (sl) { sl.max = frames.length - 1; sl.value = 0; }
     if (window.uiTicks) uiTicks(frames);
-    frames.forEach((_, i) => { if (i) loadFrameImage(i); });
+    if (!heatMode) frames.forEach((_, i) => { if (i) loadFrameImage(i); });   // preload volume files (year cycle only)
     return showFrame(0);
   }
   function loadVolume() {
@@ -922,20 +933,20 @@ function main() {
     document.getElementById('heatOn').onchange = e => {
       if (e.target.checked) {
         document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
-        document.getElementById('volOn').checked = true; if (volume) volume.setVisibility(true);
         const go = () => switchFrames(heatFrames);
         if (heatFrames) go();
         else { setStatus('loading phase steps…'); fetch(DATA + 'heat.json').then(r => r.json())
           .then(data => { heatFrames = [];
             (data.phases || []).forEach(ph => (ph.frames || []).forEach(f =>
-              heatFrames.push({ file: f.file, label: f.label, clim: ph.clim })));
+              heatFrames.push({ arr: f.arr, label: f.label, clim: ph.clim, cmap: ph.cmap })));
             go(); setStatus('ready'); })
           .catch(err => setStatus('phase load failed: ' + err, true)); }
       } else {
-        _lastHeatClim = null; switchFrames(yearFrames);
-        if (volume) { const p = volume.getProperty(); p.setRGBTransferFunction(0, tempCTF());
-          p.setScalarOpacity(0, buildOTF(+document.getElementById('volInt').value || 1.0)); }
-        updateColorbar();
+        _heatCmapKey = null; switchFrames(yearFrames);
+        setColorMode('temperature');                       // restore normal surface colouring
+        HEAT_SURFS.forEach(nm => { const cb = document.getElementById('vis_' + nm), o = objs[nm];
+          if (o && cb) o.actor.setVisibility(cb.checked); });   // restore each layer's visibility
+        if (volume) volume.setVisibility(document.getElementById('volOn').checked);
       }
     };
     fetch(DATA + 'heat.json', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
