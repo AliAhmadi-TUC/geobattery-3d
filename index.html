@@ -1565,6 +1565,30 @@ function main() {
           renderer.addActor(meshEdge); renderWindow.render();   // pre-render -> compile before the visible sweep
           await _tween(3200, (e, u) => eSweep.setOrigin(0, sweepY(u), 0));   // edges connect bottom->top, slow at the drift
           await _tween(900, () => {});                        // hold on the full 3-D cell mesh
+          // 6 — REMOVE THE CELLS, DIVE INSIDE to just behind the inlet, looking at it
+          if (!touring) throw 0;
+          await _tween(1500, (e, u) => { const y = _L(rb[3], rb[2], u);   // sweep the lattice back out (top->bottom)
+            pSweep.setOrigin(0, y, 0); eSweep.setOrigin(0, y, 0); });
+          if (meshPts) { renderer.removeActor(meshPts); meshPts = null; }
+          if (meshEdge) { renderer.removeActor(meshEdge); meshEdge = null; }
+          faceActs.forEach(a => a.setVisibility(false));      // drop the box — we're going inside
+          const ax2 = MIR.axis || [0, 1, 0], W2 = objs.water;   // the drift walls (water/rock interface), heat-coloured
+          if (W2) {
+            W2.mapper.removeAllClippingPlanes();
+            W2.mapper.setLookupTable(heatLUT()); W2.mapper.setScalarModeToUsePointFieldData();
+            W2.mapper.setColorByArrayName('hc00'); W2.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
+            W2.mapper.setScalarVisibility(true); W2.mapper.setInterpolateScalarsBeforeMapping(true);
+            const pr = W2.actor.getProperty(); pr.setRepresentation(2); pr.setOpacity(1); pr.setPointSize(1); pr.setLighting(true);
+            W2.actor.setVisibility(true);
+          }
+          const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint();
+          const inEye = [inl[0] - ax2[0]*6, inl[1] - ax2[1]*6, inl[2] + 1.2];
+          await _tween(3000, (e) => {                         // fly down to behind the inlet, widen fov for the interior
+            const p = _L3(p0, inEye, e), f = _L3(f0, inl, e);
+            tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(0, 0, 1);
+            tCam.setViewAngle(_L(baseFov, 58, e)); tCam.setClippingRange(0.05, 2000);
+          });
+          await _tween(1000, () => {});                       // hold behind the inlet, looking at it
         }
       } catch (e) { console.warn('tour', e); }
 
@@ -1586,6 +1610,7 @@ function main() {
         pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
       document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
       if (volume) volume.setVisibility(document.getElementById('volOn').checked);
+      tCam.setViewAngle(baseFov);                          // undo the walk-through's widened fov
       renderer.resetCamera(); renderWindow.render();
     }
     const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = runTour; }
