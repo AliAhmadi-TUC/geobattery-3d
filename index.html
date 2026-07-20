@@ -1529,19 +1529,23 @@ function main() {
           const overCam = [bcen[0] + od[0]/odl*overDist, bcen[1] + od[1]/odl*overDist, bcen[2] + od[2]/odl*overDist];
           const p1 = tCam.getPosition(), f1 = tCam.getFocalPoint();
           await _tween(2400, (e) => _place(_L3(p1, overCam, e), _L3(f1, bcen, e), UP));   // smooth tilt overhead
-          // POINTS (all tet nodes across the domain) fade in
+          // POINTS (all tet nodes) SWEEP in across the domain along +Y (animated creation)
           const mpm = vtk.Rendering.Core.vtkMapper.newInstance(); mpm.setInputData(mesh); mpm.setScalarVisibility(false);
+          const pSweep = vtk.Common.DataModel.vtkPlane.newInstance(); pSweep.setNormal(0, -1, 0); pSweep.setOrigin(0, rb[2], 0);
+          mpm.addClippingPlane(pSweep);
           meshPts = vtk.Rendering.Core.vtkActor.newInstance(); meshPts.setMapper(mpm);
-          { const pr = meshPts.getProperty(); pr.setRepresentation(0); pr.setPointSize(2.5); pr.setColor(0.74, 0.84, 0.98); pr.setLighting(false); pr.setOpacity(0); }
-          renderer.addActor(meshPts);
-          await _tween(1500, (e) => meshPts.getProperty().setOpacity(e));
-          // EDGES (connect the cells) fade in
+          { const pr = meshPts.getProperty(); pr.setRepresentation(0); pr.setPointSize(2.5); pr.setColor(0.74, 0.84, 0.98); pr.setLighting(false); pr.setOpacity(0.95); }
+          renderer.addActor(meshPts); renderWindow.render();   // pre-render (clipped empty) -> compile the clip shader now
+          await _tween(2400, (e, u) => pSweep.setOrigin(0, _L(rb[2], rb[3], u), 0));   // nodes appear along the domain
+          // EDGES (connect the cells) SWEEP in
           if (!touring) throw 0;
           const mem = vtk.Rendering.Core.vtkMapper.newInstance(); mem.setInputData(mesh); mem.setScalarVisibility(false);
+          const eSweep = vtk.Common.DataModel.vtkPlane.newInstance(); eSweep.setNormal(0, -1, 0); eSweep.setOrigin(0, rb[2], 0);
+          mem.addClippingPlane(eSweep);
           meshEdge = vtk.Rendering.Core.vtkActor.newInstance(); meshEdge.setMapper(mem);
-          { const pr = meshEdge.getProperty(); pr.setRepresentation(1); pr.setLineWidth(1); pr.setColor(0.55, 0.70, 0.92); pr.setLighting(false); pr.setOpacity(0); }
-          renderer.addActor(meshEdge);
-          await _tween(1800, (e) => meshEdge.getProperty().setOpacity(e * 0.45));
+          { const pr = meshEdge.getProperty(); pr.setRepresentation(1); pr.setLineWidth(1); pr.setColor(0.55, 0.70, 0.92); pr.setLighting(false); pr.setOpacity(0.45); }
+          renderer.addActor(meshEdge); renderWindow.render();   // pre-render -> compile before the visible sweep
+          await _tween(2600, (e, u) => eSweep.setOrigin(0, _L(rb[2], rb[3], u), 0));   // edges connect along the domain
           await _tween(900, () => {});                        // hold on the full 3-D cell mesh
         }
       } catch (e) { console.warn('tour', e); }
