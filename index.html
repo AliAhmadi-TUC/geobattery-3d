@@ -935,7 +935,7 @@ function main() {
       if (window.uiTicks) uiTicks(frames);               // phase graduations (UI layer)
       frames.forEach((_, i) => { if (i) loadFrameImage(i); });   // background-preload for smooth playback
       const stopPlay = () => { playing = false; if (playTimer) clearTimeout(playTimer); playTimer = null; playBtn.textContent = '▶ play'; playBtn.classList.remove('playing'); };
-      const step = () => { showFrame(frameIdx + 1).then(() => { if (playing) playTimer = setTimeout(step, 950); }); };
+      const step = () => { showFrame(frameIdx + 1).then(() => { if (playing) playTimer = setTimeout(step, 475); }); };
       playBtn.onclick = () => { if (playing) stopPlay(); else { playing = true; playBtn.textContent = '⏸ pause'; playBtn.classList.add('playing'); step(); } };
       slider.oninput = e => { stopPlay(); showFrame(+e.target.value); };
     } else if (timeGrp) {
