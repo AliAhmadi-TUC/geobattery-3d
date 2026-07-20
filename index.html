@@ -1257,6 +1257,11 @@ function main() {
       tCam.setViewAngle(baseFov);               // restore the app's real fov (consistent across runs)
       const sweep = vtk.Common.DataModel.vtkPlane.newInstance(); sweep.setNormal(0, -1, 0);
       let eAct = null, sAct = null, sweep4 = null; const faceActs = [], mirActs = []; const MIR = {};   // edges/surface; 6 walls; mirror-assembly parts
+      let meshPts = null, meshEdge = null;                 // walk-through: internal 3-D cell mesh (points + edges)
+      const tourMeshP = new Promise(res => {               // pre-load the tet mesh so the reveal doesn't stall
+        const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+        rd.setUrl(DATA + 'edges_lite.vtp').then(() => res(rd.getOutputData(0))).catch(() => res(null));
+      });
       try {
         const B = renderer.computeVisiblePropBounds();
         const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
@@ -1508,6 +1513,32 @@ function main() {
           }
           await _tween(1000, () => {});                        // hold on the finished domain box
         }
+        // 5 — OPEN THE TOP, GO OVERHEAD, REVEAL THE INTERNAL 3-D CELL MESH (points -> edges)
+        if (!touring) throw 0;
+        const mesh = await tourMeshP;
+        if (mesh) {
+          if (faceActs.length === 6) faceActs[4].setVisibility(false);   // remove the top (+z) wall to see inside
+          mirActs.forEach(a => a.setVisibility(false));                  // hide the drift surfaces so the mesh reads
+          if (MIR.sIn) { MIR.sIn.a.setVisibility(false); MIR.sOut.a.setVisibility(false); }
+          const overH = (MIR.Ltot || 48) * 1.25;
+          const overCam = [cen[0], cen[1], cen[2] + overH];             // straight above the drift, looking down
+          const p1 = tCam.getPosition(), f1 = tCam.getFocalPoint(), up1 = MIR.axis || [0, 1, 0];
+          await _tween(2200, (e) => _place(_L3(p1, overCam, e), _L3(f1, cen, e), up1));
+          // POINTS (the tet nodes) fade in
+          const mpm = vtk.Rendering.Core.vtkMapper.newInstance(); mpm.setInputData(mesh); mpm.setScalarVisibility(false);
+          meshPts = vtk.Rendering.Core.vtkActor.newInstance(); meshPts.setMapper(mpm);
+          { const pr = meshPts.getProperty(); pr.setRepresentation(0); pr.setPointSize(2.5); pr.setColor(0.74, 0.84, 0.98); pr.setLighting(false); pr.setOpacity(0); }
+          renderer.addActor(meshPts);
+          await _tween(1500, (e) => meshPts.getProperty().setOpacity(e));
+          // EDGES (connect the cells) fade in
+          if (!touring) throw 0;
+          const mem = vtk.Rendering.Core.vtkMapper.newInstance(); mem.setInputData(mesh); mem.setScalarVisibility(false);
+          meshEdge = vtk.Rendering.Core.vtkActor.newInstance(); meshEdge.setMapper(mem);
+          { const pr = meshEdge.getProperty(); pr.setRepresentation(1); pr.setLineWidth(1); pr.setColor(0.55, 0.70, 0.92); pr.setLighting(false); pr.setOpacity(0); }
+          renderer.addActor(meshEdge);
+          await _tween(1800, (e) => meshEdge.getProperty().setOpacity(e * 0.55));
+          await _tween(900, () => {});                        // hold on the full 3-D cell mesh
+        }
       } catch (e) { console.warn('tour', e); }
 
       // ---- hand over: restore the normal interactive view ----
@@ -1518,6 +1549,8 @@ function main() {
       if (sAct) { renderer.removeActor(sAct); sAct = null; }
       if (objs.water) objs.water.mapper.removeAllClippingPlanes();   // clear the tour's sweep clip
       faceActs.forEach(a => renderer.removeActor(a)); faceActs.length = 0;   // drop the 6 coloured wall actors
+      if (meshPts) { renderer.removeActor(meshPts); meshPts = null; }        // drop the walk-through 3-D mesh
+      if (meshEdge) { renderer.removeActor(meshEdge); meshEdge = null; }
       mirActs.forEach(a => renderer.removeActor(a)); mirActs.length = 0;     // drop the mirror-assembly parts
       if (MIR.sIn) renderer.removeActor(MIR.sIn.a); if (MIR.sOut) renderer.removeActor(MIR.sOut.a);   // and the inlet/outlet spheres
       wellActors.forEach(a => a.setVisibility(true));     // restore the scene's inlet/outlet markers
