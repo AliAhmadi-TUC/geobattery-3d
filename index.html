@@ -1295,6 +1295,7 @@ function main() {
         const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
         rd.setUrl(DATA + 'edges_lite.vtp').then(() => res(rd.getOutputData(0))).catch(() => res(null));
       });
+      if (flowMeta && !pActor && !pLoading) { pLoading = true; loadParticles(); }   // pre-load the moving flow arrows for the walk
       try {
         const B = renderer.computeVisiblePropBounds();
         const ctr = [(B[0]+B[1])/2, (B[2]+B[3])/2, (B[4]+B[5])/2];
@@ -1639,9 +1640,10 @@ function main() {
             tCam.setViewAngle(_L(baseFov, 50, e)); tCam.setClippingRange(0.05, 2000);
           });
           await _tween(1000, () => {});                       // hold behind the inlet, looking at it
-          // 7 — THE WALK: glide along the water centreline, walls warming to yellow as the hot water advances
-          _title('10', 'Walking the drift · charging (hot water)');
+          // 10 — WALK IN a few steps as RED hot-water arrows pour from the inlet and the walls heat smoothly
+          _title('10', 'Charging · walking in as it heats');
           if (!touring) throw 0;
+          if (pActor) { pActor.getProperty().setColor(0.96, 0.28, 0.14); pActor.setVisibility(true); pOn = true; startParticleAnim(); }   // red = hot water
           if (W2) {
             const wp = W2.mapper.getInputData().getPoints().getData();
             const ayOf = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
@@ -1661,37 +1663,36 @@ function main() {
             const camP = t => { const s = Math.max(0, Math.min(cam.length-1, t)), i = Math.floor(s), f = s - i,
               a = cam[i], b = cam[Math.min(cam.length-1, i+1)];
               return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; };
+            const WALK_FRAC = 0.42;                            // walk only a few steps in (not to the end)
             let lastHc = -1;
-            await _tween(11000, (e, u) => {
-              const s = u * (cam.length - 1 - AHEAD), pos = camP(s), foc = camP(s + AHEAD);
+            await _tween(9500, (e, u) => {                     // slow walk (slower than the flow), walls heat smoothly
+              const s = u * WALK_FRAC * (cam.length - 1 - AHEAD), pos = camP(s), foc = camP(s + AHEAD);
               tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(foc[0], foc[1], foc[2]); tCam.setViewUp(0, 0, 1);
               tCam.setViewAngle(50); tCam.setClippingRange(0.05, 2000);
-              const hc = Math.min(9, Math.round(u * 9));       // hc00 -> hc09: start cold, heat builds up smoothly as we walk
+              const hc = Math.min(9, Math.round(u * 9));       // hc00 -> hc09: heat builds up as we walk
               if (hc !== lastHc) { W2.mapper.setColorByArrayName('hc' + String(hc).padStart(2, '0')); lastHc = hc; }
             });
-            await _tween(900, () => {});                       // hold at the far (outlet) end
-            // 8 — LOOK BACK down the tunnel, then the water COOLS (yellow -> cold)
-            _title('11', 'Looking back');
+            // 11 — HOLD and watch STORAGE cool the water (walls cool down from red)
+            _title('11', 'Storage · the water cools');
             if (!touring) throw 0;
-            const ep = tCam.getPosition(), ef = tCam.getFocalPoint();
-            const dd = [ef[0]-ep[0], ef[1]-ep[1], ef[2]-ep[2]];
-            await _tween(2600, (e) => {                        // turn 180° about vertical to look back
-              const th = Math.PI * e, ct = Math.cos(th), st = Math.sin(th);
-              const rx = dd[0]*ct - dd[1]*st, ry = dd[0]*st + dd[1]*ct;
-              tCam.setPosition(ep[0], ep[1], ep[2]); tCam.setFocalPoint(ep[0]+rx, ep[1]+ry, ep[2]+dd[2]); tCam.setViewUp(0, 0, 1);
-              tCam.setViewAngle(58); tCam.setClippingRange(0.05, 2000);
+            let lastS = -1;
+            await _tween(6000, (e, u) => {
+              const k = Math.min(9, Math.floor(u * 10));
+              if (k !== lastS) { W2.mapper.setColorByArrayName('hs' + String(k).padStart(2, '0')); lastS = k; }
             });
-            const coolArrs = [];                               // storage then discharge -> the drift cools right down
-            for (let i = 0; i < 10; i++) coolArrs.push('hs' + String(i).padStart(2, '0'));
-            for (let i = 0; i < 10; i++) coolArrs.push('hd' + String(i).padStart(2, '0'));
-            let lastK = -1;
-            await _tween(7000, (e, u) => {
-              const k = Math.min(coolArrs.length - 1, Math.floor(u * coolArrs.length));
-              if (k !== lastK) { W2.mapper.setColorByArrayName(coolArrs[k]); lastK = k; }
+            // 12 — DISCHARGE: BLUE cold-water arrows cool the surface right down
+            _title('12', 'Discharge · cold water returns');
+            if (!touring) throw 0;
+            if (pActor) pActor.getProperty().setColor(0.25, 0.55, 0.98);   // arrows -> blue (cold)
+            let lastD = -1;
+            await _tween(5500, (e, u) => {
+              const k = Math.min(9, Math.floor(u * 10));
+              if (k !== lastD) { W2.mapper.setColorByArrayName('hd' + String(k).padStart(2, '0')); lastD = k; }
             });
+            if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) cancelAnimationFrame(pRAF); pRAF = null; }
             await _tween(800, () => {});
-            // 9 — ZOOM OUT to the default overview, restore the real fov
-            _title('12', 'Cooling down, then zoom out');
+            // 13 — ZOOM OUT to the default overview, restore the real fov
+            _title('13', 'Zoom out');
             if (!touring) throw 0;
             const zp = tCam.getPosition(), zf = tCam.getFocalPoint(), zu = tCam.getViewUp();
             const zoomTo = [cen[0] - 26, cen[1] - 64, cen[2] + 46];
@@ -1707,6 +1708,7 @@ function main() {
 
       // ---- hand over: restore the normal interactive view ----
       touring = false; tourPaused = false; _hideLabels(); _title('', '');
+      if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } }   // stop the tour's flow arrows
       if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
       { const pb = document.getElementById('tourPause'); if (pb) pb.style.display = 'none'; }
       if (eAct) { renderer.removeActor(eAct); eAct = null; }
