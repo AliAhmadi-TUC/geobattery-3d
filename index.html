@@ -1626,20 +1626,10 @@ function main() {
             pr.setSpecular(0.55); pr.setSpecularPower(28); pr.setSpecularColor(1, 1, 1); pr.setLighting(true);   // shiny walls
             W2.actor.setVisibility(true);
           }
-          // inlet-end CENTRE of the water (camera lands INSIDE, on the centreline -> not cramped or outside)
-          let inCen = [inl[0], inl[1], inl[2]];
-          if (W2) {
-            const wpts = W2.mapper.getInputData().getPoints().getData();
-            const ayOf = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
-            let ymn = Infinity; for (let i = 0; i < wpts.length; i += 3) { const a = ayOf(wpts[i], wpts[i+1], wpts[i+2]); if (a < ymn) ymn = a; }
-            let sx = 0, sy = 0, sz = 0, nn = 0;
-            for (let i = 0; i < wpts.length; i += 3) { if (ayOf(wpts[i], wpts[i+1], wpts[i+2]) < ymn + 1.2) { sx += wpts[i]; sy += wpts[i+1]; sz += wpts[i+2]; nn++; } }
-            if (nn) inCen = [sx/nn, sy/nn, sz/nn];
-          }
-          if (MIR.sIn) { MIR.sIn.s.setRadius(0.5); MIR.sIn.a.setVisibility(true); }   // enlarge the inlet marker so it reads just ahead
+          if (MIR.sIn) { MIR.sIn.s.setRadius(0.6); MIR.sIn.a.setVisibility(true); }   // enlarge the inlet marker so it reads ahead
           const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint(), up0 = tCam.getViewUp();
-          const inEye = [inCen[0], inCen[1], inCen[2] + 0.4];                        // inside the water at the inlet end, centred
-          const inFoc = [inCen[0] + ax2[0]*8, inCen[1] + ax2[1]*8, inCen[2] + 0.4];   // look forward down the drift (inlet marker just ahead)
+          const inEye = [inl[0] - ax2[0]*3.5, inl[1] - ax2[1]*3.5, inl[2] + 0.6];   // behind the inlet, inside the translucent air
+          const inFoc = [inl[0], inl[1], inl[2]];                                    // look AT the inlet (marker 3.5 m ahead)
           await _tween(3000, (e) => {                         // fly down inside, widen fov a touch for the interior
             const p = _L3(p0, inEye, e), f = _L3(f0, inFoc, e);
             const u3 = _L3(up0, [0, 0, 1], e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;   // interpolate viewUp -> no snap
@@ -1683,7 +1673,7 @@ function main() {
             // 11 — LOOK BACK down the tunnel, then watch STORAGE cool the water
             _title('11', 'Storage · the water cools');
             if (!touring) throw 0;
-            if (pActor) { pOn = false; if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } }   // no flow during storage: arrows stop
+            if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } }   // no flow during storage: arrows gone
             { const ep = tCam.getPosition(), ef = tCam.getFocalPoint();
               const dd = [ef[0]-ep[0], ef[1]-ep[1], ef[2]-ep[2]];
               await _tween(2400, (e) => {                      // turn 180° about vertical to look back
