@@ -377,7 +377,6 @@
       <div id="tempCtl">
         <div class="row"><input type="checkbox" id="volOn" checked><label for="volOn">volumetric glow</label></div>
         <div class="row"><label for="volInt">intensity</label><input type="range" id="volInt" min="0.2" max="3.5" step="0.05" value="2.2"></div>
-        <div class="row"><input type="checkbox" id="heatOn"><label for="heatOn">phase steps · heating · storage · cooling</label></div>
       </div>
       <div id="flowCtl" style="display:none">
         <div class="row"><input type="checkbox" id="flowOn" checked><label for="flowOn">static arrow field</label></div>
@@ -603,7 +602,7 @@ function main() {
     return f;
   }
   const HEAT_SURFS = ['water', 'air', 'concrete'];        // drift surfaces recoloured through the phases
-  const HEAT_CLIM = [10, 80], HEAT_TSPLIT = 15, HEAT_SPLIT = 0.66;   // magma high part reached by 15 C, then keeps gradating to 80
+  const HEAT_CLIM = [10, 80], HEAT_TSPLIT = 20, HEAT_SPLIT = 0.66;   // magma high part reached by 20 C, then keeps gradating to 80
   let _heatLUT = null;
   function infernoAt(f) {                                 // sample the magma ramp at fraction f
     const n = INFERNO.length, x = Math.max(0, Math.min(1, f)) * (n - 1), i = Math.floor(x), t = x - i;
@@ -654,7 +653,7 @@ function main() {
     frameIdx = (i + frames.length) % frames.length;
     if (heatMode) {                                        // surface-based phases: no volume file to load
       const f = frames[frameIdx];
-      applyHeatSurfaces(f.arr);
+      if (colMode === 'temperature') applyHeatSurfaces(f.arr);   // recolour only when showing temperature
       const lab = document.getElementById('timeLabel'); if (lab) lab.textContent = f.label;
       const sl = document.getElementById('timeSlider'); if (sl) sl.value = frameIdx;
       renderWindow.render();
@@ -919,8 +918,12 @@ function main() {
       if (imgSlice) setSliceField(mode);
       setFieldVis();
       updateColorbar();
-      const _tg = document.getElementById('timeGrp');   // timeline is temperature-only: hide it for stress & flow
-      if (_tg && frames.length > 1) _tg.style.display = (mode === 'vm' || mode === 'flow') ? 'none' : '';
+      // the phase timeline is a temperature feature: recolour to the current step (heat colourbar wins), hide it elsewhere
+      if (heatMode && mode === 'temperature' && frames[frameIdx] && frames[frameIdx].arr) applyHeatSurfaces(frames[frameIdx].arr);
+      else HEAT_SURFS.forEach(nm => { const cb = document.getElementById('vis_' + nm), o = objs[nm];
+        if (o && cb) o.actor.setVisibility(cb.checked); });   // restore layer visibility outside temperature
+      const _tg = document.getElementById('timeGrp');
+      if (_tg && frames.length > 1) _tg.style.display = (mode === 'temperature') ? '' : 'none';
       renderWindow.render();
     }
     document.getElementById('colMode').onchange = e => setColorMode(e.target.value);
@@ -935,35 +938,23 @@ function main() {
       if (window.uiTicks) uiTicks(frames);               // phase graduations (UI layer)
       frames.forEach((_, i) => { if (i) loadFrameImage(i); });   // background-preload for smooth playback
       const stopPlay = () => { playing = false; if (playTimer) clearTimeout(playTimer); playTimer = null; playBtn.textContent = '▶ play'; playBtn.classList.remove('playing'); };
-      const step = () => { showFrame(frameIdx + 1).then(() => { if (playing) playTimer = setTimeout(step, 475); }); };
+      const step = () => { showFrame(frameIdx + 1).then(() => { if (playing) playTimer = setTimeout(step, 240); }); };
       playBtn.onclick = () => { if (playing) stopPlay(); else { playing = true; playBtn.textContent = '⏸ pause'; playBtn.classList.add('playing'); step(); } };
       slider.oninput = e => { stopPlay(); showFrame(+e.target.value); };
     } else if (timeGrp) {
       timeGrp.style.display = 'none';
     }
 
-    // ---- charge heating: swap the timeline to the 10 intra-charge steps (0 -> outlet 60 C) ----
-    document.getElementById('heatOn').onchange = e => {
-      if (e.target.checked) {
-        document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
-        const go = () => switchFrames(heatFrames);
-        if (heatFrames) go();
-        else { setStatus('loading phase steps…'); fetch(DATA + 'heat.json').then(r => r.json())
-          .then(data => { heatFrames = [];
-            (data.phases || []).forEach(ph => (ph.frames || []).forEach(f =>
-              heatFrames.push({ arr: f.arr, label: f.label, clim: ph.clim, cmap: ph.cmap })));
-            go(); setStatus('ready'); })
-          .catch(err => setStatus('phase load failed: ' + err, true)); }
-      } else {
-        switchFrames(yearFrames);
-        setColorMode('temperature');                       // restore normal surface colouring
-        HEAT_SURFS.forEach(nm => { const cb = document.getElementById('vis_' + nm), o = objs[nm];
-          if (o && cb) o.actor.setVisibility(cb.checked); });   // restore each layer's visibility
-        if (volume) volume.setVisibility(document.getElementById('volOn').checked);
-      }
-    };
-    fetch(DATA + 'heat.json', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
-      .catch(() => { const h = document.getElementById('heatOn'); if (h) h.closest('.row').style.display = 'none'; });
+    // ---- timeline = the seasonal phase steps (default; the old annual 4-step is retired) ----
+    setStatus('loading phase steps…');
+    fetch(DATA + 'heat.json').then(r => r.json()).then(data => {
+      heatFrames = [];
+      (data.phases || []).forEach(ph => (ph.frames || []).forEach(f =>
+        heatFrames.push({ arr: f.arr, label: f.label })));
+      document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
+      switchFrames(heatFrames);                            // phases become the timeline, in temperature mode
+      setStatus('ready');
+    }).catch(err => setStatus('phase load failed: ' + err, true));
 
     // ---- flow field (drift only): arrows + moving arrows, lazy-loaded ----
     let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
