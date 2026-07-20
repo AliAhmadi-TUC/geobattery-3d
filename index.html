@@ -1224,22 +1224,30 @@ function main() {
       tourSVG.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:6;';
       document.getElementById('view').appendChild(tourSVG);
       list.forEach(it => {
-        it._ln = document.createElementNS(_SVGNS, 'line'); it._ln.setAttribute('stroke', 'rgba(255,255,255,0.7)'); it._ln.setAttribute('stroke-width', '1');
-        it._dot = document.createElementNS(_SVGNS, 'circle'); it._dot.setAttribute('r', '4'); it._dot.setAttribute('fill', it.color || '#fff'); it._dot.setAttribute('stroke', 'rgba(0,0,0,0.55)'); it._dot.setAttribute('stroke-width', '1');
+        it._ln = document.createElementNS(_SVGNS, 'polyline');   // dot -> diagonal -> horizontal elbow -> text
+        it._ln.setAttribute('fill', 'none'); it._ln.setAttribute('stroke', 'rgba(32,32,38,0.9)'); it._ln.setAttribute('stroke-width', '1.2');
+        it._dot = document.createElementNS(_SVGNS, 'circle'); it._dot.setAttribute('r', '3'); it._dot.setAttribute('fill', 'rgba(28,28,34,0.95)');
         it._tx = document.createElementNS(_SVGNS, 'text'); it._tx.textContent = it.text;
-        it._tx.style.cssText = 'fill:#fff; font:600 13px system-ui,sans-serif; paint-order:stroke; stroke:rgba(0,0,0,0.85); stroke-width:3.2px; stroke-linejoin:round;';
+        it._tx.style.cssText = 'fill:#1b1b20; font:600 14px system-ui,sans-serif; paint-order:stroke; stroke:rgba(255,255,255,0.9); stroke-width:3px; stroke-linejoin:round;';
         tourSVG.appendChild(it._ln); tourSVG.appendChild(it._dot); tourSVG.appendChild(it._tx);
       });
       tourSVG._list = list; _positionLabels();
     }
     function _positionLabels() {
       if (!tourSVG || !tourSVG._list) return;
+      const HLEN = 22;
       tourSVG._list.forEach(it => {
         const p = _project(it.world), ax = p[0], ay = p[1], lx = ax + it.off[0], ly = ay + it.off[1];
-        it._ln.setAttribute('x1', ax); it._ln.setAttribute('y1', ay); it._ln.setAttribute('x2', lx); it._ln.setAttribute('y2', ly);
         it._dot.setAttribute('cx', ax); it._dot.setAttribute('cy', ay);
-        it._tx.setAttribute('x', lx + (it.off[0] < 0 ? -5 : 5)); it._tx.setAttribute('y', ly);
-        it._tx.setAttribute('text-anchor', it.off[0] < 0 ? 'end' : 'start'); it._tx.setAttribute('dominant-baseline', 'middle');
+        if (Math.abs(it.off[0]) < 18) {                          // near-vertical: straight leader, centred text
+          it._ln.setAttribute('points', `${ax},${ay} ${lx},${ly}`);
+          it._tx.setAttribute('text-anchor', 'middle'); it._tx.setAttribute('x', lx); it._tx.setAttribute('y', ly);
+        } else {                                                 // side label: elbow leader, text at the horizontal end
+          const left = it.off[0] < 0, ex = lx + (left ? HLEN : -HLEN);
+          it._ln.setAttribute('points', `${ax},${ay} ${ex},${ly} ${lx},${ly}`);
+          it._tx.setAttribute('text-anchor', left ? 'end' : 'start'); it._tx.setAttribute('x', lx + (left ? -4 : 4)); it._tx.setAttribute('y', ly);
+        }
+        it._tx.setAttribute('dominant-baseline', 'middle');
       });
     }
     const OPQ = { water: 0.8, rock: 0.22, concrete: 0.95, air: 0.32 };
@@ -1494,7 +1502,7 @@ function main() {
             { text:'Inlet',            world: inl,      off:[-86,40],  color:'#33e56b' },
             { text:'Outlet',           world: out,      off:[86,-34],  color:'#f55926' },
           ]);
-          await _tween(5200, () => _positionLabels());   // hold (pausable) while the labels are shown
+          await _tween(2800, () => _positionLabels());   // hold (pausable) while the labels are shown
           _hideLabels();
         }
         // 4 — ADD THE SURROUNDING ROCK DOMAIN (outer walls). Pull the camera back to frame the whole
