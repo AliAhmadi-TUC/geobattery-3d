@@ -630,15 +630,14 @@ function main() {
     _heatLUT = lut; return lut;
   }
   let _walkLUT = null;
-  function walkLUT() {                                    // walk-through: cold reads as dim grey (visible), warms to yellow
+  function walkLUT() {                                    // walk-through: neutral wall grey (cold) -> red (hot), no magenta
     if (_walkLUT) return _walkLUT;
-    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
-    lut.addRGBPoint(HEAT_CLIM[0], 0.30, 0.32, 0.36);     // 10 C -> dim grey (so cold walls aren't black-on-black)
-    for (let i = 0; i < M; i++) { const f = i / (M - 1), c = INFERNO[i];
-      const T = f <= HEAT_SPLIT
-        ? 13 + (HEAT_TSPLIT - 13) * (f / HEAT_SPLIT)
-        : HEAT_TSPLIT + (HEAT_CLIM[1] - HEAT_TSPLIT) * ((f - HEAT_SPLIT) / (1 - HEAT_SPLIT));
-      lut.addRGBPoint(T, c[0], c[1], c[2]); }
+    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+    lut.addRGBPoint(10, 0.56, 0.58, 0.62);               // cold = the surface's own neutral grey
+    lut.addRGBPoint(18, 0.72, 0.46, 0.42);
+    lut.addRGBPoint(30, 0.84, 0.30, 0.22);
+    lut.addRGBPoint(50, 0.92, 0.18, 0.12);
+    lut.addRGBPoint(80, 0.96, 0.10, 0.06);               // hot = red
     _walkLUT = lut; return lut;
   }
   function heatBarGrad() {                                // colourbar mirrors the two-leg mapping
@@ -1265,15 +1264,14 @@ function main() {
         const lw = [it.world[0] + perp[0]*it.side*it.dist + aX[0]*along,
                     it.world[1] + perp[1]*it.side*it.dist + aX[1]*along,
                     it.world[2] + perp[2]*it.side*it.dist + aX[2]*along + 2];
-        const l = _project(lw), ax = a[0], ay = a[1], lx = l[0], ly = l[1];
-        const leftText = lx < ax;
-        const outEnd = leftText ? 'end' : 'start';           // normal: text extends outward from the leader
-        const anch = it.flip ? (outEnd === 'end' ? 'start' : 'end') : outEnd;   // flip: text extends inward (clears a neighbour's line)
-        const hx = lx + (anch === 'end' ? 12 : -12);         // horizontal elbow opposite the text side (flips with it)
+        const l = _project(lw), ax = a[0], ay = a[1], lx = l[0], ly = l[1], HLEN = 16;
+        const outSign = lx >= ax ? 1 : -1;                   // screen direction of the (parallel) perp offset
+        const dir = it.flip ? -outSign : outSign;            // which way the elbow + text go
+        const tx = lx + dir * HLEN;
         it._dot.setAttribute('cx', ax); it._dot.setAttribute('cy', ay);
-        it._ln.setAttribute('points', `${ax},${ay} ${hx},${ly} ${lx},${ly}`);
-        it._tx.setAttribute('text-anchor', anch);
-        it._tx.setAttribute('x', lx + (anch === 'end' ? -5 : 5)); it._tx.setAttribute('y', ly);
+        it._ln.setAttribute('points', `${ax},${ay} ${lx},${ly} ${tx},${ly}`);   // dot -> parallel diagonal -> horizontal elbow
+        it._tx.setAttribute('text-anchor', dir > 0 ? 'start' : 'end');
+        it._tx.setAttribute('x', tx + dir * 3); it._tx.setAttribute('y', ly);
         it._tx.setAttribute('dominant-baseline', 'middle');
       });
     }
@@ -1617,13 +1615,24 @@ function main() {
             W2.mapper.setColorByArrayName('hc00'); W2.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
             W2.mapper.setScalarVisibility(true); W2.mapper.setInterpolateScalarsBeforeMapping(true);
             const pr = W2.actor.getProperty(); pr.setRepresentation(2); pr.setOpacity(1); pr.setPointSize(1);
-            pr.setInterpolationToPhong(); pr.setAmbient(0.35); pr.setDiffuse(0.7); pr.setSpecular(0.1); pr.setLighting(true);
+            pr.setInterpolationToPhong(); pr.setAmbient(0.3); pr.setDiffuse(0.72);
+            pr.setSpecular(0.55); pr.setSpecularPower(28); pr.setSpecularColor(1, 1, 1); pr.setLighting(true);   // shiny walls
             W2.actor.setVisibility(true);
           }
+          // inlet-end CENTRE of the water (camera lands INSIDE, on the centreline -> not cramped or outside)
+          let inCen = [inl[0], inl[1], inl[2]];
+          if (W2) {
+            const wpts = W2.mapper.getInputData().getPoints().getData();
+            const ayOf = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
+            let ymn = Infinity; for (let i = 0; i < wpts.length; i += 3) { const a = ayOf(wpts[i], wpts[i+1], wpts[i+2]); if (a < ymn) ymn = a; }
+            let sx = 0, sy = 0, sz = 0, nn = 0;
+            for (let i = 0; i < wpts.length; i += 3) { if (ayOf(wpts[i], wpts[i+1], wpts[i+2]) < ymn + 3) { sx += wpts[i]; sy += wpts[i+1]; sz += wpts[i+2]; nn++; } }
+            if (nn) inCen = [sx/nn, sy/nn, sz/nn];
+          }
           const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint(), up0 = tCam.getViewUp();
-          const inEye = [inl[0] - ax2[0]*3.5, inl[1] - ax2[1]*3.5, inl[2] + 0.6];   // behind the inlet, in the (translucent) air
-          const inFoc = [inl[0], inl[1], inl[2]];                                    // look AT the inlet
-          await _tween(3000, (e) => {                         // fly down behind the inlet, widen fov a touch for the interior
+          const inEye = [inCen[0], inCen[1], inCen[2] + 0.4];                        // inside the water at the inlet end, centred
+          const inFoc = [inCen[0] + ax2[0]*8, inCen[1] + ax2[1]*8, inCen[2] + 0.4];   // look forward down the drift (inlet marker just ahead)
+          await _tween(3000, (e) => {                         // fly down inside, widen fov a touch for the interior
             const p = _L3(p0, inEye, e), f = _L3(f0, inFoc, e);
             const u3 = _L3(up0, [0, 0, 1], e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;   // interpolate viewUp -> no snap
             tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
