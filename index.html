@@ -1218,35 +1218,34 @@ function main() {
       return [d[0] / cv.width * cv.clientWidth, (cv.height - d[1]) / cv.height * cv.clientHeight];
     }
     function _hideLabels() { if (tourSVG) { tourSVG.remove(); tourSVG = null; } }
-    function _showLabels(list) {
+    function _showLabels(list, perp) {
       _hideLabels();
       tourSVG = document.createElementNS(_SVGNS, 'svg');
       tourSVG.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:6;';
       document.getElementById('view').appendChild(tourSVG);
       list.forEach(it => {
-        it._ln = document.createElementNS(_SVGNS, 'polyline');   // dot -> diagonal -> horizontal elbow -> text
-        it._ln.setAttribute('fill', 'none'); it._ln.setAttribute('stroke', 'rgba(32,32,38,0.9)'); it._ln.setAttribute('stroke-width', '1.2');
-        it._dot = document.createElementNS(_SVGNS, 'circle'); it._dot.setAttribute('r', '3'); it._dot.setAttribute('fill', 'rgba(28,28,34,0.95)');
+        it._ln = document.createElementNS(_SVGNS, 'polyline');   // bright leader: dot -> parallel diagonal -> short horizontal -> text
+        it._ln.setAttribute('fill', 'none'); it._ln.setAttribute('stroke', '#7fd8ff'); it._ln.setAttribute('stroke-width', '1.4'); it._ln.setAttribute('stroke-linejoin', 'round');
+        it._dot = document.createElementNS(_SVGNS, 'circle'); it._dot.setAttribute('r', '3.2'); it._dot.setAttribute('fill', '#7fd8ff');
         it._tx = document.createElementNS(_SVGNS, 'text'); it._tx.textContent = it.text;
-        it._tx.style.cssText = 'fill:#1b1b20; font:600 14px system-ui,sans-serif; paint-order:stroke; stroke:rgba(255,255,255,0.9); stroke-width:3px; stroke-linejoin:round;';
+        it._tx.style.cssText = 'fill:#ffffff; font:600 14px system-ui,sans-serif; paint-order:stroke; stroke:rgba(6,10,20,0.85); stroke-width:3px; stroke-linejoin:round;';
         tourSVG.appendChild(it._ln); tourSVG.appendChild(it._dot); tourSVG.appendChild(it._tx);
       });
-      tourSVG._list = list; _positionLabels();
+      tourSVG._list = list; tourSVG._perp = perp || [1, 0, 0]; _positionLabels();
     }
     function _positionLabels() {
       if (!tourSVG || !tourSVG._list) return;
-      const HLEN = 22;
+      const perp = tourSVG._perp;
       tourSVG._list.forEach(it => {
-        const p = _project(it.world), ax = p[0], ay = p[1], lx = ax + it.off[0], ly = ay + it.off[1];
+        // label sits at a 3-D point offset perpendicular to the drift -> stays attached, rows come out parallel
+        const a = _project(it.world);
+        const lw = [it.world[0] + perp[0]*it.side*it.dist, it.world[1] + perp[1]*it.side*it.dist, it.world[2] + 2];
+        const l = _project(lw), ax = a[0], ay = a[1], lx = l[0], ly = l[1];
+        const leftText = lx < ax, hx = lx + (leftText ? 12 : -12);
         it._dot.setAttribute('cx', ax); it._dot.setAttribute('cy', ay);
-        if (Math.abs(it.off[0]) < 18) {                          // near-vertical: straight leader, centred text
-          it._ln.setAttribute('points', `${ax},${ay} ${lx},${ly}`);
-          it._tx.setAttribute('text-anchor', 'middle'); it._tx.setAttribute('x', lx); it._tx.setAttribute('y', ly);
-        } else {                                                 // side label: elbow leader, text at the horizontal end
-          const left = it.off[0] < 0, ex = lx + (left ? HLEN : -HLEN);
-          it._ln.setAttribute('points', `${ax},${ay} ${ex},${ly} ${lx},${ly}`);
-          it._tx.setAttribute('text-anchor', left ? 'end' : 'start'); it._tx.setAttribute('x', lx + (left ? -4 : 4)); it._tx.setAttribute('y', ly);
-        }
+        it._ln.setAttribute('points', `${ax},${ay} ${hx},${ly} ${lx},${ly}`);
+        it._tx.setAttribute('text-anchor', leftText ? 'end' : 'start');
+        it._tx.setAttribute('x', lx + (leftText ? -5 : 5)); it._tx.setAttribute('y', ly);
         it._tx.setAttribute('dominant-baseline', 'middle');
       });
     }
@@ -1495,13 +1494,14 @@ function main() {
           if (!touring) throw 0;
           const AX = MIR.axis || [0,1,0], hl = MIR.hl || 12;
           const airBot = [MIR.hBot[0]-AX[0]*hl*0.55, MIR.hBot[1]-AX[1]*hl*0.55, MIR.hBot[2]-AX[2]*hl*0.55];
-          _showLabels([
-            { text:'Water/rock drift', world: cen,      off:[0,-64],   color:'#9db4d6' },
-            { text:'Air drift',        world: airBot,   off:[-88,-42], color:'#a9c3e0' },
-            { text:'Concrete plug',    world: MIR.hTop, off:[84,32],   color:'#8f9298' },
-            { text:'Inlet',            world: inl,      off:[-86,40],  color:'#33e56b' },
-            { text:'Outlet',           world: out,      off:[86,-34],  color:'#f55926' },
-          ]);
+          const perp3 = [AX[1], -AX[0], 0]; { const pl = Math.hypot(perp3[0], perp3[1]) || 1; perp3[0] /= pl; perp3[1] /= pl; }   // horizontal ⟂ drift
+          _showLabels([                                          // outlet+concrete one side; inlet+air the opposite; water parallel
+            { text:'Outlet',           world: out,      side: +1, dist: 15 },
+            { text:'Concrete plug',    world: MIR.hTop, side: +1, dist: 32 },
+            { text:'Water/rock drift', world: cen,      side: +1, dist: 20 },
+            { text:'Inlet',            world: inl,      side: -1, dist: 15 },
+            { text:'Air drift',        world: airBot,   side: -1, dist: 32 },
+          ], perp3);
           await _tween(2800, () => _positionLabels());   // hold (pausable) while the labels are shown
           _hideLabels();
         }
