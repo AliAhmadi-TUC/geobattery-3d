@@ -78,6 +78,10 @@
     background:rgba(10,16,28,.62); padding:7px 16px; border-radius:999px; border:1px solid rgba(140,180,240,.28);
     backdrop-filter:blur(6px); pointer-events:none; text-shadow:0 1px 6px rgba(0,0,0,.6); }
   #tourTitle b{ color:var(--heat-300); font-weight:700; margin-right:8px; }
+  /* during the tour: hide every widget/panel except the tour controls */
+  body.touring #panel, body.touring #deck, body.touring #panelBtn, body.touring #infoBtn,
+  body.touring #hint, body.touring #status, body.touring #infoCard, body.touring #infoScrim{ display:none !important; }
+  body.touring .htx > :not(.tourbtn){ display:none !important; }
 
   /* status — instrument telemetry chip */
   #status{ align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
@@ -983,7 +987,7 @@ function main() {
     // ---- flow field (drift only): arrows + moving arrows, lazy-loaded ----
     let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
     const wellActors = [];   // the scene's inlet/outlet marker spheres (hidden during the tour)
-    let pActor = null, pLoading = false, pOn = false, pRAF = null, pLastT = null, pAccum = 0;
+    let pActor = null, pLoading = false, pOn = false, pRAF = null, pLastT = null, pAccum = 0, pSpeedMul = 1;
     let pLines = null, pList = null, pCoords = null, pSpd = null, pDir = null, pScl = null, pPts = null, pScal = null, pDirArr = null, pSclArr = null, pPoly = null;
     const PPL_BASE = 4, PPL_MIN = 3, CURV_GAIN = 1.8, P_SPEED = 6.0, P_SIZE = 7;
 
@@ -1056,7 +1060,7 @@ function main() {
     function stepParticles(ts) {
       if (!pOn || !pPoly) return;
       if (pLastT === null) pLastT = ts;
-      pAccum += (ts - pLastT) / 1000 * P_SPEED; pLastT = ts;
+      pAccum += (ts - pLastT) / 1000 * P_SPEED * pSpeedMul; pLastT = ts;
       const base = Math.floor(pAccum);
       for (let i = 0; i < pList.length; i++) {
         const it = pList[i], L = pLines[it.l], len = L.pts.length;
@@ -1284,6 +1288,7 @@ function main() {
       const btn = document.getElementById('tourBtn');
       if (touring) { touring = false; return; }           // second click = end
       touring = true; if (btn) btn.textContent = '✕ end';
+      document.body.classList.add('touring');              // hide all other widgets/panels for the tour
       tourPaused = false; const pBtn = document.getElementById('tourPause');
       if (pBtn) { pBtn.style.display = ''; pBtn.textContent = '⏸ pause'; }
       document.getElementById('view').dispatchEvent(new Event('pointerdown'));   // stop idle orbit
@@ -1627,9 +1632,10 @@ function main() {
             const ayOf = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
             let ymn = Infinity; for (let i = 0; i < wpts.length; i += 3) { const a = ayOf(wpts[i], wpts[i+1], wpts[i+2]); if (a < ymn) ymn = a; }
             let sx = 0, sy = 0, sz = 0, nn = 0;
-            for (let i = 0; i < wpts.length; i += 3) { if (ayOf(wpts[i], wpts[i+1], wpts[i+2]) < ymn + 3) { sx += wpts[i]; sy += wpts[i+1]; sz += wpts[i+2]; nn++; } }
+            for (let i = 0; i < wpts.length; i += 3) { if (ayOf(wpts[i], wpts[i+1], wpts[i+2]) < ymn + 1.2) { sx += wpts[i]; sy += wpts[i+1]; sz += wpts[i+2]; nn++; } }
             if (nn) inCen = [sx/nn, sy/nn, sz/nn];
           }
+          if (MIR.sIn) { MIR.sIn.s.setRadius(0.5); MIR.sIn.a.setVisibility(true); }   // enlarge the inlet marker so it reads just ahead
           const p0 = tCam.getPosition(), f0 = tCam.getFocalPoint(), up0 = tCam.getViewUp();
           const inEye = [inCen[0], inCen[1], inCen[2] + 0.4];                        // inside the water at the inlet end, centred
           const inFoc = [inCen[0] + ax2[0]*8, inCen[1] + ax2[1]*8, inCen[2] + 0.4];   // look forward down the drift (inlet marker just ahead)
@@ -1643,7 +1649,7 @@ function main() {
           // 10 — WALK IN a few steps as RED hot-water arrows pour from the inlet and the walls heat smoothly
           _title('10', 'Charging · walking in as it heats');
           if (!touring) throw 0;
-          if (pActor) { pActor.getProperty().setColor(0.96, 0.28, 0.14); pActor.setVisibility(true); pOn = true; startParticleAnim(); }   // red = hot water
+          if (pActor) { pActor.getProperty().setColor(0.96, 0.28, 0.14); pActor.setVisibility(true); pSpeedMul = 1.6; pOn = true; startParticleAnim(); }   // red = hot water, a bit faster
           if (W2) {
             const wp = W2.mapper.getInputData().getPoints().getData();
             const ayOf = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
@@ -1676,6 +1682,7 @@ function main() {
             // 11 — LOOK BACK down the tunnel, then watch STORAGE cool the water
             _title('11', 'Storage · the water cools');
             if (!touring) throw 0;
+            if (pActor) { pOn = false; if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } }   // no flow during storage: arrows stop
             { const ep = tCam.getPosition(), ef = tCam.getFocalPoint();
               const dd = [ef[0]-ep[0], ef[1]-ep[1], ef[2]-ep[2]];
               await _tween(2400, (e) => {                      // turn 180° about vertical to look back
@@ -1692,7 +1699,7 @@ function main() {
             // 12 — DISCHARGE: BLUE cold-water arrows cool the surface right down
             _title('12', 'Discharge · cold water returns');
             if (!touring) throw 0;
-            if (pActor) pActor.getProperty().setColor(0.25, 0.55, 0.98);   // arrows -> blue (cold)
+            if (pActor) { pActor.getProperty().setColor(0.25, 0.55, 0.98); pActor.setVisibility(true); pOn = true; startParticleAnim(); }   // blue cold-water flow resumes
             let lastD = -1;
             await _tween(5500, (e, u) => {
               const k = Math.min(9, Math.floor(u * 10));
@@ -1717,7 +1724,8 @@ function main() {
 
       // ---- hand over: restore the normal interactive view ----
       touring = false; tourPaused = false; _hideLabels(); _title('', '');
-      if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } }   // stop the tour's flow arrows
+      document.body.classList.remove('touring');           // restore the normal UI
+      if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } } pSpeedMul = 1;   // stop the tour's flow arrows, reset speed
       if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
       { const pb = document.getElementById('tourPause'); if (pb) pb.style.display = 'none'; }
       if (eAct) { renderer.removeActor(eAct); eAct = null; }
