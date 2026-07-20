@@ -1523,12 +1523,17 @@ function main() {
           if (MIR.sIn) { MIR.sIn.a.setVisibility(false); MIR.sOut.a.setVisibility(false); }
           // tilt to a high overhead of the WHOLE box (same distance as the walls view -> no big zoom), viewUp stays +Z
           const fovR = baseFov * Math.PI / 180;
-          const bdiag = Math.hypot(rb[1]-rb[0], rb[3]-rb[2], rb[5]-rb[4]);
           const od = [0.16, -0.22, 0.96], odl = Math.hypot(od[0], od[1], od[2]);
-          const overDist = (bdiag / 2) / Math.sin(fovR / 2) * 0.95;
-          const overCam = [bcen[0] + od[0]/odl*overDist, bcen[1] + od[1]/odl*overDist, bcen[2] + od[2]/odl*overDist];
+          const overDist = (MIR.Ltot || 48) * 1.2 / Math.tan(fovR / 2);        // zoom in toward the drift region
+          const overCam = [cen[0] + od[0]/odl*overDist, cen[1] + od[1]/odl*overDist, cen[2] + od[2]/odl*overDist];
+          const ax = MIR.axis || [0, 1, 0];
           const p1 = tCam.getPosition(), f1 = tCam.getFocalPoint();
-          await _tween(2400, (e) => _place(_L3(p1, overCam, e), _L3(f1, bcen, e), UP));   // smooth tilt overhead
+          await _tween(2400, (e) => { const u3 = _L3([0, 0, 1], ax, e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;
+            _place(_L3(p1, overCam, e), _L3(f1, cen, e), [u3[0]/un, u3[1]/un, u3[2]/un]); });   // tilt overhead, viewUp -> drift axis (drift stands vertical)
+          // sweep grows BOTTOM->TOP (up the drift axis) and SLOWS through the drift/rock band [symn,symx]
+          const sweepY = u => u < 0.22 ? _L(rb[2], symn, u / 0.22)
+                            : u < 0.78 ? _L(symn, symx, (u - 0.22) / 0.56)
+                            : _L(symx, rb[3], (u - 0.78) / 0.22);
           // POINTS (all tet nodes) SWEEP in across the domain along +Y (animated creation)
           const mpm = vtk.Rendering.Core.vtkMapper.newInstance(); mpm.setInputData(mesh); mpm.setScalarVisibility(false);
           const pSweep = vtk.Common.DataModel.vtkPlane.newInstance(); pSweep.setNormal(0, -1, 0); pSweep.setOrigin(0, rb[2], 0);
@@ -1536,7 +1541,7 @@ function main() {
           meshPts = vtk.Rendering.Core.vtkActor.newInstance(); meshPts.setMapper(mpm);
           { const pr = meshPts.getProperty(); pr.setRepresentation(0); pr.setPointSize(2.5); pr.setColor(0.74, 0.84, 0.98); pr.setLighting(false); pr.setOpacity(0.95); }
           renderer.addActor(meshPts); renderWindow.render();   // pre-render (clipped empty) -> compile the clip shader now
-          await _tween(2400, (e, u) => pSweep.setOrigin(0, _L(rb[2], rb[3], u), 0));   // nodes appear along the domain
+          await _tween(3000, (e, u) => pSweep.setOrigin(0, sweepY(u), 0));   // nodes appear bottom->top, slow at the drift
           // EDGES (connect the cells) SWEEP in
           if (!touring) throw 0;
           const mem = vtk.Rendering.Core.vtkMapper.newInstance(); mem.setInputData(mesh); mem.setScalarVisibility(false);
@@ -1545,7 +1550,7 @@ function main() {
           meshEdge = vtk.Rendering.Core.vtkActor.newInstance(); meshEdge.setMapper(mem);
           { const pr = meshEdge.getProperty(); pr.setRepresentation(1); pr.setLineWidth(1); pr.setColor(0.55, 0.70, 0.92); pr.setLighting(false); pr.setOpacity(0.45); }
           renderer.addActor(meshEdge); renderWindow.render();   // pre-render -> compile before the visible sweep
-          await _tween(2600, (e, u) => eSweep.setOrigin(0, _L(rb[2], rb[3], u), 0));   // edges connect along the domain
+          await _tween(3200, (e, u) => eSweep.setOrigin(0, sweepY(u), 0));   // edges connect bottom->top, slow at the drift
           await _tween(900, () => {});                        // hold on the full 3-D cell mesh
         }
       } catch (e) { console.warn('tour', e); }
