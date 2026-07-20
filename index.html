@@ -634,10 +634,10 @@ function main() {
     if (_walkLUT) return _walkLUT;
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
     lut.addRGBPoint(10, 0.56, 0.58, 0.62);               // cold = the surface's own neutral grey
-    lut.addRGBPoint(18, 0.72, 0.46, 0.42);
-    lut.addRGBPoint(30, 0.84, 0.30, 0.22);
-    lut.addRGBPoint(50, 0.92, 0.18, 0.12);
-    lut.addRGBPoint(80, 0.96, 0.10, 0.06);               // hot = red
+    lut.addRGBPoint(28, 0.66, 0.52, 0.50);               // ramp spread over the whole range -> gradual warming
+    lut.addRGBPoint(45, 0.76, 0.40, 0.32);
+    lut.addRGBPoint(62, 0.86, 0.26, 0.18);
+    lut.addRGBPoint(80, 0.96, 0.10, 0.06);               // hot = red (only at the top)
     _walkLUT = lut; return lut;
   }
   function heatBarGrad() {                                // colourbar mirrors the two-leg mapping
@@ -1664,17 +1664,26 @@ function main() {
               a = cam[i], b = cam[Math.min(cam.length-1, i+1)];
               return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; };
             const WALK_FRAC = 0.42;                            // walk only a few steps in (not to the end)
+            await _tween(1000, () => {});                      // wait a beat first: watch the arrows pour from the inlet
             let lastHc = -1;
-            await _tween(9500, (e, u) => {                     // slow walk (slower than the flow), walls heat smoothly
+            await _tween(18000, (e, u) => {                    // MUCH slower walk (slower than the flow), walls heat slowly
               const s = u * WALK_FRAC * (cam.length - 1 - AHEAD), pos = camP(s), foc = camP(s + AHEAD);
               tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(foc[0], foc[1], foc[2]); tCam.setViewUp(0, 0, 1);
               tCam.setViewAngle(50); tCam.setClippingRange(0.05, 2000);
               const hc = Math.min(9, Math.round(u * 9));       // hc00 -> hc09: heat builds up as we walk
               if (hc !== lastHc) { W2.mapper.setColorByArrayName('hc' + String(hc).padStart(2, '0')); lastHc = hc; }
             });
-            // 11 — HOLD and watch STORAGE cool the water (walls cool down from red)
+            // 11 — LOOK BACK down the tunnel, then watch STORAGE cool the water
             _title('11', 'Storage · the water cools');
             if (!touring) throw 0;
+            { const ep = tCam.getPosition(), ef = tCam.getFocalPoint();
+              const dd = [ef[0]-ep[0], ef[1]-ep[1], ef[2]-ep[2]];
+              await _tween(2400, (e) => {                      // turn 180° about vertical to look back
+                const th = Math.PI * e, ct = Math.cos(th), st = Math.sin(th);
+                const rx = dd[0]*ct - dd[1]*st, ry = dd[0]*st + dd[1]*ct;
+                tCam.setPosition(ep[0], ep[1], ep[2]); tCam.setFocalPoint(ep[0]+rx, ep[1]+ry, ep[2]+dd[2]); tCam.setViewUp(0, 0, 1);
+                tCam.setViewAngle(50); tCam.setClippingRange(0.05, 2000);
+              }); }
             let lastS = -1;
             await _tween(6000, (e, u) => {
               const k = Math.min(9, Math.floor(u * 10));
