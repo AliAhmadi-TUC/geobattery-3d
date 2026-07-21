@@ -667,6 +667,7 @@ function main() {
     { name:'air',      file:'air.vtp',      opacity:0.32, visible:true, solid:[0.42,0.62,0.82], spec:0.35, specPow:25 },
   ];
   const objs = {};
+  const OPQ = { water: 0.8, rock: 0.22, concrete: 0.95, air: 0.32 };   // default per-layer opacity (must be defined before the first setColorMode call — flow mode reads it)
 
   // crash backstop: if the GPU context is lost, shed the heaviest layer + warn
   const _canvas = document.querySelector('#view canvas');
@@ -1425,7 +1426,6 @@ function main() {
         it._tx.setAttribute('dominant-baseline', 'middle');
       });
     }
-    const OPQ = { water: 0.8, rock: 0.22, concrete: 0.95, air: 0.32 };
 
     // Construction only for now: mesh POINTS build, then the SURFACE is meshed
     // (triangulated surface reveals), in light colours. Next parts are guided later.
@@ -1954,7 +1954,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21y · axes · welcome+tutorial · flow/cut/heat polish', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21z · fix OPQ TDZ (phase load) · axes · welcome+tutorial', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
