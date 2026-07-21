@@ -183,6 +183,8 @@
   .seg-opt:hover{ color:var(--ink-70); background:rgba(233,233,237,.05); }
   .seg-opt.on{ color:var(--heat-300); background:var(--heat-900);
     box-shadow:inset 0 0 0 1px var(--heat-700), inset 0 0 14px rgba(240,120,30,.12); }
+  .seg-opt.is-off, .seg-opt:disabled{ opacity:.32; cursor:not-allowed; background:transparent; color:var(--mut-2); }
+  .seg-opt.is-off:hover{ background:transparent; color:var(--mut-2); }
 
   /* inlet / outlet chips */
   .legend-io{ gap:14px; }
@@ -300,6 +302,63 @@
     font:500 10px/1 var(--mono); letter-spacing:.1em; text-transform:uppercase; }
   #infoCard .poster{ margin-top:8px; font-size:10.5px; font-family:var(--mono); color:var(--mut-2); line-height:1.6; }
 
+  /* ── welcome modal (first visit) ── */
+  #wlScrim{ position:fixed; inset:0; z-index:40; background:rgba(8,9,15,.76);
+    -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    opacity:0; pointer-events:none; transition:opacity .4s ease; }
+  #wlScrim.open{ opacity:1; pointer-events:auto; }
+  #wlCard{ position:fixed; z-index:41; left:50%; top:50%; width:min(92vw,548px);
+    transform:translate(-50%,calc(-50% + 12px)); background:var(--surface);
+    border:1px solid var(--line); border-radius:var(--r-lg); box-shadow:var(--sh-lg);
+    padding:30px 30px 24px; opacity:0; pointer-events:none;
+    transition:opacity .42s ease, transform .42s cubic-bezier(.2,.9,.25,1); }
+  #wlScrim.open #wlCard{ opacity:1; pointer-events:auto; transform:translate(-50%,-50%); }
+  #wlCard .eyebrow{ display:block; color:var(--heat-400); }
+  #wlCard h1{ margin:9px 0 12px; font:500 33px/1.03 var(--display); letter-spacing:.02em; color:var(--ink); }
+  #wlCard h1 em{ font-style:normal; color:var(--heat); }
+  #wlCard .lead{ margin:0 0 20px; font-size:13.5px; line-height:1.66; color:var(--ink-70); text-wrap:pretty; }
+  #wlCard .lead b{ color:var(--ink); font-weight:600; }
+  .wl-actions{ display:flex; flex-direction:column; gap:10px; }
+  .wl-btn{ display:flex; align-items:center; gap:13px; width:100%; padding:13px 15px;
+    text-align:left; cursor:pointer; background:var(--raise); border:1px solid var(--line);
+    border-radius:var(--r-md); color:var(--ink); font-family:var(--ui); font-size:14px;
+    font-weight:600; transition:border-color .18s, background .18s, transform .12s; }
+  .wl-btn:hover{ border-color:var(--heat-700); background:#20222f; transform:translateY(-1px); }
+  .wl-btn .wl-ic{ flex:none; width:34px; height:34px; border-radius:50%; display:grid;
+    place-items:center; font-size:14px; background:var(--heat-900); color:var(--heat-300);
+    border:1px solid var(--heat-800); }
+  .wl-btn .wl-tx{ display:flex; flex-direction:column; min-width:0; }
+  .wl-btn em{ font-style:normal; font-weight:400; font-size:11.5px; color:var(--mut); margin-top:2px; }
+  .wl-btn.primary{ background:linear-gradient(180deg,#25190f,#1b1a26); border-color:var(--heat-700); }
+  .wl-btn.primary .wl-ic{ background:var(--heat); color:#1a0f06; border-color:var(--heat-400); }
+  .wl-btn.ghost{ justify-content:center; background:transparent; border-color:var(--line-soft);
+    color:var(--mut); font-weight:500; font-size:12.5px; padding:10px; margin-top:2px; }
+  .wl-btn.ghost:hover{ color:var(--ink-70); background:transparent; transform:none; border-color:var(--line); }
+
+  /* ── control-panel walkthrough (coach marks) ── */
+  #coach{ position:fixed; inset:0; z-index:42; pointer-events:none; opacity:0; transition:opacity .3s ease; }
+  #coach.on{ opacity:1; }
+  #coachHole{ position:absolute; left:0; top:0; width:0; height:0; border-radius:9px; pointer-events:none;
+    box-shadow:0 0 0 9999px rgba(8,9,15,.70), 0 0 0 2px var(--heat) inset;
+    transition:left .32s cubic-bezier(.3,.9,.3,1), top .32s cubic-bezier(.3,.9,.3,1), width .32s, height .32s; }
+  #coachCard{ position:absolute; left:50%; top:50%; width:min(86vw,292px); pointer-events:none;
+    background:var(--surface); border:1px solid var(--heat-700); border-radius:var(--r-md);
+    box-shadow:var(--sh-lg); padding:15px 16px 13px; transition:left .32s ease, top .32s ease; }
+  #coach.on #coachCard{ pointer-events:auto; }
+  #coachCard .cstep{ font:600 9px/1 var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--heat-400); }
+  #coachCard h3{ margin:8px 0 6px; font:600 15px/1.2 var(--ui); color:var(--ink); }
+  #coachCard p{ margin:0 0 13px; font-size:12.5px; line-height:1.56; color:var(--ink-70); text-wrap:pretty; }
+  .cnav{ display:flex; align-items:center; gap:7px; }
+  .cdots{ display:flex; gap:5px; margin-right:auto; }
+  .cdots i{ width:6px; height:6px; border-radius:50%; background:var(--n800); transition:background .2s; }
+  .cdots i.on{ background:var(--heat); }
+  .cbtn{ padding:6px 12px; border-radius:var(--r-sm); cursor:pointer; font:600 12px var(--ui);
+    border:1px solid var(--line); background:var(--raise); color:var(--ink); }
+  .cbtn:hover{ border-color:var(--heat-700); }
+  .cbtn.primary{ background:var(--heat); color:#1a0f06; border-color:var(--heat); }
+  .cbtn.ghost{ background:transparent; border:none; color:var(--mut); font-weight:500; padding:6px 4px; }
+  .cbtn.ghost:hover{ color:var(--ink-70); }
+
   /* narrow desktop: timeline takes its own deck row */
   @media (min-width:761px) and (max-width:1150px){
     #deck{ flex-wrap:wrap; max-width:min(560px, calc(100vw - 372px)); }
@@ -383,13 +442,12 @@
       </select></div>
     </div>
 
-    <div class="grp"><h2>Colour surfaces by</h2>
+    <div class="grp" id="colGrp"><h2>Colour surfaces by</h2>
       <div class="row">
         <select id="colMode" class="seg-src"><option value="material">material</option><option value="temperature" selected>temperature</option><option value="vm">stress (von Mises)</option><option value="flow">water velocity</option></select>
       </div>
       <div id="tempCtl">
-        <div class="row"><input type="checkbox" id="volOn" checked><label for="volOn">volumetric glow</label></div>
-        <div class="row"><label for="volInt">intensity</label><input type="range" id="volInt" min="0.2" max="3.5" step="0.05" value="2.2"></div>
+        <div class="row"><input type="checkbox" id="heatPlayOn"><label for="heatPlayOn">phase animation</label></div>
       </div>
       <div id="flowCtl" style="display:none">
         <div class="row"><input type="checkbox" id="flowOn" checked><label for="flowOn">static arrow field</label></div>
@@ -410,14 +468,15 @@
         <div class="row" id="flipRow"><input type="checkbox" id="clipFlip"><label for="clipFlip">flip side</label></div>
         <div class="row"><label>position</label><input type="range" id="cutPos" min="0" max="1" step="0.005" value="0.5"></div>
       </div>
-      <p class="note">the field plane shows the active field (heat · stress · material · flow) across the whole domain</p>
+      <p class="note">the field plane shows the active field (heat · stress) across the whole domain</p>
     </div>
 
-    <div class="grp fold"><h2>Representation</h2>
+    <div class="grp fold" id="reprGrp"><h2>Representation</h2>
       <div class="row"><label>style</label>
         <select id="repr" class="seg-src"><option value="2">surface</option><option value="1">wireframe</option><option value="0">points</option></select>
       </div>
       <div class="row"><input type="checkbox" id="edges"><label for="edges">mesh edges</label></div>
+      <div class="row"><input type="checkbox" id="axesOn" checked><label for="axesOn">orientation axes</label></div>
       <div id="wireGrp">
         <div class="row"><input type="checkbox" id="wireOn"><label for="wireOn">3D lattice</label></div>
         <div class="row"><label for="wireOp">lattice opacity</label><input type="range" id="wireOp" min="0.05" max="1" step="0.05" value="0.4"></div>
@@ -481,10 +540,46 @@
       heat storage in flooded mine workings”</div>
     <div class="links">
       <a href="https://github.com/AliAhmadi-TUC/geobattery-3d" target="_blank" rel="noopener">poster &amp; code ↗</a>
+      <a href="#" id="infoTut">controls walkthrough →</a>
       <a href="simple/">lite viewer →</a>
     </div>
   </div>
 </aside>
+
+<!-- first-visit welcome -->
+<div id="wlScrim">
+  <div id="wlCard" role="dialog" aria-modal="true" aria-labelledby="wlTitle">
+    <span class="eyebrow">Geobattery · interactive 3-D lab</span>
+    <h1 id="wlTitle">Heat stored in a <em>flooded mine</em></h1>
+    <p class="lead">This is a surveyed research drift in the Reiche Zeche mine, run as a seasonal
+      <b>geo-battery</b>: warm water is pushed into the surrounding rock to <b>charge</b> it, held
+      through the year, then drawn back out to <b>discharge</b> the heat. Explore its temperature,
+      rock stress and water flow across one annual cycle, in full 3-D.</p>
+    <div class="wl-actions">
+      <button id="wlTour" class="wl-btn primary"><span class="wl-ic">▶</span>
+        <span class="wl-tx">Take the guided tour<em>a narrated fly-through — best for a first look</em></span></button>
+      <button id="wlTut" class="wl-btn"><span class="wl-ic">◆</span>
+        <span class="wl-tx">Show me the controls<em>a quick walkthrough of the control panel</em></span></button>
+      <button id="wlSkip" class="wl-btn ghost">Skip — I'll explore on my own</button>
+    </div>
+  </div>
+</div>
+
+<!-- control-panel walkthrough -->
+<div id="coach" aria-hidden="true">
+  <div id="coachHole"></div>
+  <div id="coachCard" role="dialog" aria-live="polite">
+    <div class="cstep" id="cStep">Step 1</div>
+    <h3 id="cTitle"></h3>
+    <p id="cBody"></p>
+    <div class="cnav">
+      <span class="cdots" id="cDots"></span>
+      <button class="cbtn ghost" id="cEnd">End</button>
+      <button class="cbtn" id="cPrev">Back</button>
+      <button class="cbtn primary" id="cNext">Next</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const S = document.getElementById('status');
@@ -503,12 +598,13 @@ document.querySelectorAll('#panel .grp h2').forEach(h => {
 // temperature ramp: inferno with a LIGHTER purple low end (low temps read clearly) up to the hot yellow glow.
 const INFERNO = [[0.46,0.26,0.62],[0.58,0.26,0.55],[0.69,0.29,0.44],[0.79,0.28,0.34],
   [0.88,0.36,0.24],[0.953,0.471,0.098],[0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
-const TCLIM = [10, 80], TMID = 30;   // temperature range; the ramp's MIDPOINT colour lands at TMID (10..30 = lower half, 30..80 = upper half)
+const TCLIM = [10, 80], TMID = 25;   // temperature range; the ramp's MIDPOINT colour lands at TMID (10..25 = lower half, 25..80 = upper half)
 function tempFrac(T) { const f = T <= TMID ? 0.5*(T-TCLIM[0])/(TMID-TCLIM[0]) : 0.5 + 0.5*(T-TMID)/(TCLIM[1]-TMID); return Math.max(0, Math.min(1, f)); }
 function invTempFrac(f) { return f <= 0.5 ? TCLIM[0] + (TMID-TCLIM[0])*(f/0.5) : TMID + (TCLIM[1]-TMID)*((f-0.5)/0.5); }   // fraction -> temperature (two even legs about TMID)
 const SPEED_COLORS = [[0.23,0.30,0.75],[0.15,0.65,0.90],[0.20,0.80,0.35],[0.95,0.85,0.15],[0.90,0.25,0.15]];
-const STRESS_COLORS = [[0.267,0.005,0.329],[0.229,0.322,0.545],[0.128,0.567,0.551],
-                       [0.369,0.789,0.383],[0.993,0.906,0.144]];             // viridis
+const STRESS_COLORS = [[0.190,0.072,0.232],[0.245,0.407,0.859],[0.145,0.657,0.918],   // TURBO
+                       [0.208,0.867,0.612],[0.588,0.973,0.298],[0.918,0.827,0.196],
+                       [0.976,0.549,0.145],[0.835,0.243,0.055],[0.480,0.016,0.010]];
 const MAT_COLORS = { 1:[0.44,0.47,0.54], 2:[0.38,0.41,0.46], 3:[0.24,0.52,0.85], 4:[0.42,0.62,0.82] };
 const cssGrad = cols => 'linear-gradient(90deg,' + cols.map(c =>
   `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`).join(',') + ')';
@@ -545,6 +641,23 @@ function main() {
   const renderWindow = view.getRenderWindow();
   const clipPlane = vtk.Common.DataModel.vtkPlane.newInstance();
   const surfLUT = tempCTF();
+
+  // ---- orientation axes (bottom-left) — X/Y/Z direction indicator, toggled from the panel ----
+  let axesWidget = null;
+  try {
+    const axesActor = vtk.Rendering.Core.vtkAxesActor.newInstance();
+    axesWidget = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
+      actor: axesActor, interactor: view.getInteractor() });
+    const _corners = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners || {};
+    axesWidget.setViewportCorner(_corners.BOTTOM_LEFT != null ? _corners.BOTTOM_LEFT : 0);   // 0 = bottom-left (also the default)
+    axesWidget.setViewportSize(0.13);
+    axesWidget.setMinPixelSize(72);
+    axesWidget.setMaxPixelSize(148);
+    axesWidget.setEnabled(true);
+  } catch (e) {
+    axesWidget = null; console.warn('orientation axes unavailable', e);
+    const _ax = document.getElementById('axesOn'); if (_ax && _ax.closest('.row')) _ax.closest('.row').style.display = 'none';   // hide the dead toggle
+  }
 
   // ---- surface layers (Phong + specular per material) ----
   const LAYERS = [
@@ -612,23 +725,14 @@ function main() {
   }
 
   // ---- volumetric temperature (ImageData) — transient time series ----
-  let volume = null, otf = null, volImage = null, volMapper = null;
+  let volume = null, volMapper = null;   // legacy glow handles — kept null so the `if (volume)` guards stay no-ops
   let imgSlice = null, imgMapper = null;                 // cross-section plane (hoisted for frame swap)
   let domainVti = null, sliceLoading = false;            // multi-field domain volume for the plane
   let frames = [], frameIdx = 0, playing = false, playTimer = null;
-  let yearFrames = null, heatFrames = null, heatMode = false;   // annual cycle vs charge-heating step series
+  let yearFrames = null, heatFrames = null, heatMode = false, heatDefault = 0;   // annual cycle vs charge-heating step series; heatDefault = end-of-charge frame
   let colMode = 'material';                              // tracks the "colour surfaces by" toggle
   const fn = i => 'T' + String(i).padStart(2, '0');      // water-surface per-frame array name
   const frameCache = {};
-  function buildOTF(scale) {
-    // opacity follows warmth only: the plume + its halo glow, ambient stays clear
-    const f = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
-    f.addPoint(-100, 0.0); f.addPoint(9.5, 0.0);
-    f.addPoint(14, 0.012*scale); f.addPoint(22, 0.035*scale);
-    f.addPoint(34, 0.07*scale);  f.addPoint(48, 0.14*scale);
-    f.addPoint(64, 0.30*scale);  f.addPoint(80, 0.55*scale);
-    return f;
-  }
   const HEAT_SURFS = ['water', 'air', 'concrete'];        // drift surfaces recoloured through the phases
   const HEAT_CLIM = [10, 80], HEAT_TSPLIT = 20, HEAT_SPLIT = 0.66;   // magma high part reached by 20 C, then keeps gradating to 80
   let _heatLUT = null;
@@ -726,7 +830,6 @@ function main() {
       return Promise.resolve();
     }
     return loadFrameImage(frameIdx).then(img => {
-      volImage = img;
       if (volMapper) volMapper.setInputData(img);
       if (!heatMode && imgSlice && domainVti && colMode === 'temperature') {   // advance the plane's temperature frame
         domainVti.getPointData().setActiveScalars(fn(frameIdx)); imgMapper.modified(); domainVti.modified();
@@ -747,41 +850,18 @@ function main() {
   function switchFrames(list) {                          // swap the timeline's frame source (year cycle <-> heating)
     if (!list) return Promise.resolve();
     heatMode = (list === heatFrames);
-    frames = list; frameIdx = 0;
+    frames = list; frameIdx = heatMode ? Math.min(heatDefault, frames.length - 1) : 0;   // heat opens at end-of-charge
     Object.keys(frameCache).forEach(k => delete frameCache[k]);
-    const sl = document.getElementById('timeSlider'); if (sl) { sl.max = frames.length - 1; sl.value = 0; }
+    const sl = document.getElementById('timeSlider'); if (sl) { sl.max = frames.length - 1; sl.value = frameIdx; }
     if (window.uiTicks) uiTicks(frames);
-    if (!heatMode) frames.forEach((_, i) => { if (i) loadFrameImage(i); });   // preload volume files (year cycle only)
-    return showFrame(0);
+    return showFrame(frameIdx);
   }
-  function loadVolume() {
-    return fetch(DATA + 'frames.json').then(r => r.json()).then(list => {
-      frames = list; yearFrames = list; frameIdx = 0;
-      return loadFrameImage(0);
-    }).then(img => {
-      volImage = img;
-      volMapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
-      volMapper.setInputData(img);
-      volMapper.setSampleDistance(0.4);
-      volume = vtk.Rendering.Core.vtkVolume.newInstance();
-      volume.setMapper(volMapper);
-      otf = buildOTF(+document.getElementById('volInt').value || 1.0);   // start at the slider's default
-      const p = volume.getProperty();
-      p.setRGBTransferFunction(0, tempCTF());
-      p.setScalarOpacity(0, otf);
-      p.setInterpolationTypeToLinear();
-      p.setScalarOpacityUnitDistance(0, 1.2);
-      p.setShade(false);
-      renderer.addVolume(volume);
-    }).catch(e => { console.warn('volume/frames unavailable', e); });
-  }
-
   setStatus('loading survey meshes…');
   // Single-file portability: if data/ is not served next to index.html (e.g. the file
   // is opened on its own), fall back to the published dataset. Paths stay data/<scene>/….
   fetch(DATA + 'frames.json', { cache: 'force-cache' }).then(r => { if (!r.ok) throw 0; })
     .catch(() => { DATA = 'https://aliahmadi-tuc.github.io/geobattery-3d/data/' + SCENE + '/'; })
-    .then(() => Promise.all([...LAYERS.map(loadLayer), loadVolume(), loadDriftWall()])).then(() => {
+    .then(() => Promise.all([...LAYERS.map(loadLayer), loadDriftWall()])).then(() => {   // volumetric glow removed
     renderer.resetCamera(); renderWindow.render();
     window.uiView = { renderer, renderWindow };          // handle for the UI layer (idle orbit)
     setStatus('ready');
@@ -810,20 +890,14 @@ function main() {
       const o = document.querySelector('#colMode option[value="vm"]'); if (o) o.remove();
     });
 
-    document.getElementById('volOn').onchange = () => {
-      if (volume) volume.setVisibility(colMode === 'temperature' && document.getElementById('volOn').checked);
-      renderWindow.render();
-    };
-    document.getElementById('volInt').oninput = e => {
-      if (!volume) return;
-      otf = buildOTF(+e.target.value);
-      volume.getProperty().setScalarOpacity(0, otf); renderWindow.render();
-    };
+    // volumetric glow removed — no volOn/volInt controls
 
     document.getElementById('repr').onchange = e => {
       const v=+e.target.value; Object.values(objs).forEach(o=>o.actor.getProperty().setRepresentation(v)); renderWindow.render(); };
     document.getElementById('edges').onchange = e => {
       Object.values(objs).forEach(o=>o.actor.getProperty().setEdgeVisibility(e.target.checked)); renderWindow.render(); };
+    document.getElementById('axesOn').onchange = e => {
+      if (axesWidget) { axesWidget.setEnabled(e.target.checked); renderWindow.render(); } };
 
     // ---- cross-section plane: reads the multi-field domain volume, coloured by
     //      the active mode (heat / stress / material / flow), through the rock ----
@@ -909,7 +983,7 @@ function main() {
     // field plane on -> hide the surrounding surfaces for a clean cross-section; restore on off
     let savedSurfVis = null;
     document.getElementById('sliceOn').addEventListener('change', e => {
-      const boxes = ['vis_water','vis_rock','vis_concrete','vis_air','volOn'];   // surfaces + volumetric glow
+      const boxes = ['vis_water','vis_rock','vis_concrete','vis_air'];   // surfaces to hide for a clean field plane
       if (e.target.checked) {
         savedSurfVis = {};
         boxes.forEach(id => { const cb = document.getElementById(id);
@@ -937,6 +1011,13 @@ function main() {
       if (w && wireGrpEl && wireGrpEl.style.display !== 'none' && w.checked !== want) {
         w.checked = want; w.dispatchEvent(new Event('change'));
       }
+      // clip/slice paint a scalar field on the cut — material & flow don't apply there, so grey them out
+      const cutActive = clip || slice, cm = document.getElementById('colMode');
+      ['material', 'flow'].forEach(v => {
+        const o = cm.querySelector('option[value="' + v + '"]'); if (o) o.disabled = cutActive;   // segify's rebuild/sync mirrors this onto the buttons
+        document.querySelectorAll('.seg-opt[data-val="' + v + '"]').forEach(b => { b.disabled = cutActive; b.classList.toggle('is-off', cutActive); });
+      });
+      if (cutActive && (colMode === 'material' || colMode === 'flow')) { cm.value = 'temperature'; setColorMode('temperature'); }
     }
     document.getElementById('clipOn').addEventListener('change', e => {
       if (e.target.checked) { const s = document.getElementById('sliceOn'); if (s.checked) { s.checked = false; s.dispatchEvent(new Event('change')); } }
@@ -954,7 +1035,6 @@ function main() {
     function setFieldVis() {
       document.getElementById('tempCtl').style.display = colMode === 'temperature' ? '' : 'none';
       document.getElementById('flowCtl').style.display = colMode === 'flow' ? '' : 'none';
-      if (volume) volume.setVisibility(colMode === 'temperature' && document.getElementById('volOn').checked);
       syncFlowVis();
     }
     function colorWire(mode) {                           // field-colour the internal lattice
@@ -999,6 +1079,15 @@ function main() {
         }
       });
       colorWire(mode);
+      // flow mode: dim the surfaces so the arrows read, hide + uncheck rock, reveal the inlet/outlet markers
+      if (mode === 'flow') {
+        ['water','concrete','air'].forEach(nm => { if (objs[nm]) objs[nm].actor.getProperty().setOpacity(0.1); });
+        const rcb = document.getElementById('vis_rock'); if (rcb && rcb.checked) { rcb.checked = false; if (objs.rock) objs.rock.actor.setVisibility(false); }
+        wellActors.forEach(a => a.setVisibility(true));
+      } else {
+        ['water','concrete','air'].forEach(nm => { if (objs[nm]) objs[nm].actor.getProperty().setOpacity(OPQ[nm] ?? 0.3); });
+        wellActors.forEach(a => a.setVisibility(false));
+      }
       if (imgSlice) setSliceField(mode);
       setFieldVis();
       updateColorbar();
@@ -1006,21 +1095,15 @@ function main() {
       if (heatMode && mode === 'temperature' && frames[frameIdx] && frames[frameIdx].arr) applyHeatSurfaces(frames[frameIdx].arr);
       else HEAT_SURFS.forEach(nm => { const cb = document.getElementById('vis_' + nm), o = objs[nm];
         if (o && cb) o.actor.setVisibility(cb.checked); });   // restore layer visibility outside temperature
-      const _tg = document.getElementById('timeGrp');
-      if (_tg && frames.length > 1) _tg.style.display = (mode === 'temperature') ? '' : 'none';
+      const _tg = document.getElementById('timeGrp'), _hp = document.getElementById('heatPlayOn');
+      if (_tg) _tg.style.display = (mode === 'temperature' && _hp && _hp.checked) ? '' : 'none';   // timeline only when temperature AND phase-animation is on
       renderWindow.render();
     }
-    document.getElementById('colMode').onchange = e => setColorMode(e.target.value);
+    document.getElementById('colMode').onchange = e => { const m = e.target.value; setColorMode(m); if (m === 'temperature' && heatMode) showFrame(heatDefault); };   // heat opens at end-of-charge
 
     // ---- transient: play / scrub the temperature time series ----
     const timeGrp = document.getElementById('timeGrp');
-    if (frames.length > 1) {
-      const slider = document.getElementById('timeSlider');
-      const playBtn = document.getElementById('timePlay');
-      document.getElementById('timeLabel').textContent = frames[0].label;
-      slider.max = frames.length - 1; slider.value = 0;
-      if (window.uiTicks) uiTicks(frames);               // phase graduations (UI layer)
-      frames.forEach((_, i) => { if (i) loadFrameImage(i); });   // background-preload for smooth playback
+    { const slider = document.getElementById('timeSlider'), playBtn = document.getElementById('timePlay');
       const stopPlay = () => { playing = false; if (playTimer) clearTimeout(playTimer); playTimer = null; playBtn.textContent = '▶ play'; playBtn.classList.remove('playing'); };
       const step = () => {
         if (frameIdx >= frames.length - 1) { stopPlay(); return; }   // play once through, then stop at the end
@@ -1028,22 +1111,27 @@ function main() {
       };
       playBtn.onclick = () => {
         if (playing) { stopPlay(); return; }
+        if (frames.length < 2) return;
         playing = true; playBtn.textContent = '⏸ pause'; playBtn.classList.add('playing');
         (frameIdx >= frames.length - 1 ? showFrame(0) : Promise.resolve()).then(step);   // restart from 0 if parked at the end
       };
       slider.oninput = e => { stopPlay(); showFrame(+e.target.value); };
-    } else if (timeGrp) {
-      timeGrp.style.display = 'none';
     }
+    if (timeGrp) timeGrp.style.display = 'none';           // hidden until "phase animation" is toggled on in the panel
+    { const hp = document.getElementById('heatPlayOn');    // panel toggle for the transient timeline widget
+      if (hp) hp.onchange = () => { if (timeGrp) timeGrp.style.display = (hp.checked && colMode === 'temperature') ? '' : 'none'; renderWindow.render(); }; }
 
     // ---- timeline = the seasonal phase steps (default; the old annual 4-step is retired) ----
     setStatus('loading phase steps…');
     fetch(DATA + 'heat.json').then(r => r.json()).then(data => {
       heatFrames = [];
-      (data.phases || []).forEach(ph => (ph.frames || []).forEach(f =>
-        heatFrames.push({ arr: f.arr, label: f.label })));
+      (data.phases || []).forEach((ph, pi) => (ph.frames || []).forEach((f, fi) => {
+        if (pi > 0 && fi === 0) return;                    // drop each phase's OPENING frame — it duplicates the previous phase's closing value
+        heatFrames.push({ arr: f.arr, label: f.label });
+        if (pi === 0) heatDefault = heatFrames.length - 1; // default time = END of the heating (charge) phase
+      }));
       document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
-      switchFrames(heatFrames);                            // phases become the timeline, in temperature mode
+      switchFrames(heatFrames);                            // phases become the timeline; opens at end-of-charge
       setStatus('ready');
     }).catch(err => setStatus('phase load failed: ' + err, true));
 
@@ -1215,8 +1303,8 @@ function main() {
         addWell(meta.outlet, [0.96, 0.35, 0.15], (meta.outlet_r || 0.3) * 1.05);   // red = outlet
       }
       renderWindow.render();
-      document.getElementById('flowOn').onchange = () => { syncFlowVis(); renderWindow.render(); };
-      document.getElementById('flowMove').onchange = () => { syncFlowVis(); renderWindow.render(); };
+      document.getElementById('flowOn').onchange = e => { if (e.target.checked) { const m = document.getElementById('flowMove'); if (m.checked) m.checked = false; } syncFlowVis(); renderWindow.render(); };
+      document.getElementById('flowMove').onchange = e => { if (e.target.checked) { const s = document.getElementById('flowOn'); if (s.checked) s.checked = false; } syncFlowVis(); renderWindow.render(); };
       syncFlowVis(); updateColorbar();
     }).catch(() => {
       const o = document.querySelector('#colMode option[value="flow"]'); if (o) o.remove();
@@ -1852,7 +1940,6 @@ function main() {
           pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
         document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
       }
-      if (volume) volume.setVisibility(document.getElementById('volOn').checked);
       if (tourGoto < 0 && tourStep < 13) { tCam.setViewAngle(baseFov); renderer.resetCamera(); }   // aborted early (✕ end / short walk): reframe to a usable overview
       renderer.resetCameraClippingRange(); renderWindow.render();   // a clean step-13 finish keeps the tour's final overview pose; only the clip range is refreshed
       if (tourGoto >= 0) { const g = tourGoto; tourGoto = -1; tourTargetStep = g; setTimeout(runTour, 60); }   // back-jump: replay + fast-forward
@@ -1867,7 +1954,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21x · lighter purple low end', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21y · axes · welcome+tutorial · flow/cut/heat polish', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -1886,9 +1973,11 @@ main();
     const seg = document.createElement('div');
     seg.className = 'seg'; seg.setAttribute('role', 'group');
     sel.after(seg);
+    const optFor = v => { for (const o of sel.options) if (o.value === v) return o; return null; };
     const sync = () => { for (const b of seg.children) {
-      const on = b.dataset.val === sel.value;
+      const on = b.dataset.val === sel.value, o = optFor(b.dataset.val), off = !!(o && o.disabled);
       b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+      b.disabled = off; b.classList.toggle('is-off', off);        // mirror a disabled <option> onto the button (e.g. material/flow during clip/slice)
     } };
     const rebuild = () => {
       seg.innerHTML = '';
@@ -1897,6 +1986,7 @@ main();
         b.type = 'button'; b.className = 'seg-opt'; b.dataset.val = o.value;
         b.textContent = (labels && labels[o.value]) || o.textContent;
         b.onclick = () => {
+          if (b.disabled) return;
           if (sel.value !== o.value) { sel.value = o.value; sel.dispatchEvent(new Event('change')); }
           sync();
         };
@@ -1981,11 +2071,12 @@ main();
   ['pointerdown', 'wheel', 'touchstart'].forEach(ev => viewEl.addEventListener(ev, stopOrbit, { passive: true }));
   $('reset').addEventListener('click', () => { stopOrbit(); heroCam(); });
 
-  // entering velocity mode: drop the opaque water shell so the arrows read
+  // entering velocity mode: keep a faint water shell visible so the arrows read inside it
+  // (setColorMode dims water/concrete/air to low opacity and hides rock)
   $('colMode').addEventListener('change', e => {
     if (e.target.value !== 'flow') return;
     const w = $('vis_water');
-    if (w && w.checked) { w.checked = false; w.dispatchEvent(new Event('change')); }
+    if (w && !w.checked) { w.checked = true; w.dispatchEvent(new Event('change')); }
   });
 
   // info overlay
@@ -2005,6 +2096,74 @@ main();
   const syncAria = () => panelBtn.setAttribute('aria-expanded', String(!panelEl.classList.contains('closed')));
   panelBtn.addEventListener('click', syncAria);
   syncAria();
+
+  // ---- welcome (first visit) + control-panel walkthrough ----
+  const SEEN = 'gb_welcomed_v1';
+  const wlScrim = $('wlScrim');
+  const showWelcome = open => wlScrim.classList.toggle('open', open);
+  const markSeen = () => { try { localStorage.setItem(SEEN, '1'); } catch (e) {} };
+  $('wlTour').onclick = () => { showWelcome(false); markSeen(); const t = $('tourBtn'); if (t) t.click(); };
+  $('wlTut').onclick  = () => { showWelcome(false); markSeen(); startCoach(); };
+  $('wlSkip').onclick = () => { showWelcome(false); markSeen(); };
+  { const it = $('infoTut'); if (it) it.onclick = ev => { ev.preventDefault(); setInfo(false); startCoach(); }; }
+
+  const COACH = [
+    { sel: '#colGrp',  title: 'Colour the model',
+      body: 'Choose what the surfaces show — material, temperature, rock stress or water velocity. In temperature mode, tick “phase animation” to play the heating → storage → cooling → recovery cycle on the timeline.' },
+    { sel: '#layers',  title: 'Show or hide layers',
+      body: 'Toggle the rock, concrete, water and air surfaces to look inside the flooded drift.' },
+    { sel: '#cutGrp',  title: 'Cut it open',
+      body: '“Clip” slices the model with a movable plane. “Field plane” drops a cross-section that paints the active field right through the surrounding rock.' },
+    { sel: '#reprGrp', title: 'Look & orientation',
+      body: 'Switch surface / wireframe / points, show mesh edges or the 3-D lattice, and toggle the X·Y·Z axes shown at the bottom-left corner.' },
+    { sel: '#reset',   title: 'Reset & the guided tour',
+      body: 'This button reframes the view at any time. For the narrated fly-through, hit ▶ guided tour under the title. That’s it — enjoy exploring!' },
+  ];
+  const coach = $('coach'), hole = $('coachHole'), ccard = $('coachCard');
+  let cIdx = 0;
+  const placeCoach = el => {
+    const r = el.getBoundingClientRect(), pad = 8, W = innerWidth, H = innerHeight;
+    hole.style.left = (r.left - pad) + 'px'; hole.style.top = (r.top - pad) + 'px';
+    hole.style.width = (r.width + pad * 2) + 'px'; hole.style.height = (r.height + pad * 2) + 'px';
+    const cw = ccard.offsetWidth || 292, ch = ccard.offsetHeight || 150, gap = 14;
+    let left, top;
+    if (r.right + gap + cw <= W - 8) { left = r.right + gap; top = r.top; }          // to the right (panel sits on the left)
+    else if (r.top - gap - ch >= 8) { left = r.left; top = r.top - gap - ch; }        // above
+    else { left = r.left; top = r.bottom + gap; }                                     // below
+    ccard.style.left = Math.max(8, Math.min(left, W - cw - 8)) + 'px';
+    ccard.style.top  = Math.max(8, Math.min(top,  H - ch - 8)) + 'px';
+  };
+  const renderCoach = () => {
+    const step = COACH[cIdx], el = document.querySelector(step.sel);
+    if (!el) { if (++cIdx < COACH.length) return renderCoach(); return endCoach(); }
+    el.scrollIntoView({ block: 'nearest' });
+    $('cStep').textContent = 'Step ' + (cIdx + 1) + ' of ' + COACH.length;
+    $('cTitle').textContent = step.title; $('cBody').textContent = step.body;
+    $('cDots').innerHTML = COACH.map((_, i) => '<i class="' + (i === cIdx ? 'on' : '') + '"></i>').join('');
+    $('cPrev').style.visibility = cIdx ? 'visible' : 'hidden';
+    $('cNext').textContent = cIdx === COACH.length - 1 ? 'Done' : 'Next';
+    requestAnimationFrame(() => setTimeout(() => placeCoach(el), 30));
+  };
+  function startCoach() {
+    $('panel').classList.remove('closed'); syncAria();       // the walkthrough needs the panel open
+    cIdx = 0; coach.classList.add('on'); setTimeout(renderCoach, 240);
+  }
+  function endCoach() { coach.classList.remove('on'); }
+  $('cNext').onclick = () => { if (cIdx >= COACH.length - 1) return endCoach(); cIdx++; renderCoach(); };
+  $('cPrev').onclick = () => { if (cIdx > 0) { cIdx--; renderCoach(); } };
+  $('cEnd').onclick = endCoach;
+  addEventListener('resize', () => { if (coach.classList.contains('on')) { const el = document.querySelector(COACH[cIdx].sel); if (el) placeCoach(el); } });
+  addEventListener('keydown', e => { if (e.key === 'Escape') { showWelcome(false); endCoach(); } });
+
+  // reveal the welcome once the scene is live (so “take the tour” is wired) — first visit only
+  let wlTries = 0;
+  const wlGate = setInterval(() => {
+    const tb = $('tourBtn');
+    if ((tb && tb.style.display !== 'none') || ++wlTries > 50) {
+      clearInterval(wlGate);
+      try { if (!localStorage.getItem(SEEN)) showWelcome(true); } catch (e) {}
+    }
+  }, 150);
 })();
 </script>
 </body>
