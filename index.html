@@ -1698,7 +1698,7 @@ function main() {
             const p = _L3(p0, inEye, e), f = _L3(f0, inFoc, e);
             const u3 = _L3(up0, [0, 0, 1], e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;   // interpolate viewUp -> no snap
             tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
-            tCam.setViewAngle(_L(baseFov, 55, e)); tCam.setClippingRange(0.03, 2000);
+            tCam.setViewAngle(_L(baseFov, 62, e)); tCam.setClippingRange(0.03, 2000);
           });
           await sweepP;                                        // make sure the lattice/wall teardown finished (also covers the seek path)
           await _tween(900, () => {});                         // hold behind the inlet, arrows about to pour
@@ -1714,7 +1714,7 @@ function main() {
               endS = u * WALK_FRAC * span;
               const pos = walkP(endS), foc = walkP(endS + AHEAD);
               tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(foc[0], foc[1], foc[2]); tCam.setViewUp(0, 0, 1);
-              tCam.setViewAngle(55); tCam.setClippingRange(0.03, 2000);
+              tCam.setViewAngle(62); tCam.setClippingRange(0.03, 2000);
               const hc = Math.min(9, Math.round(u * 9));
               if (hc !== lastHc) { W2.mapper.setColorByArrayName('hc' + String(hc).padStart(2, '0')); lastHc = hc; }
             });
@@ -1729,7 +1729,7 @@ function main() {
               await _tween(2400, (e) => {                      // rotate the look-angle back along the tube's curve
                 const a = aF + dA*e, hz = _L(zF, zB, e);
                 tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(pos[0]+Math.cos(a)*6, pos[1]+Math.sin(a)*6, pos[2]+hz); tCam.setViewUp(0, 0, 1);
-                tCam.setViewAngle(55); tCam.setClippingRange(0.03, 2000);
+                tCam.setViewAngle(62); tCam.setClippingRange(0.03, 2000);
               }); }
             if (W2) W2.mapper.setLookupTable(walkLUTcool());   // storage/discharge: as the water cools it now reads BLUE (not back to grey)
             let lastS = -1;
@@ -1798,7 +1798,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21e · open Rock_Water tube (tag-based, no cap, no clip)', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21f · tunnel = Rock_Water+Concrete_Rock, wider fov', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
