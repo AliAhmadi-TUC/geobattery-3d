@@ -636,14 +636,14 @@ function main() {
     _heatLUT = lut; return lut;
   }
   let _walkLUT = null;
-  function walkLUT() {                                    // walk-through: neutral wall grey (cold) -> red (hot), no magenta
+  function walkLUT() {                                    // walk-through: diverging COLD BLUE -> neutral -> HOT RED
     if (_walkLUT) return _walkLUT;
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-    lut.addRGBPoint(10, 0.52, 0.51, 0.49);               // cold = the wall's own neutral grey (R>=G>=B, never blue)
-    lut.addRGBPoint(22, 0.62, 0.53, 0.47);               // barely-warm neutral grey
-    lut.addRGBPoint(40, 0.76, 0.45, 0.32);               // warming
-    lut.addRGBPoint(60, 0.88, 0.28, 0.16);
-    lut.addRGBPoint(80, 0.96, 0.10, 0.06);               // hot = red (only at the top)
+    lut.addRGBPoint(10, 0.16, 0.42, 0.82);               // cold = blue (discharge end / far-field)
+    lut.addRGBPoint(25, 0.48, 0.68, 0.90);               // cool light blue
+    lut.addRGBPoint(40, 0.90, 0.90, 0.88);               // neutral pale (mid)
+    lut.addRGBPoint(58, 0.93, 0.48, 0.24);               // warming orange
+    lut.addRGBPoint(80, 0.95, 0.11, 0.07);               // hot = red (near the inlet during charge)
     _walkLUT = lut; return lut;
   }
   function heatBarGrad() {                                // colourbar mirrors the two-leg mapping
@@ -1617,7 +1617,7 @@ function main() {
           // 9 — REMOVE THE CELLS *while* DIVING to just behind the real inlet (both motions overlap)
           _title('9', 'Diving inside the drift');
           if (!touring) throw 0;
-          mirActs.forEach(a => { if (a.getProperty().getColor()[0] < 0.5) a.setVisibility(false); });   // hide the dark CONCRETE caps (they block the dive); keep the lighter AIR ends for context
+          mirActs.forEach(a => a.setVisibility(false));        // hide BOTH end-caps (concrete AND air) — either one blocks the dive; the walk is inside the water tube
           if (MIR.sIn) MIR.sIn.a.setVisibility(false);         // drop the oversized inlet ball — the real void is baked into the W2 surface
           if (MIR.sOut) MIR.sOut.a.setVisibility(false);       // drop the stray outlet ball sitting behind the far cap
           const sweepP = _tween(1500, (e, u) => { const y = _L(rb[3], rb[2], u);   // lattice + walls sweep out WHILE the camera dives
@@ -1652,12 +1652,16 @@ function main() {
             const zs = cam.map(p => p[2]);                     // smooth z (no bobbing)
             const zsm = zs.map((_, i) => { let s = 0, n = 0; for (let k = -4; k <= 4; k++) { const j = i + k; if (j >= 0 && j < zs.length) { s += zs[j]; n++; } } return s / n; });
             cam.forEach((p, i) => { p[2] = zsm[i]; });
+            const dInl = q => Math.hypot(q[0]-inl[0], q[1]-inl[1], q[2]-inl[2]);
+            if (cam.length > 1 && dInl(cam[0]) > dInl(cam[cam.length-1])) cam.reverse();   // orient the centreline INLET-first, whatever the PCA axis sign
             camP = t => { const s = Math.max(0, Math.min(cam.length-1, t)), i = Math.floor(s), f = s - i,
               a = cam[i], b = cam[Math.min(cam.length-1, i+1)];
               return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; };
           }
           const AHEAD = 3, BEHIND = 2.6;                        // stand a bit BEHIND the real inlet, looking in
-          const inEye = [inl[0] - ax2[0]*BEHIND, inl[1] - ax2[1]*BEHIND, inl[2] - ax2[2]*BEHIND + 0.4];
+          const c0 = cam[0] || [inl[0], inl[1], inl[2] + 0.35];   // centreline point nearest the inlet
+          const dInto = (cam.length > 3) ? (() => { const b = cam[3], d = [b[0]-c0[0], b[1]-c0[1], b[2]-c0[2]], L = Math.hypot(d[0], d[1], d[2]) || 1; return [d[0]/L, d[1]/L, d[2]/L]; })() : ax2;   // unit direction INTO the drift (sign-robust)
+          const inEye = [inl[0] - dInto[0]*BEHIND, inl[1] - dInto[1]*BEHIND, c0[2] + 0.1];   // a bit behind the real inlet, at tube-centre height
           const walkPath = [inEye].concat(cam);                // the walk starts behind the inlet, then follows the centreline
           const walkP = s => { const t = Math.max(0, Math.min(walkPath.length-1, s)), i = Math.floor(t), f = t - i,
             a = walkPath[i], b = walkPath[Math.min(walkPath.length-1, i+1)];
@@ -1767,6 +1771,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
+console.log('%c● GEOBATTERY build 2026-07-21b · blue-cooling walk · end-caps hidden · behind-inlet dive', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
