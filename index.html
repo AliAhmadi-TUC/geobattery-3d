@@ -401,7 +401,7 @@
     <div class="grp" id="layers"><h2>Surfaces</h2></div>
 
     <div class="grp fold" id="cutGrp"><h2>Clip &amp; slice</h2>
-      <div class="row"><input type="checkbox" id="clipOn"><label for="clipOn">clip</label>
+      <div class="row"><span id="clipCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="clipOn"><label for="clipOn">clip</label></span>
         <span id="sliceCtl" style="margin-left:18px;display:flex;align-items:center;gap:10px"><input type="checkbox" id="sliceOn"><label for="sliceOn">field plane</label></span></div>
       <div id="cutSub" style="display:none">
         <div class="row"><label>axis</label>
@@ -639,10 +639,11 @@ function main() {
     if (t <= HEAT_TSPLIT) return HEAT_SPLIT * (t - HEAT_CLIM[0]) / (HEAT_TSPLIT - HEAT_CLIM[0]);
     return HEAT_SPLIT + (1 - HEAT_SPLIT) * (t - HEAT_TSPLIT) / (HEAT_CLIM[1] - HEAT_TSPLIT);
   }
+  const MAGMA = INFERNO.slice(1);                          // magma without the near-black bottom stop -> the minimum reads PURPLE, never darker than the void
   function heatLUT() {                                    // continuous: [10,15] -> low..high magma, [15,80] -> high..top
     if (_heatLUT) return _heatLUT;
-    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
-    for (let i = 0; i < M; i++) { const f = i / (M - 1), c = INFERNO[i];
+    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = MAGMA.length;
+    for (let i = 0; i < M; i++) { const f = i / (M - 1), c = MAGMA[i];
       const T = f <= HEAT_SPLIT
         ? HEAT_CLIM[0] + (HEAT_TSPLIT - HEAT_CLIM[0]) * (f / HEAT_SPLIT)
         : HEAT_TSPLIT + (HEAT_CLIM[1] - HEAT_TSPLIT) * ((f - HEAT_SPLIT) / (1 - HEAT_SPLIT));
@@ -683,9 +684,11 @@ function main() {
       lut.addRGBPoint(x, w[0]+(c[0]-w[0])*t, w[1]+(c[1]-w[1])*t, w[2]+(c[2]-w[2])*t); }
     return lut;
   }
-  function heatBarGrad() {                                // colourbar mirrors the two-leg mapping
+  function magmaAt(f) { const n = INFERNO.length;         // sample the purple-start magma (MAGMA = INFERNO minus the black bottom)
+    return infernoAt((1 + Math.max(0, Math.min(1, f)) * (n - 2)) / (n - 1)); }
+  function heatBarGrad() {                                // colourbar mirrors the two-leg mapping — starts on PURPLE, not black
     const stops = [];
-    for (let k = 0; k <= 12; k++) stops.push(infernoAt(heatFrac(HEAT_CLIM[0] + k / 12 * (HEAT_CLIM[1] - HEAT_CLIM[0]))));
+    for (let k = 0; k <= 12; k++) stops.push(magmaAt(heatFrac(HEAT_CLIM[0] + k / 12 * (HEAT_CLIM[1] - HEAT_CLIM[0]))));
     return cssGrad(stops);
   }
   function applyHeatSurfaces(arr) {                        // colour the drift surfaces by a step's field
@@ -705,7 +708,7 @@ function main() {
     if (volume) volume.setVisibility(false);              // glow not needed once the surfaces recolour
     const g = document.getElementById('cbGrad');
     if (g) { g.style.background = heatBarGrad();
-      document.getElementById('cbLo').textContent = HEAT_CLIM[0] + ' °C';
+      document.getElementById('cbLo').textContent = (HEAT_CLIM[0] - 1) + ' °C';   // purple minimum sits at ~9, just below the 10 °C data floor (no black)
       document.getElementById('cbMid').textContent = 'temperature';
       document.getElementById('cbHi').textContent = HEAT_CLIM[1] + ' °C'; }
   }
@@ -797,8 +800,8 @@ function main() {
     fetch(DATA + 'stress.json').then(r => r.ok ? r.json() : Promise.reject('no stress')).then(m => {
       stressMeta = m;
       stressLUT = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-      STRESS_COLORS.forEach((c, i) => stressLUT.addRGBPoint(
-        m.vmin + (i/(STRESS_COLORS.length-1))*(m.vmax - m.vmin), c[0], c[1], c[2]));
+      STRESS_COLORS.forEach((c, i) => stressLUT.addRGBPoint(                       // gamma-packed toward low -> the mostly-low stress spreads across the colourmap (clip too), not buried
+        m.vmin + Math.pow(i/(STRESS_COLORS.length-1), 1.7)*(m.vmax - m.vmin), c[0], c[1], c[2]));
       stressLUTwire = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();   // LOG-spaced over the full lattice range -> far-field gradient reads, drift peak not blown out
       STRESS_COLORS.forEach((c, i) => { const t = i/(STRESS_COLORS.length-1);
         stressLUTwire.addRGBPoint(WVMIN * Math.pow(WVMAX/WVMIN, t), c[0], c[1], c[2]); });
@@ -923,8 +926,11 @@ function main() {
     const cutSub = document.getElementById('cutSub');
     const flipRow = document.getElementById('flipRow');
     const wireGrpEl = document.getElementById('wireGrp');
+    let sliceOK = true;
     function syncCutUI() {
       const clip = document.getElementById('clipOn').checked, slice = document.getElementById('sliceOn').checked;
+      document.getElementById('clipCtl').style.display = slice ? 'none' : '';   // clip button hides while the field plane is active, and vice versa
+      { const sc = document.getElementById('sliceCtl'); if (sc) sc.style.display = (clip || !sliceOK) ? 'none' : ''; }
       cutSub.style.display = (clip || slice) ? '' : 'none';   // axis / flip / position appear only once a mode is chosen
       flipRow.style.display = clip ? '' : 'none';             // flip side is clip-only (the field plane doesn't need it)
       const w = document.getElementById('wireOn'), want = clip;   // lattice rides along with CLIP only; the field plane hides everything (incl. the lattice)
@@ -942,7 +948,7 @@ function main() {
     });
     syncCutUI();
     fetch(DATA + 'domain.vti', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
-      .catch(() => { const sc = document.getElementById('sliceCtl'); if (sc) sc.style.display = 'none'; });   // field plane needs domain.vti
+      .catch(() => { sliceOK = false; const sc = document.getElementById('sliceCtl'); if (sc) sc.style.display = 'none'; });   // field plane needs domain.vti
 
     // ---- colour surfaces: material / temperature / von Mises / water velocity ----
     function setFieldVis() {
@@ -1861,7 +1867,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21r · stress field-plane LUT (low-range gamma, not all-purple); medium grid RES 1.75', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21s · clip/field mutual hide; stress gamma; heat magma purple minimum (no black)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
