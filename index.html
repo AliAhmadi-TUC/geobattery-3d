@@ -635,16 +635,26 @@ function main() {
       lut.addRGBPoint(T, c[0], c[1], c[2]); }
     _heatLUT = lut; return lut;
   }
-  let _walkLUT = null;
-  function walkLUT() {                                    // walk-through: diverging COLD BLUE -> neutral -> HOT RED
-    if (_walkLUT) return _walkLUT;
+  let _walkWarm = null, _walkCool = null;
+  function walkLUTwarm() {                                // CHARGE: original grey (cold) -> red (hot)
+    if (_walkWarm) return _walkWarm;
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
-    lut.addRGBPoint(10, 0.16, 0.42, 0.82);               // cold = blue (discharge end / far-field)
-    lut.addRGBPoint(25, 0.48, 0.68, 0.90);               // cool light blue
-    lut.addRGBPoint(40, 0.90, 0.90, 0.88);               // neutral pale (mid)
-    lut.addRGBPoint(58, 0.93, 0.48, 0.24);               // warming orange
-    lut.addRGBPoint(80, 0.95, 0.11, 0.07);               // hot = red (near the inlet during charge)
-    _walkLUT = lut; return lut;
+    lut.addRGBPoint(10, 0.54, 0.53, 0.51);               // cold = the mine's own neutral grey (original look)
+    lut.addRGBPoint(32, 0.74, 0.52, 0.42);               // warming
+    lut.addRGBPoint(52, 0.87, 0.40, 0.25);
+    lut.addRGBPoint(66, 0.92, 0.24, 0.13);
+    lut.addRGBPoint(80, 0.96, 0.10, 0.06);               // hot = red
+    _walkWarm = lut; return lut;
+  }
+  function walkLUTcool() {                                // STORAGE/DISCHARGE: cold BLUE -> hot red (cooling reads blue, not grey)
+    if (_walkCool) return _walkCool;
+    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+    lut.addRGBPoint(10, 0.16, 0.42, 0.82);               // cold = blue (as the water cools back down)
+    lut.addRGBPoint(26, 0.46, 0.66, 0.89);               // cool light blue
+    lut.addRGBPoint(42, 0.80, 0.72, 0.66);               // pale (still-warm mid)
+    lut.addRGBPoint(58, 0.90, 0.42, 0.24);               // agrees with the warm ramp up top ->
+    lut.addRGBPoint(80, 0.96, 0.10, 0.06);               // hot = red (seamless at the charge->storage switch)
+    _walkCool = lut; return lut;
   }
   function heatBarGrad() {                                // colourbar mirrors the two-leg mapping
     const stops = [];
@@ -1629,7 +1639,7 @@ function main() {
           const ax2 = MIR.axis || [0, 1, 0], W2 = objs.water;   // the drift walls (water/rock interface), heat-coloured
           if (W2) {
             W2.mapper.removeAllClippingPlanes();
-            W2.mapper.setLookupTable(walkLUT()); W2.mapper.setScalarModeToUsePointFieldData();
+            W2.mapper.setLookupTable(walkLUTwarm()); W2.mapper.setScalarModeToUsePointFieldData();   // charge = grey->red
             W2.mapper.setColorByArrayName('hc00'); W2.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
             W2.mapper.setScalarVisibility(true); W2.mapper.setInterpolateScalarsBeforeMapping(true);
             const pr = W2.actor.getProperty(); pr.setRepresentation(2); pr.setOpacity(1); pr.setPointSize(1);
@@ -1662,6 +1672,12 @@ function main() {
           const c0 = cam[0] || [inl[0], inl[1], inl[2] + 0.35];   // centreline point nearest the inlet
           const dInto = (cam.length > 3) ? (() => { const b = cam[3], d = [b[0]-c0[0], b[1]-c0[1], b[2]-c0[2]], L = Math.hypot(d[0], d[1], d[2]) || 1; return [d[0]/L, d[1]/L, d[2]/L]; })() : ax2;   // unit direction INTO the drift (sign-robust)
           const inEye = [inl[0] - dInto[0]*BEHIND, inl[1] - dInto[1]*BEHIND, c0[2] + 0.1];   // a bit behind the real inlet, at tube-centre height
+          if (W2) {                                            // clip the inlet-end CAP off the water surface -> look straight into the OPEN tube from behind the inlet
+            const wClip = vtk.Common.DataModel.vtkPlane.newInstance();
+            wClip.setNormal(dInto[0], dInto[1], dInto[2]);     // keep only the drift interior (+dInto side); the near cap is removed
+            wClip.setOrigin(inl[0] + dInto[0]*0.8, inl[1] + dInto[1]*0.8, inl[2] + dInto[2]*0.8);
+            W2.mapper.addClippingPlane(wClip);
+          }
           const walkPath = [inEye].concat(cam);                // the walk starts behind the inlet, then follows the centreline
           const walkP = s => { const t = Math.max(0, Math.min(walkPath.length-1, s)), i = Math.floor(t), f = t - i,
             a = walkPath[i], b = walkPath[Math.min(walkPath.length-1, i+1)];
@@ -1706,6 +1722,7 @@ function main() {
                 tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(pos[0]+Math.cos(a)*6, pos[1]+Math.sin(a)*6, pos[2]+hz); tCam.setViewUp(0, 0, 1);
                 tCam.setViewAngle(55); tCam.setClippingRange(0.03, 2000);
               }); }
+            if (W2) W2.mapper.setLookupTable(walkLUTcool());   // storage/discharge: as the water cools it now reads BLUE (not back to grey)
             let lastS = -1;
             await _tween(6000, (e, u) => {
               const k = Math.min(9, Math.floor(u * 10));
@@ -1771,7 +1788,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21b · blue-cooling walk · end-caps hidden · behind-inlet dive', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21c · two-LUT (grey->red->blue) · water cap clipped', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
