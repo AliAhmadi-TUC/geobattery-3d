@@ -1731,8 +1731,7 @@ function main() {
                 tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(pos[0]+Math.cos(a)*6, pos[1]+Math.sin(a)*6, pos[2]+hz); tCam.setViewUp(0, 0, 1);
                 tCam.setViewAngle(62); tCam.setClippingRange(0.03, 2000);
               }); }
-            if (W2) W2.mapper.setLookupTable(walkLUTcool());   // storage/discharge: as the water cools it now reads BLUE (not back to grey)
-            let lastS = -1;
+            let lastS = -1;                                    // STORAGE stays on the WARM LUT -> the red just fades lighter (not blue yet)
             await _tween(6000, (e, u) => {
               const k = Math.min(9, Math.floor(u * 10));
               if (k !== lastS) { W2.mapper.setColorByArrayName('hs' + String(k).padStart(2, '0')); lastS = k; }
@@ -1740,6 +1739,7 @@ function main() {
             // 12 — DISCHARGE: BLUE cold-water arrows cool the surface right down
             _title('12', 'Discharge · cold water returns');
             if (!touring) throw 0;
+            if (W2) W2.mapper.setLookupTable(walkLUTcool());   // NOW switch to the COOL LUT -> discharge reads BLUE
             if (pActor) { pActor.getProperty().setColor(0.25, 0.55, 0.98); pActor.setVisibility(true); pOn = true; startParticleAnim(); }   // blue cold-water flow resumes
             let lastD = -1;
             await _tween(5500, (e, u) => {
@@ -1748,17 +1748,47 @@ function main() {
             });
             if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) cancelAnimationFrame(pRAF); pRAF = null; }
             await _tween(800, () => {});
-            // 13 — ZOOM OUT to the default overview, restore the real fov
-            _title('13', 'Zoom out');
+            // 13 — pull out to the FRONT of the drift, reveal the domain surfaces, PLAY the whole heat cycle
+            _title('13', 'The full heat cycle');
             if (!touring) throw 0;
-            const zp = tCam.getPosition(), zf = tCam.getFocalPoint(), zu = tCam.getViewUp();
-            const zoomTo = [cen[0] - 26, cen[1] - 64, cen[2] + 46];
-            await _tween(3200, (e) => {
-              const p = _L3(zp, zoomTo, e), f = _L3(zf, cen, e);
-              const u3 = _L3(zu, [0, 0, 1], e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;
-              tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
-              tCam.setViewAngle(_L(58, baseFov, e)); tCam.setClippingRange(0.5, 4000);
-            });
+            if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } }   // flow arrows off
+            if (driftWall) driftWall.actor.setVisibility(false);   // hide the walk tube
+            faceActs.forEach(a => a.setVisibility(false));
+            mirActs.forEach(a => a.setVisibility(false));
+            if (MIR.sIn) MIR.sIn.a.setVisibility(false); if (MIR.sOut) MIR.sOut.a.setVisibility(false);
+            if (meshPts) meshPts.setVisibility(false); if (meshEdge) meshEdge.setVisibility(false);
+            if (sAct) sAct.setVisibility(false);
+            if (objs.water) objs.water.mapper.removeAllClippingPlanes();
+            if (objs.rock) objs.rock.actor.setVisibility(false);   // ROCK off
+            ['water', 'concrete', 'air'].forEach(nm => { const cb = document.getElementById('vis_' + nm); if (cb) cb.checked = true; });   // control-panel: water/concrete/air ON
+            { const rcb = document.getElementById('vis_rock'); if (rcb) rcb.checked = false; }                                            // rock OFF
+            const HF = (heatFrames && heatFrames.length) ? heatFrames : null;
+            applyHeatSurfaces(HF ? HF[0].arr : 'hc00');            // water/concrete/air heat-coloured at the cycle start
+            // fly out to a FRONT view of the drift, a touch from the top + laterally (echoes step 2)
+            { const f13 = [front[0] - 28, front[1] + 8, front[2] + 14];
+              const zp = tCam.getPosition(), zf = tCam.getFocalPoint(), zu = tCam.getViewUp();
+              await _tween(3000, (e) => {
+                const p = _L3(zp, f13, e), f = _L3(zf, focalP, e);
+                const u3 = _L3(zu, UP, e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;
+                tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
+                tCam.setViewAngle(_L(62, baseFov, e)); tCam.setClippingRange(0.5, 4000);
+              }); }
+            // PLAY the heat phases (Heating -> Storage -> Cooling -> Recovery) on the surfaces
+            if (HF) { let lastF = -1;
+              await _tween(HF.length * 230, (e, u) => {
+                const k = Math.min(HF.length - 1, Math.floor(u * HF.length));
+                if (k !== lastF) { applyHeatSurfaces(HF[k].arr); _title('13', HF[k].label || 'The full heat cycle'); lastF = k; }
+              }); }
+            await _tween(600, () => {});
+            // final easing zoom-out to the overview
+            { const zp = tCam.getPosition(), zf = tCam.getFocalPoint(), zu = tCam.getViewUp();
+              const zoomTo = [cen[0] - 30, cen[1] - 70, cen[2] + 50];
+              await _tween(2600, (e) => {
+                const p = _L3(zp, zoomTo, e), f = _L3(zf, cen, e);
+                const u3 = _L3(zu, UP, e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;
+                tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
+                tCam.setViewAngle(baseFov); tCam.setClippingRange(0.5, 4000);
+              }); }
           }
         }
       } catch (e) { console.warn('tour', e); }
@@ -1780,9 +1810,11 @@ function main() {
       if (MIR.sIn) renderer.removeActor(MIR.sIn.a); if (MIR.sOut) renderer.removeActor(MIR.sOut.a);   // and the inlet/outlet spheres
       wellActors.forEach(a => a.setVisibility(true));     // restore the scene's inlet/outlet markers
       const eOn = document.getElementById('edges').checked, rep = +document.getElementById('repr').value;
-      LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
-        pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
-      document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
+      if (tourStep < 13) {                                 // a clean step-13 finish KEEPS the heat-cycle finale (water/concrete/air, rock off); only an early abort restores the default layers
+        LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
+          pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
+        document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
+      }
       if (volume) volume.setVisibility(document.getElementById('volOn').checked);
       if (tourGoto < 0 && tourStep < 13) { tCam.setViewAngle(baseFov); renderer.resetCamera(); }   // aborted early (✕ end / short walk): reframe to a usable overview
       renderer.resetCameraClippingRange(); renderWindow.render();   // a clean step-13 finish keeps the tour's final overview pose; only the clip range is refreshed
@@ -1798,7 +1830,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21h · full drift domain (water+concrete+air walls)', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21i · storage fades red, discharge blue; step13 heat-cycle finale', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
