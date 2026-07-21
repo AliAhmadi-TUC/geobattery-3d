@@ -503,8 +503,9 @@ document.querySelectorAll('#panel .grp h2').forEach(h => {
 // temperature ramp: SIMPLE inferno minus the near-black bottom -> lowest is PURPLE, up to the hot yellow glow.
 const INFERNO = [[0.259,0.039,0.408],[0.416,0.090,0.431],[0.576,0.149,0.404],[0.737,0.216,0.330],
   [0.867,0.318,0.227],[0.953,0.471,0.098],[0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
-const TCLIM = [10, 80];   // temperature range: 10 = purple, 80 = yellow (plain linear inferno)
-function tempFrac(T) { return Math.max(0, Math.min(1, (T - TCLIM[0]) / (TCLIM[1] - TCLIM[0]))); }   // linear over [10,80]
+const TCLIM = [10, 80], TMID = 30;   // temperature range; the ramp's MIDPOINT colour lands at TMID (10..30 = lower half, 30..80 = upper half)
+function tempFrac(T) { const f = T <= TMID ? 0.5*(T-TCLIM[0])/(TMID-TCLIM[0]) : 0.5 + 0.5*(T-TMID)/(TCLIM[1]-TMID); return Math.max(0, Math.min(1, f)); }
+function invTempFrac(f) { return f <= 0.5 ? TCLIM[0] + (TMID-TCLIM[0])*(f/0.5) : TMID + (TCLIM[1]-TMID)*((f-0.5)/0.5); }   // fraction -> temperature (two even legs about TMID)
 const SPEED_COLORS = [[0.23,0.30,0.75],[0.15,0.65,0.90],[0.20,0.80,0.35],[0.95,0.85,0.15],[0.90,0.25,0.15]];
 const STRESS_COLORS = [[0.267,0.005,0.329],[0.229,0.322,0.545],[0.128,0.567,0.551],
                        [0.369,0.789,0.383],[0.993,0.906,0.144]];             // viridis
@@ -522,7 +523,7 @@ function rampSlice(cols, f0, f1, n) {                    // sample a sub-range o
 function tempCTF() {
   const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
   lut.addRGBPoint(-100, INFERNO[0][0], INFERNO[0][1], INFERNO[0][2]);
-  INFERNO.forEach((c,i) => lut.addRGBPoint(TCLIM[0] + (i/(M-1))*(TCLIM[1]-TCLIM[0]), c[0], c[1], c[2]));   // linear inferno over [10,80]
+  INFERNO.forEach((c,i) => lut.addRGBPoint(invTempFrac(i/(M-1)), c[0], c[1], c[2]));   // inferno with its midpoint colour at TMID
   return lut;
 }
 
@@ -644,7 +645,7 @@ function main() {
     if (_heatLUT) return _heatLUT;
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
     for (let i = 0; i < M; i++) { const c = INFERNO[i];
-      lut.addRGBPoint(HEAT_CLIM[0] + (HEAT_CLIM[1] - HEAT_CLIM[0]) * (i / (M - 1)), c[0], c[1], c[2]); }
+      lut.addRGBPoint(invTempFrac(i / (M - 1)), c[0], c[1], c[2]); }
     _heatLUT = lut; return lut;
   }
   let _walkWarm = null, _walkCool = null;
@@ -1866,7 +1867,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21v · simple linear inferno (purple->yellow); fix field-plane crash after clip (heat-frame index)', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21w · temperature colormap midpoint at 30C (was 45)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
