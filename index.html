@@ -1643,8 +1643,8 @@ function main() {
           _title('9', 'Diving inside the drift');
           if (!touring) throw 0;
           mirActs.forEach(a => a.setVisibility(false));        // hide BOTH end-caps (concrete AND air) — either one blocks the dive; the walk is inside the water tube
-          if (MIR.sIn) MIR.sIn.a.setVisibility(false);         // drop the oversized inlet ball — the real void is baked into the W2 surface
-          if (MIR.sOut) MIR.sOut.a.setVisibility(false);       // drop the stray outlet ball sitting behind the far cap
+          if (MIR.sIn) { MIR.sIn.s.setRadius(((flowMeta && flowMeta.inlet_r) || 0.3) * 1.05); MIR.sIn.a.setVisibility(true); }   // SHOW the real inlet marker (true void radius, at the inlet)
+          if (MIR.sOut) MIR.sOut.a.setVisibility(false);       // outlet stays hidden — it's far down the drift, out of the walk
           const sweepP = _tween(1500, (e, u) => { const y = _L(rb[3], rb[2], u);   // lattice + walls sweep out WHILE the camera dives
               pSweep.setOrigin(0, y, 0); eSweep.setOrigin(0, y, 0); if (sweep4) sweep4.setOrigin(0, y, 0); })
             .then(() => { if (meshPts) { renderer.removeActor(meshPts); meshPts = null; }
@@ -1798,7 +1798,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21f · tunnel = Rock_Water+Concrete_Rock, wider fov', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21g · inlet marker visible', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
