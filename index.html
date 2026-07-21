@@ -500,12 +500,11 @@ document.querySelectorAll('#panel .grp h2').forEach(h => {
 });
 
 // ---- colour ramps ----
-// temperature ramp: COLD = purple gradient -> magma (magenta/red/orange) -> HOT YELLOW glow.
-const INFERNO = [[0.24,0.05,0.40],[0.38,0.07,0.52],[0.52,0.10,0.52],[0.65,0.13,0.44],
-  [0.79,0.22,0.31],[0.90,0.35,0.18],[0.96,0.52,0.09],
-  [0.98,0.68,0.05],[0.97,0.84,0.22],[0.99,1.0,0.62]];
-const TCLIM = [10, 80], TYELLOW = 20;   // 10 = dark purple; the ramp reaches yellow by 20 C and HOLDS yellow up to 80
-function tempFrac(T) { return Math.max(0, Math.min(1, (T - TCLIM[0]) / (TYELLOW - TCLIM[0]))); }   // purple..yellow packed into [10,20], saturated above
+// temperature ramp: SIMPLE inferno minus the near-black bottom -> lowest is PURPLE, up to the hot yellow glow.
+const INFERNO = [[0.259,0.039,0.408],[0.416,0.090,0.431],[0.576,0.149,0.404],[0.737,0.216,0.330],
+  [0.867,0.318,0.227],[0.953,0.471,0.098],[0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
+const TCLIM = [10, 80];   // temperature range: 10 = purple, 80 = yellow (plain linear inferno)
+function tempFrac(T) { return Math.max(0, Math.min(1, (T - TCLIM[0]) / (TCLIM[1] - TCLIM[0]))); }   // linear over [10,80]
 const SPEED_COLORS = [[0.23,0.30,0.75],[0.15,0.65,0.90],[0.20,0.80,0.35],[0.95,0.85,0.15],[0.90,0.25,0.15]];
 const STRESS_COLORS = [[0.267,0.005,0.329],[0.229,0.322,0.545],[0.128,0.567,0.551],
                        [0.369,0.789,0.383],[0.993,0.906,0.144]];             // viridis
@@ -523,8 +522,7 @@ function rampSlice(cols, f0, f1, n) {                    // sample a sub-range o
 function tempCTF() {
   const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
   lut.addRGBPoint(-100, INFERNO[0][0], INFERNO[0][1], INFERNO[0][2]);
-  INFERNO.forEach((c,i) => lut.addRGBPoint(TCLIM[0] + (i/(M-1))*(TYELLOW - TCLIM[0]), c[0], c[1], c[2]));   // purple->yellow over [10,20]
-  const y = INFERNO[M-1]; lut.addRGBPoint(TCLIM[1], y[0], y[1], y[2]);   // hold yellow to 80
+  INFERNO.forEach((c,i) => lut.addRGBPoint(TCLIM[0] + (i/(M-1))*(TCLIM[1]-TCLIM[0]), c[0], c[1], c[2]));   // linear inferno over [10,80]
   return lut;
 }
 
@@ -642,12 +640,11 @@ function main() {
     if (t <= HEAT_TSPLIT) return HEAT_SPLIT * (t - HEAT_CLIM[0]) / (HEAT_TSPLIT - HEAT_CLIM[0]);
     return HEAT_SPLIT + (1 - HEAT_SPLIT) * (t - HEAT_TSPLIT) / (HEAT_CLIM[1] - HEAT_TSPLIT);
   }
-  function heatLUT() {                                    // purple gradient over [10,20], then HOLDS yellow to 80
+  function heatLUT() {                                    // plain linear inferno (purple -> yellow) over [10,80]
     if (_heatLUT) return _heatLUT;
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
     for (let i = 0; i < M; i++) { const c = INFERNO[i];
-      lut.addRGBPoint(HEAT_CLIM[0] + (TYELLOW - HEAT_CLIM[0]) * (i / (M - 1)), c[0], c[1], c[2]); }
-    const y = INFERNO[M - 1]; lut.addRGBPoint(HEAT_CLIM[1], y[0], y[1], y[2]);   // yellow held to 80
+      lut.addRGBPoint(HEAT_CLIM[0] + (HEAT_CLIM[1] - HEAT_CLIM[0]) * (i / (M - 1)), c[0], c[1], c[2]); }
     _heatLUT = lut; return lut;
   }
   let _walkWarm = null, _walkCool = null;
@@ -846,10 +843,14 @@ function main() {
         Object.keys(MAT_COLORS).forEach(id => { const v = +id, c = MAT_COLORS[id];
           ctf.addRGBPoint(v - 0.35, c[0], c[1], c[2]); ctf.addRGBPoint(v + 0.35, c[0], c[1], c[2]); });
         pwf.addPoint(0, 0); pwf.addPoint(0.5, 0); pwf.addPoint(0.6, 1); pwf.addPoint(4, 1);
-      } else {                                          // temperature (per frame)
-        arr = fn(frameIdx); ctf = tempCTF();
+      } else {                                          // temperature: domain.vti carries ONE T per PHASE (T00..T03); map the heat sub-step -> its phase
+        let nT = 0; while (domainVti.getPointData().getArrayByName('T' + String(nT).padStart(2, '0'))) nT++;
+        if (!nT) nT = 1;
+        const src = frames.length ? Math.min(nT - 1, Math.floor(frameIdx * nT / frames.length)) : Math.min(nT - 1, frameIdx);
+        arr = 'T' + String(Math.max(0, src)).padStart(2, '0'); ctf = tempCTF();
         pwf.addPoint(-100, 0); pwf.addPoint(9.9, 0); pwf.addPoint(10, 1); pwf.addPoint(80, 1);
       }
+      if (!domainVti.getPointData().getArrayByName(arr)) { imgSlice.setVisibility(false); renderWindow.render(); return; }   // never activate a missing array -> would null the mapper shader (crash)
       domainVti.getPointData().setActiveScalars(arr);
       ip.setRGBTransferFunction(0, ctf); ip.setPiecewiseFunction(0, pwf);
       if (ip.setUseLookupTableScalarRange) ip.setUseLookupTableScalarRange(true);
@@ -1865,7 +1866,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21u · temperature = purple gradient (cold) -> yellow by 20C, held to 80', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21v · simple linear inferno (purple->yellow); fix field-plane crash after clip (heat-frame index)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
