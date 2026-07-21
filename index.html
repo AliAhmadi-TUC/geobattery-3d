@@ -500,9 +500,9 @@ document.querySelectorAll('#panel .grp h2').forEach(h => {
 });
 
 // ---- colour ramps ----
-// temperature ramp: SIMPLE inferno minus the near-black bottom -> lowest is PURPLE, up to the hot yellow glow.
-const INFERNO = [[0.259,0.039,0.408],[0.416,0.090,0.431],[0.576,0.149,0.404],[0.737,0.216,0.330],
-  [0.867,0.318,0.227],[0.953,0.471,0.098],[0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
+// temperature ramp: inferno with a LIGHTER purple low end (low temps read clearly) up to the hot yellow glow.
+const INFERNO = [[0.46,0.26,0.62],[0.58,0.26,0.55],[0.69,0.29,0.44],[0.79,0.28,0.34],
+  [0.88,0.36,0.24],[0.953,0.471,0.098],[0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
 const TCLIM = [10, 80], TMID = 30;   // temperature range; the ramp's MIDPOINT colour lands at TMID (10..30 = lower half, 30..80 = upper half)
 function tempFrac(T) { const f = T <= TMID ? 0.5*(T-TCLIM[0])/(TMID-TCLIM[0]) : 0.5 + 0.5*(T-TMID)/(TCLIM[1]-TMID); return Math.max(0, Math.min(1, f)); }
 function invTempFrac(f) { return f <= 0.5 ? TCLIM[0] + (TMID-TCLIM[0])*(f/0.5) : TMID + (TCLIM[1]-TMID)*((f-0.5)/0.5); }   // fraction -> temperature (two even legs about TMID)
@@ -1867,7 +1867,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21w · temperature colormap midpoint at 30C (was 45)', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21x · lighter purple low end', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
