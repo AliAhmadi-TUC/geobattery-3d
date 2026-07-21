@@ -1665,7 +1665,7 @@ function main() {
           // ---- water CENTRELINE through the bent tube (bucket centroids) — computed once, used by dive + walk ----
           let cam = [], camP = t => [inl[0], inl[1], inl[2] + 0.4];
           if (W2) {
-            const wp = W2.mapper.getInputData().getPoints().getData();
+            const wp = (objs.water || W2).mapper.getInputData().getPoints().getData();   // centreline from the WATER TUBE only (drift_wall now also holds the big air region -> would skew the path)
             const cAY = (x, y, z) => (x-cen[0])*ax2[0] + (y-cen[1])*ax2[1] + (z-cen[2])*ax2[2];
             const NB = 34, buck = Array.from({ length: NB }, () => [0, 0, 0, 0]);
             let amn = Infinity, amx = -Infinity;
@@ -1798,7 +1798,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21g · inlet marker visible', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21h · full drift domain (water+concrete+air walls)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
