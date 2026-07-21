@@ -732,6 +732,7 @@ function main() {
   let frames = [], frameIdx = 0, playing = false, playTimer = null;
   let yearFrames = null, heatFrames = null, heatMode = false, heatDefault = 0;   // annual cycle vs charge-heating step series; heatDefault = end-of-charge frame
   let colMode = 'material';                              // tracks the "colour surfaces by" toggle
+  let flowSaved = null;                                  // pre-flow rock state, so leaving flow restores exactly what entering it changed
   const fn = i => 'T' + String(i).padStart(2, '0');      // water-surface per-frame array name
   const frameCache = {};
   const HEAT_SURFS = ['water', 'air', 'concrete'];        // drift surfaces recoloured through the phases
@@ -1080,14 +1081,22 @@ function main() {
         }
       });
       colorWire(mode);
-      // flow mode: dim the surfaces so the arrows read, hide + uncheck rock, reveal the inlet/outlet markers
+      // flow mode: dim the surfaces so the arrows read, hide + uncheck rock, reveal the inlet/outlet markers.
+      // Snapshot the pre-flow rock state on ENTRY and restore it on EXIT so heat->flow->heat doesn't lose rock;
+      // only touch surface opacity when leaving flow (and restore to the live op_ slider value, not a hard default),
+      // so plain non-flow mode switches never clobber user-set opacity.
       if (mode === 'flow') {
+        const rcb = document.getElementById('vis_rock');
+        if (!flowSaved) flowSaved = { rockChecked: rcb ? rcb.checked : true, rockVis: objs.rock ? objs.rock.actor.getVisibility() : true };
         ['water','concrete','air'].forEach(nm => { if (objs[nm]) objs[nm].actor.getProperty().setOpacity(0.1); });
-        const rcb = document.getElementById('vis_rock'); if (rcb && rcb.checked) { rcb.checked = false; if (objs.rock) objs.rock.actor.setVisibility(false); }
+        if (rcb && rcb.checked) { rcb.checked = false; if (objs.rock) objs.rock.actor.setVisibility(false); }
         wellActors.forEach(a => a.setVisibility(true));
-      } else {
-        ['water','concrete','air'].forEach(nm => { if (objs[nm]) objs[nm].actor.getProperty().setOpacity(OPQ[nm] ?? 0.3); });
+      } else if (flowSaved) {
+        ['water','concrete','air'].forEach(nm => { const s = document.getElementById('op_' + nm); if (objs[nm]) objs[nm].actor.getProperty().setOpacity(s ? +s.value : (OPQ[nm] ?? 0.3)); });
+        const rcb = document.getElementById('vis_rock'); if (rcb) rcb.checked = flowSaved.rockChecked;
+        if (objs.rock) objs.rock.actor.setVisibility(flowSaved.rockVis);
         wellActors.forEach(a => a.setVisibility(false));
+        flowSaved = null;
       }
       if (imgSlice) setSliceField(mode);
       setFieldVis();
@@ -1954,7 +1963,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21z · fix OPQ TDZ (phase load) · axes · welcome+tutorial', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21z2 · flow enter/exit state restore (rock + opacity) · OPQ TDZ fix', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
