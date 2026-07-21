@@ -671,6 +671,19 @@ function main() {
     lut.addRGBPoint(80, 0.96, 0.10, 0.06);               // hot = red (seamless at the charge->storage switch)
     _walkCool = lut; return lut;
   }
+  // smooth warm<->cool crossfade for the discharge transition (t: 0 = warm grey->red, 1 = cool blue->red)
+  const WARM_STOPS = [[10,0.54,0.53,0.51],[32,0.74,0.52,0.42],[52,0.87,0.40,0.25],[66,0.92,0.24,0.13],[80,0.96,0.10,0.06]];
+  const COOL_STOPS = [[10,0.16,0.42,0.82],[26,0.46,0.66,0.89],[42,0.80,0.72,0.66],[58,0.90,0.42,0.24],[80,0.96,0.10,0.06]];
+  function _evalStops(s, x) { if (x <= s[0][0]) return s[0].slice(1);
+    for (let i = 1; i < s.length; i++) { if (x <= s[i][0]) { const a = s[i-1], b = s[i], f = (x-a[0])/(b[0]-a[0]);
+      return [a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f, a[3]+(b[3]-a[3])*f]; } }
+    return s[s.length-1].slice(1); }
+  function walkLUTblend(t) {
+    const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+    for (let x = 10; x <= 80; x += 5) { const w = _evalStops(WARM_STOPS, x), c = _evalStops(COOL_STOPS, x);
+      lut.addRGBPoint(x, w[0]+(c[0]-w[0])*t, w[1]+(c[1]-w[1])*t, w[2]+(c[2]-w[2])*t); }
+    return lut;
+  }
   function heatBarGrad() {                                // colourbar mirrors the two-leg mapping
     const stops = [];
     for (let k = 0; k <= 12; k++) stops.push(infernoAt(heatFrac(HEAT_CLIM[0] + k / 12 * (HEAT_CLIM[1] - HEAT_CLIM[0]))));
@@ -1739,10 +1752,11 @@ function main() {
             // 12 — DISCHARGE: BLUE cold-water arrows cool the surface right down
             _title('12', 'Discharge · cold water returns');
             if (!touring) throw 0;
-            if (W2) W2.mapper.setLookupTable(walkLUTcool());   // NOW switch to the COOL LUT -> discharge reads BLUE
             if (pActor) { pActor.getProperty().setColor(0.25, 0.55, 0.98); pActor.setVisibility(true); pOn = true; startParticleAnim(); }   // blue cold-water flow resumes
-            let lastD = -1;
-            await _tween(5500, (e, u) => {
+            let lastD = -1, lastBlend = -1;
+            await _tween(9000, (e, u) => {                     // SLOWER discharge; smoothly crossfade warm -> cool so red eases into blue
+              const blend = Math.min(1, u / 0.55);             // LUT reaches full cool ~55% through -> gradual, not a jump
+              if (Math.abs(blend - lastBlend) > 0.03 || (blend >= 1 && lastBlend < 1)) { if (W2) W2.mapper.setLookupTable(walkLUTblend(blend)); lastBlend = blend; }
               const k = Math.min(9, Math.floor(u * 10));
               if (k !== lastD) { W2.mapper.setColorByArrayName('hd' + String(k).padStart(2, '0')); lastD = k; }
             });
@@ -1764,14 +1778,15 @@ function main() {
             { const rcb = document.getElementById('vis_rock'); if (rcb) rcb.checked = false; }                                            // rock OFF
             const HF = (heatFrames && heatFrames.length) ? heatFrames : null;
             applyHeatSurfaces(HF ? HF[0].arr : 'hc00');            // water/concrete/air heat-coloured at the cycle start
-            // fly out to a FRONT view of the drift, a touch from the top + laterally (echoes step 2)
-            { const f13 = [front[0] - 28, front[1] + 8, front[2] + 14];
+            renderer.setBackground(0.17, 0.20, 0.27);             // lift the void a bit for THIS step -> the drift reads clearer
+            // fly out to a Y-Z SIDE view (looking along -X), a touch from the top + laterally
+            { const f13 = [cen[0] - 92, cen[1] - 6, cen[2] + 26];
               const zp = tCam.getPosition(), zf = tCam.getFocalPoint(), zu = tCam.getViewUp();
               await _tween(3000, (e) => {
-                const p = _L3(zp, f13, e), f = _L3(zf, focalP, e);
+                const p = _L3(zp, f13, e), f = _L3(zf, cen, e);
                 const u3 = _L3(zu, UP, e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;
                 tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
-                tCam.setViewAngle(_L(62, baseFov, e)); tCam.setClippingRange(0.5, 4000);
+                tCam.setViewAngle(_L(62, 55, e)); tCam.setClippingRange(0.5, 4000);
               }); }
             // PLAY the heat phases (Heating -> Storage -> Cooling -> Recovery) on the surfaces
             if (HF) { let lastF = -1;
@@ -1780,14 +1795,14 @@ function main() {
                 if (k !== lastF) { applyHeatSurfaces(HF[k].arr); _title('13', HF[k].label || 'The full heat cycle'); lastF = k; }
               }); }
             await _tween(600, () => {});
-            // final easing zoom-out to the overview
+            // final easing zoom-out — pull further back along -X, keeping the y-z side framing
             { const zp = tCam.getPosition(), zf = tCam.getFocalPoint(), zu = tCam.getViewUp();
-              const zoomTo = [cen[0] - 30, cen[1] - 70, cen[2] + 50];
+              const zoomTo = [cen[0] - 138, cen[1] - 8, cen[2] + 40];
               await _tween(2600, (e) => {
                 const p = _L3(zp, zoomTo, e), f = _L3(zf, cen, e);
                 const u3 = _L3(zu, UP, e), un = Math.hypot(u3[0], u3[1], u3[2]) || 1;
                 tCam.setPosition(p[0], p[1], p[2]); tCam.setFocalPoint(f[0], f[1], f[2]); tCam.setViewUp(u3[0]/un, u3[1]/un, u3[2]/un);
-                tCam.setViewAngle(baseFov); tCam.setClippingRange(0.5, 4000);
+                tCam.setViewAngle(55); tCam.setClippingRange(0.5, 4000);
               }); }
           }
         }
@@ -1795,6 +1810,7 @@ function main() {
 
       // ---- hand over: restore the normal interactive view ----
       touring = false; tourPaused = false; _hideLabels(); _title('', '');
+      renderer.setBackground(voidRGB[0], voidRGB[1], voidRGB[2]);   // restore the normal dark void (step 13 lightened it just for itself)
       document.body.classList.remove('touring');           // restore the normal UI
       if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } } pSpeedMul = 1;   // stop the tour's flow arrows, reset speed
       if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
@@ -1830,7 +1846,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21i · storage fades red, discharge blue; step13 heat-cycle finale', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21j · discharge crossfade to blue; step13 y-z view + lighter bg', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
