@@ -694,7 +694,8 @@ function main() {
       o.mapper.setLookupTable(lut); o.mapper.setScalarModeToUsePointFieldData();
       o.mapper.setColorByArrayName(arr); o.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
       o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
-      o.actor.getProperty().setLighting(false); o.actor.setVisibility(true); });
+      const cb = document.getElementById('vis_' + nm);      // respect the layer toggle — the field plane unchecks these so it isn't blocked
+      o.actor.getProperty().setLighting(false); o.actor.setVisibility(cb ? cb.checked : true); });
     const wo = objs.wire;                                   // the internal lattice tracks the same phase field (full-domain temps)
     if (wo && wo.hasHeat) {
       wo.mapper.setLookupTable(lut); wo.mapper.setScalarModeToUsePointFieldData();
@@ -1856,7 +1857,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21p · clip+slice one row, progressive controls, field plane hides all + whole-domain', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21q · field plane: no stress in drift void; heat surfaces no longer block the plane', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
