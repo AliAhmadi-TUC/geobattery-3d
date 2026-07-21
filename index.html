@@ -674,7 +674,13 @@ function main() {
   const _canvas = document.querySelector('#view canvas');
   if (_canvas) _canvas.addEventListener('webglcontextlost', ev => {
     ev.preventDefault();
-    if (objs.wire) { objs.wire.actor.setVisibility(false); const r = document.getElementById('repr'); if (r && r.value === 'lattice') r.value = '2'; }
+    if (objs.wire) { objs.wire.actor.setVisibility(false);
+      const r = document.getElementById('repr');
+      if (r && r.value === 'lattice') {   // lattice gone -> reflect surface in the sub-controls (syncReprUI is out of scope here)
+        r.value = '2';
+        const er = document.getElementById('edgesRow'); if (er) er.style.display = '';
+        const wg = document.getElementById('wireGrp'); if (wg) wg.style.display = 'none';
+      } }
     setStatus('GPU overloaded — 3-D mesh disabled. Reload if the view is blank.', true);
   }, false);
 
@@ -1007,7 +1013,7 @@ function main() {
     });
 
     // clip vs field-plane are mutually exclusive: each hides the other's controls
-    // (+ flip side, a clip-only control); both reveal the internal wireframe.
+    // (+ flip side, a clip-only control). The lattice is now driven solely by the style select.
     const cutSub = document.getElementById('cutSub');
     const flipRow = document.getElementById('flipRow');
     let sliceOK = true;
@@ -1371,6 +1377,7 @@ function main() {
       .catch(() => {   // no lattice data -> drop the option + its opacity control
         const wg = document.getElementById('wireGrp'); if (wg) { wg.dataset.avail = '0'; wg.style.display = 'none'; }
         const lo = document.querySelector('#repr option[value="lattice"]'); if (lo) lo.remove();
+        syncReprUI();   // removing the selected option silently reverts the <select> to 'surface' — re-sync the edges row
       });
 
     // ================= guided tour (cinematic) =================
@@ -1979,7 +1986,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21z3 · lattice as a style option · slim axes · edges only on surface · re-show welcome', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21z4 · welcome dismissal persists (Esc/backdrop) · repr sub-row re-sync fixes', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2127,9 +2134,11 @@ main();
   const wlScrim = $('wlScrim');
   const showWelcome = open => wlScrim.classList.toggle('open', open);
   const markSeen = () => { try { localStorage.setItem(SEEN, '1'); } catch (e) {} };
-  $('wlTour').onclick = () => { showWelcome(false); markSeen(); const t = $('tourBtn'); if (t) t.click(); };
-  $('wlTut').onclick  = () => { showWelcome(false); markSeen(); startCoach(); };
-  $('wlSkip').onclick = () => { showWelcome(false); markSeen(); };
+  const dismissWelcome = () => { markSeen(); showWelcome(false); };   // any dismissal (button, backdrop, Esc) persists, so it won't nag on reload
+  $('wlTour').onclick = () => { dismissWelcome(); const t = $('tourBtn'); if (t) t.click(); };
+  $('wlTut').onclick  = () => { dismissWelcome(); startCoach(); };
+  $('wlSkip').onclick = () => { dismissWelcome(); };
+  wlScrim.addEventListener('click', e => { if (e.target === wlScrim) dismissWelcome(); });   // click the backdrop to dismiss
   { const it = $('infoTut'); if (it) it.onclick = ev => { ev.preventDefault(); setInfo(false); startCoach(); }; }
 
   const COACH = [
@@ -2178,7 +2187,7 @@ main();
   $('cPrev').onclick = () => { if (cIdx > 0) { cIdx--; renderCoach(); } };
   $('cEnd').onclick = endCoach;
   addEventListener('resize', () => { if (coach.classList.contains('on')) { const el = document.querySelector(COACH[cIdx].sel); if (el) placeCoach(el); } });
-  addEventListener('keydown', e => { if (e.key === 'Escape') { showWelcome(false); endCoach(); } });
+  addEventListener('keydown', e => { if (e.key === 'Escape') { if (wlScrim.classList.contains('open')) dismissWelcome(); endCoach(); } });
 
   // reveal the welcome once the scene is live (so “take the tour” is wired) — first visit only
   let wlTries = 0;
