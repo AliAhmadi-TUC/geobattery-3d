@@ -1776,9 +1776,11 @@ function main() {
             if (objs.rock) objs.rock.actor.setVisibility(false);   // ROCK off
             ['water', 'concrete', 'air'].forEach(nm => { const cb = document.getElementById('vis_' + nm); if (cb) cb.checked = true; });   // control-panel: water/concrete/air ON
             { const rcb = document.getElementById('vis_rock'); if (rcb) rcb.checked = false; }                                            // rock OFF
+            ['water', 'concrete', 'air'].forEach(nm => { const o = objs[nm]; if (o) { const pr = o.actor.getProperty();
+              pr.setRepresentation(2); pr.setPointSize(1); pr.setEdgeVisibility(false); pr.setOpacity(OPQ[nm] ?? 0.5); } });               // FIX: step 1 used objs.water for the POINTS build -> force SURFACE back
             const HF = (heatFrames && heatFrames.length) ? heatFrames : null;
             applyHeatSurfaces(HF ? HF[0].arr : 'hc00');            // water/concrete/air heat-coloured at the cycle start
-            renderer.setBackground(0.17, 0.20, 0.27);             // lift the void a bit for THIS step -> the drift reads clearer
+            renderer.setBackground(0.24, 0.27, 0.34);             // lift the void a bit more for THIS step -> the drift reads clearer
             // fly out to a Y-Z SIDE view (looking along -X), a touch from the top + laterally
             { const f13 = [cen[0] - 92, cen[1] - 6, cen[2] + 26];
               const zp = tCam.getPosition(), zf = tCam.getFocalPoint(), zu = tCam.getViewUp();
@@ -1846,7 +1848,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21j · discharge crossfade to blue; step13 y-z view + lighter bg', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21k · fix water-as-points in step13; lighter bg', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
