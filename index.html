@@ -500,11 +500,12 @@ document.querySelectorAll('#panel .grp h2').forEach(h => {
 });
 
 // ---- colour ramps ----
-// temperature ramp: COLD BLUE -> magma (magenta/red/orange) -> HOT YELLOW glow. Low end is blue (clearly visible), never black.
-const INFERNO = [[0.13,0.36,0.86],[0.24,0.31,0.80],[0.40,0.21,0.62],[0.576,0.149,0.404],
-  [0.737,0.216,0.330],[0.867,0.318,0.227],[0.953,0.471,0.098],
-  [0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
-const TCLIM = [10, 80];        // temperature range: 10 C ambient = blue, 80 = magma yellow
+// temperature ramp: COLD = purple gradient -> magma (magenta/red/orange) -> HOT YELLOW glow.
+const INFERNO = [[0.24,0.05,0.40],[0.38,0.07,0.52],[0.52,0.10,0.52],[0.65,0.13,0.44],
+  [0.79,0.22,0.31],[0.90,0.35,0.18],[0.96,0.52,0.09],
+  [0.98,0.68,0.05],[0.97,0.84,0.22],[0.99,1.0,0.62]];
+const TCLIM = [10, 80], TYELLOW = 20;   // 10 = dark purple; the ramp reaches yellow by 20 C and HOLDS yellow up to 80
+function tempFrac(T) { return Math.max(0, Math.min(1, (T - TCLIM[0]) / (TYELLOW - TCLIM[0]))); }   // purple..yellow packed into [10,20], saturated above
 const SPEED_COLORS = [[0.23,0.30,0.75],[0.15,0.65,0.90],[0.20,0.80,0.35],[0.95,0.85,0.15],[0.90,0.25,0.15]];
 const STRESS_COLORS = [[0.267,0.005,0.329],[0.229,0.322,0.545],[0.128,0.567,0.551],
                        [0.369,0.789,0.383],[0.993,0.906,0.144]];             // viridis
@@ -520,9 +521,10 @@ function rampSlice(cols, f0, f1, n) {                    // sample a sub-range o
   return Array.from({length: n}, (_, j) => pick(f0 + (f1 - f0) * j / (n - 1)));
 }
 function tempCTF() {
-  const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+  const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
   lut.addRGBPoint(-100, INFERNO[0][0], INFERNO[0][1], INFERNO[0][2]);
-  INFERNO.forEach((c,i) => lut.addRGBPoint(TCLIM[0] + (i/(INFERNO.length-1))*(TCLIM[1]-TCLIM[0]), c[0], c[1], c[2]));
+  INFERNO.forEach((c,i) => lut.addRGBPoint(TCLIM[0] + (i/(M-1))*(TYELLOW - TCLIM[0]), c[0], c[1], c[2]));   // purple->yellow over [10,20]
+  const y = INFERNO[M-1]; lut.addRGBPoint(TCLIM[1], y[0], y[1], y[2]);   // hold yellow to 80
   return lut;
 }
 
@@ -640,14 +642,12 @@ function main() {
     if (t <= HEAT_TSPLIT) return HEAT_SPLIT * (t - HEAT_CLIM[0]) / (HEAT_TSPLIT - HEAT_CLIM[0]);
     return HEAT_SPLIT + (1 - HEAT_SPLIT) * (t - HEAT_TSPLIT) / (HEAT_CLIM[1] - HEAT_TSPLIT);
   }
-  function heatLUT() {                                    // continuous: [10,20] -> blue..warming, [20,80] -> warm..hot yellow
+  function heatLUT() {                                    // purple gradient over [10,20], then HOLDS yellow to 80
     if (_heatLUT) return _heatLUT;
     const lut = vtk.Rendering.Core.vtkColorTransferFunction.newInstance(), M = INFERNO.length;
-    for (let i = 0; i < M; i++) { const f = i / (M - 1), c = INFERNO[i];
-      const T = f <= HEAT_SPLIT
-        ? HEAT_CLIM[0] + (HEAT_TSPLIT - HEAT_CLIM[0]) * (f / HEAT_SPLIT)
-        : HEAT_TSPLIT + (HEAT_CLIM[1] - HEAT_TSPLIT) * ((f - HEAT_SPLIT) / (1 - HEAT_SPLIT));
-      lut.addRGBPoint(T, c[0], c[1], c[2]); }
+    for (let i = 0; i < M; i++) { const c = INFERNO[i];
+      lut.addRGBPoint(HEAT_CLIM[0] + (TYELLOW - HEAT_CLIM[0]) * (i / (M - 1)), c[0], c[1], c[2]); }
+    const y = INFERNO[M - 1]; lut.addRGBPoint(HEAT_CLIM[1], y[0], y[1], y[2]);   // yellow held to 80
     _heatLUT = lut; return lut;
   }
   let _walkWarm = null, _walkCool = null;
@@ -686,7 +686,7 @@ function main() {
   }
   function heatBarGrad() {                                // colourbar mirrors the two-leg mapping (blue -> magma yellow)
     const stops = [];
-    for (let k = 0; k <= 12; k++) stops.push(infernoAt(heatFrac(HEAT_CLIM[0] + k / 12 * (HEAT_CLIM[1] - HEAT_CLIM[0]))));
+    for (let k = 0; k <= 12; k++) stops.push(infernoAt(tempFrac(HEAT_CLIM[0] + k / 12 * (HEAT_CLIM[1] - HEAT_CLIM[0]))));
     return cssGrad(stops);
   }
   function applyHeatSurfaces(arr) {                        // colour the drift surfaces by a step's field
@@ -1083,7 +1083,7 @@ function main() {
         g.style.background = cssGrad([MAT_COLORS[1], MAT_COLORS[2], MAT_COLORS[3], MAT_COLORS[4]]);
         lo.textContent = 'rock'; mid.textContent = 'material'; hi.textContent = 'air';
       } else {
-        g.style.background = cssGrad(rampSlice(INFERNO, (10 - TCLIM[0]) / (TCLIM[1] - TCLIM[0]), 1, 8));
+        g.style.background = cssGrad(Array.from({length: 9}, (_, k) => infernoAt(tempFrac(TCLIM[0] + k / 8 * (TCLIM[1] - TCLIM[0])))));   // purple -> yellow (yellow from 20)
         lo.textContent = '10 °C'; mid.textContent = 'temperature'; hi.textContent = '80 °C';
       }
     }
@@ -1865,7 +1865,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21t · temperature = blue(cold)->magma yellow(hot); colorbar always 10-80', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21u · temperature = purple gradient (cold) -> yellow by 20C, held to 80', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
