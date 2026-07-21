@@ -1595,7 +1595,7 @@ function main() {
             { text:'Inlet',            world: inl,          side: -1, dist: 15 },
             { text:'Air drift',        world: MIR.airC||airBot, side: -1, dist: 34 },
           ], perp3, AX);
-          await _tween(2800, () => _positionLabels());   // hold (pausable) while the labels are shown
+          await _tween(1900, () => _positionLabels());   // hold (pausable) while the labels are shown
           _hideLabels();
         }
         // 4 — ADD THE SURROUNDING ROCK DOMAIN (outer walls). Pull the camera back to frame the whole
@@ -1741,13 +1741,13 @@ function main() {
               const aF = Math.atan2(dF[1]-pos[1], dF[0]-pos[0]), aB = Math.atan2(back[1]-pos[1], back[0]-pos[0]);
               let dA = aB - aF; while (dA > Math.PI) dA -= 2*Math.PI; while (dA < -Math.PI) dA += 2*Math.PI;
               const zF = dF[2]-pos[2], zB = back[2]-pos[2];
-              await _tween(1600, (e) => {                      // rotate the look-angle back along the tube's curve
+              await _tween(1200, (e) => {                      // rotate the look-angle back along the tube's curve
                 const a = aF + dA*e, hz = _L(zF, zB, e);
                 tCam.setPosition(pos[0], pos[1], pos[2]); tCam.setFocalPoint(pos[0]+Math.cos(a)*6, pos[1]+Math.sin(a)*6, pos[2]+hz); tCam.setViewUp(0, 0, 1);
                 tCam.setViewAngle(62); tCam.setClippingRange(0.03, 2000);
               }); }
             let lastS = -1;                                    // STORAGE stays on the WARM LUT -> the red just fades lighter (not blue yet)
-            await _tween(3500, (e, u) => {                     // STORAGE — shorter
+            await _tween(2500, (e, u) => {                     // STORAGE — shorter
               const k = Math.min(9, Math.floor(u * 10));
               if (k !== lastS) { W2.mapper.setColorByArrayName('hs' + String(k).padStart(2, '0')); lastS = k; }
             });
@@ -1756,7 +1756,7 @@ function main() {
             if (!touring) throw 0;
             if (pActor) { pActor.getProperty().setColor(0.25, 0.55, 0.98); pActor.setVisibility(true); pOn = true; startParticleAnim(); }   // blue cold-water flow resumes
             let lastD = -1, lastBlend = -1;
-            await _tween(5500, (e, u) => {                     // DISCHARGE — shorter; still crossfades warm -> cool so red eases into blue
+            await _tween(4000, (e, u) => {                     // DISCHARGE — shorter; still crossfades warm -> cool so red eases into blue
               const blend = Math.min(1, u / 0.55);             // LUT reaches full cool ~55% through -> gradual, not a jump
               if (Math.abs(blend - lastBlend) > 0.03 || (blend >= 1 && lastBlend < 1)) { if (W2) W2.mapper.setLookupTable(walkLUTblend(blend)); lastBlend = blend; }
               const k = Math.min(9, Math.floor(u * 10));
@@ -1855,7 +1855,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21m · smooth end-of-tour handoff (bg + UI fade)', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21n · shorter step 6, 11, 12', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
