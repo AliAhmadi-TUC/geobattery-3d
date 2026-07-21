@@ -1672,10 +1672,10 @@ function main() {
           const c0 = cam[0] || [inl[0], inl[1], inl[2] + 0.35];   // centreline point nearest the inlet
           const dInto = (cam.length > 3) ? (() => { const b = cam[3], d = [b[0]-c0[0], b[1]-c0[1], b[2]-c0[2]], L = Math.hypot(d[0], d[1], d[2]) || 1; return [d[0]/L, d[1]/L, d[2]/L]; })() : ax2;   // unit direction INTO the drift (sign-robust)
           const inEye = [inl[0] - dInto[0]*BEHIND, inl[1] - dInto[1]*BEHIND, c0[2] + 0.1];   // a bit behind the real inlet, at tube-centre height
-          if (W2) {                                            // clip the inlet-end CAP off the water surface -> look straight into the OPEN tube from behind the inlet
+          if (W2) {                                            // clip ONLY the entry-end CAP off the water surface -> open tube, but keep the flow-seeding stub (flow starts just inside c0)
             const wClip = vtk.Common.DataModel.vtkPlane.newInstance();
-            wClip.setNormal(dInto[0], dInto[1], dInto[2]);     // keep only the drift interior (+dInto side); the near cap is removed
-            wClip.setOrigin(inl[0] + dInto[0]*0.8, inl[1] + dInto[1]*0.8, inl[2] + dInto[2]*0.8);
+            wClip.setNormal(dInto[0], dInto[1], dInto[2]);     // keep the +dInto side (drift interior + the whole flow region); remove the cap just behind c0
+            wClip.setOrigin(c0[0] - dInto[0]*0.5, c0[1] - dInto[1]*0.5, c0[2] - dInto[2]*0.5);
             W2.mapper.addClippingPlane(wClip);
           }
           const walkPath = [inEye].concat(cam);                // the walk starts behind the inlet, then follows the centreline
@@ -1788,7 +1788,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21c · two-LUT (grey->red->blue) · water cap clipped', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21d · clip anchored to tube entry (flow stays inside)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
