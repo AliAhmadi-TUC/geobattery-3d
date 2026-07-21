@@ -791,8 +791,9 @@ function main() {
     let tourStep = 0, tourTargetStep = 0, tourGoto = -1; // step index, fast-forward target, and pending back-jump
 
     // ---- stress (von Mises) colour data ----
-    let stressMeta = null, stressLUT = null, stressLUTwire = null;
+    let stressMeta = null, stressLUT = null, stressLUTwire = null, stressLUTfield = null;
     const WVMIN = 1.5, WVMAX = 30;                          // the lattice's OWN vm window: far-field geostatic .. near-drift concentration
+    const FVMIN = 0.8, FVMAX = 5.0, FGAMMA = 1.8;          // the field PLANE's window: whole-domain geostatic is low+narrow -> gamma-pack the stops toward the low end so it doesn't read all-purple
     fetch(DATA + 'stress.json').then(r => r.ok ? r.json() : Promise.reject('no stress')).then(m => {
       stressMeta = m;
       stressLUT = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
@@ -801,6 +802,9 @@ function main() {
       stressLUTwire = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();   // LOG-spaced over the full lattice range -> far-field gradient reads, drift peak not blown out
       STRESS_COLORS.forEach((c, i) => { const t = i/(STRESS_COLORS.length-1);
         stressLUTwire.addRGBPoint(WVMIN * Math.pow(WVMAX/WVMIN, t), c[0], c[1], c[2]); });
+      stressLUTfield = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();   // whole-domain field plane: gamma spread over the low geostatic range
+      STRESS_COLORS.forEach((c, i) => { const t = Math.pow(i/(STRESS_COLORS.length-1), FGAMMA);
+        stressLUTfield.addRGBPoint(FVMIN + t*(FVMAX-FVMIN), c[0], c[1], c[2]); });
       if (colMode === 'vm') setColorMode('vm');
       updateColorbar();
     }).catch(() => {
@@ -831,7 +835,7 @@ function main() {
       const pwf = vtk.Common.DataModel.vtkPiecewiseFunction.newInstance();
       let ctf, arr;
       if (mode === 'vm' && stressLUT && stressMeta) {
-        arr = 'vm'; ctf = stressLUT;
+        arr = 'vm'; ctf = stressLUTfield || stressLUT;      // field plane: gamma-spread low-range LUT so the whole-domain geostatic isn't all purple
         pwf.addPoint(-1, 0); pwf.addPoint(-0.01, 0); pwf.addPoint(0, 1); pwf.addPoint(stressMeta.vmax, 1);
       } else if (mode === 'flow' && flowMeta) {
         arr = 'speed'; ctf = speedLUT;
@@ -1857,7 +1861,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21q · field plane: no stress in drift void; heat surfaces no longer block the plane', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21r · stress field-plane LUT (low-range gamma, not all-purple); medium grid RES 1.75', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
