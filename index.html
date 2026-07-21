@@ -416,15 +416,10 @@
         <select id="repr" class="seg-src"><option value="2">surface</option><option value="1">wireframe</option><option value="0">points</option></select>
       </div>
       <div class="row"><input type="checkbox" id="edges"><label for="edges">mesh edges</label></div>
-    </div>
-
-    <div class="grp fold" id="wireGrp"><h2>3-D mesh</h2>
-      <div class="row"><label for="meshStyle">model</label>
-        <select id="meshStyle"><option value="solid" selected>solid (3-D)</option><option value="wire">wireframe (2-D)</option></select>
+      <div id="wireGrp">
+        <div class="row"><input type="checkbox" id="wireOn"><label for="wireOn">3D lattice</label></div>
+        <div class="row"><label for="wireOp">lattice opacity</label><input type="range" id="wireOp" min="0.05" max="1" step="0.05" value="0.4"></div>
       </div>
-      <div class="row"><input type="checkbox" id="wireOn"><label for="wireOn">internal cell lattice</label></div>
-      <div class="row"><label for="wireOp">lattice opacity</label><input type="range" id="wireOp" min="0.05" max="1" step="0.05" value="0.4"></div>
-      <p class="note">solid = mesh faces · lattice = the tet cells inside · pair with clip to see in</p>
     </div>
   </div>
 </div>
@@ -698,6 +693,12 @@ function main() {
       o.mapper.setColorByArrayName(arr); o.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
       o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
       o.actor.getProperty().setLighting(false); o.actor.setVisibility(true); });
+    const wo = objs.wire;                                   // the internal lattice tracks the same phase field (full-domain temps)
+    if (wo && wo.hasHeat) {
+      wo.mapper.setLookupTable(lut); wo.mapper.setScalarModeToUsePointFieldData();
+      wo.mapper.setColorByArrayName(arr); wo.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
+      wo.mapper.setScalarVisibility(true); wo.mapper.setInterpolateScalarsBeforeMapping(true);   // visibility stays under the "3D lattice" toggle
+    }
     if (volume) volume.setVisibility(false);              // glow not needed once the surfaces recolour
     const g = document.getElementById('cbGrad');
     if (g) { g.style.background = heatBarGrad();
@@ -787,12 +788,16 @@ function main() {
     let tourStep = 0, tourTargetStep = 0, tourGoto = -1; // step index, fast-forward target, and pending back-jump
 
     // ---- stress (von Mises) colour data ----
-    let stressMeta = null, stressLUT = null;
+    let stressMeta = null, stressLUT = null, stressLUTwire = null;
+    const WVMIN = 1.5, WVMAX = 30;                          // the lattice's OWN vm window: far-field geostatic .. near-drift concentration
     fetch(DATA + 'stress.json').then(r => r.ok ? r.json() : Promise.reject('no stress')).then(m => {
       stressMeta = m;
       stressLUT = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
       STRESS_COLORS.forEach((c, i) => stressLUT.addRGBPoint(
         m.vmin + (i/(STRESS_COLORS.length-1))*(m.vmax - m.vmin), c[0], c[1], c[2]));
+      stressLUTwire = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();   // LOG-spaced over the full lattice range -> far-field gradient reads, drift peak not blown out
+      STRESS_COLORS.forEach((c, i) => { const t = i/(STRESS_COLORS.length-1);
+        stressLUTwire.addRGBPoint(WVMIN * Math.pow(WVMAX/WVMIN, t), c[0], c[1], c[2]); });
       if (colMode === 'vm') setColorMode('vm');
       updateColorbar();
     }).catch(() => {
@@ -943,13 +948,17 @@ function main() {
     }
     function colorWire(mode) {                           // field-colour the internal lattice
       const o = objs.wire; if (!o) return;
-      if (mode === 'temperature' && o.hasFrames) {
+      if (mode === 'temperature' && heatMode && o.hasHeat && frames[frameIdx] && frames[frameIdx].arr) {
+        o.mapper.setLookupTable(heatLUT()); o.mapper.setScalarModeToUsePointFieldData();   // phase timeline: lattice tracks hc/hs/hd like the surfaces
+        o.mapper.setColorByArrayName(frames[frameIdx].arr); o.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
+        o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
+      } else if (mode === 'temperature' && o.hasFrames) {
         o.mapper.setLookupTable(surfLUT); o.mapper.setScalarModeToUsePointFieldData();
         o.mapper.setColorByArrayName(fn(frameIdx)); o.mapper.setScalarRange(TCLIM[0], TCLIM[1]);
         o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
-      } else if (mode === 'vm' && o.hasVM && stressLUT) {
-        o.mapper.setLookupTable(stressLUT); o.mapper.setScalarModeToUsePointFieldData();
-        o.mapper.setColorByArrayName('vm'); o.mapper.setScalarRange(stressMeta.vmin, stressMeta.vmax);
+      } else if (mode === 'vm' && o.hasVM && stressLUTwire) {
+        o.mapper.setLookupTable(stressLUTwire); o.mapper.setScalarModeToUsePointFieldData();   // wire uses its OWN wide/log range so the whole lattice shows stress, not just the drift
+        o.mapper.setColorByArrayName('vm'); o.mapper.setScalarRange(WVMIN, WVMAX);
         o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
       } else {
         o.mapper.setScalarVisibility(false);
@@ -1220,6 +1229,7 @@ function main() {
         renderer.addActor(actor);
         objs.wire = { mapper, actor, isWire: true,
           hasVM: !!pd.getPointData().getArrayByName('vm'),
+          hasHeat: !!pd.getPointData().getArrayByName('hc00'),
           hasFrames: !!pd.getPointData().getArrayByName('T00') };
         colorWire(colMode);
         actor.setVisibility(document.getElementById('wireOn').checked);
@@ -1235,15 +1245,6 @@ function main() {
     };
     document.getElementById('wireOp').oninput = e => {
       if (objs.wire) { objs.wire.actor.getProperty().setOpacity(+e.target.value); renderWindow.render(); }
-    };
-    // model style: solid faces (3-D, default) <-> wireframe (2-D). The solid faces
-    // are the region surfaces; the internal lattice shows the cells inside.
-    document.getElementById('meshStyle').onchange = e => {
-      const wire = e.target.value === 'wire', rep = wire ? 1 : 2;   // 1 = wireframe, 2 = surface
-      ['water','rock','concrete','air'].forEach(nm => { if (objs[nm]) objs[nm].actor.getProperty().setRepresentation(rep); });
-      const rd = document.getElementById('repr'); if (rd) rd.value = String(rep);   // keep Representation in sync
-      if (objs.wire) objs.wire.actor.getProperty().setOpacity(wire ? 0.8 : +document.getElementById('wireOp').value);
-      renderWindow.render();
     };
     fetch(DATA + 'edges.vtp', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
       .catch(() => { const wg = document.getElementById('wireGrp'); if (wg) wg.style.display = 'none'; });
@@ -1855,7 +1856,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21n · shorter step 6, 11, 12', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21o · panel: 3D lattice reorg; stress on water/air; heat+stress on lattice', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
