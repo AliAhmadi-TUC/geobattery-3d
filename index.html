@@ -472,13 +472,12 @@
     </div>
 
     <div class="grp fold" id="reprGrp"><h2>Representation</h2>
-      <div class="row"><label>style</label>
-        <select id="repr" class="seg-src"><option value="2">surface</option><option value="1">wireframe</option><option value="0">points</option></select>
+      <div class="row"><label style="flex:0 0 auto;margin-right:6px">style</label>
+        <select id="repr" class="seg-src"><option value="2">surface</option><option value="1">wireframe</option><option value="0">points</option><option value="lattice">3D lattice</option></select>
       </div>
-      <div class="row"><input type="checkbox" id="edges"><label for="edges">mesh edges</label></div>
+      <div class="row" id="edgesRow"><input type="checkbox" id="edges"><label for="edges">mesh edges</label></div>
       <div class="row"><input type="checkbox" id="axesOn" checked><label for="axesOn">orientation axes</label></div>
       <div id="wireGrp">
-        <div class="row"><input type="checkbox" id="wireOn"><label for="wireOn">3D lattice</label></div>
         <div class="row"><label for="wireOp">lattice opacity</label><input type="range" id="wireOp" min="0.05" max="1" step="0.05" value="0.4"></div>
       </div>
     </div>
@@ -645,7 +644,9 @@ function main() {
   // ---- orientation axes (bottom-left) — X/Y/Z direction indicator, toggled from the panel ----
   let axesWidget = null;
   try {
-    const axesActor = vtk.Rendering.Core.vtkAxesActor.newInstance();
+    // recenter:false -> arrows start at the origin (no negative "tail"); slim tip/shaft so it doesn't read as fat
+    const axesActor = vtk.Rendering.Core.vtkAxesActor.newInstance({
+      config: { recenter: false, tipResolution: 24, tipRadius: 0.05, tipLength: 0.24, shaftResolution: 24, shaftRadius: 0.014 } });
     axesWidget = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
       actor: axesActor, interactor: view.getInteractor() });
     const _corners = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners || {};
@@ -673,7 +674,7 @@ function main() {
   const _canvas = document.querySelector('#view canvas');
   if (_canvas) _canvas.addEventListener('webglcontextlost', ev => {
     ev.preventDefault();
-    if (objs.wire) { objs.wire.actor.setVisibility(false); const w = document.getElementById('wireOn'); if (w) w.checked = false; }
+    if (objs.wire) { objs.wire.actor.setVisibility(false); const r = document.getElementById('repr'); if (r && r.value === 'lattice') r.value = '2'; }
     setStatus('GPU overloaded — 3-D mesh disabled. Reload if the view is blank.', true);
   }, false);
 
@@ -894,8 +895,16 @@ function main() {
 
     // volumetric glow removed — no volOn/volInt controls
 
+    // style select: surface / wireframe / points / 3D lattice. The lattice is its own actor (objs.wire),
+    // shown only in "lattice" mode; surface/wireframe/points set the surface actors' representation.
     document.getElementById('repr').onchange = e => {
-      const v=+e.target.value; Object.values(objs).forEach(o=>o.actor.getProperty().setRepresentation(v)); renderWindow.render(); };
+      const val = e.target.value, lattice = val === 'lattice';
+      const rep = lattice ? 2 : +val;                      // in lattice mode the surfaces stay solid so you see the mesh through them
+      Object.values(objs).forEach(o => { if (o && !o.isWire) o.actor.getProperty().setRepresentation(rep); });
+      toggleLattice(lattice);
+      syncReprUI();
+      renderWindow.render();
+    };
     document.getElementById('edges').onchange = e => {
       Object.values(objs).forEach(o=>o.actor.getProperty().setEdgeVisibility(e.target.checked)); renderWindow.render(); };
     document.getElementById('axesOn').onchange = e => {
@@ -1001,7 +1010,6 @@ function main() {
     // (+ flip side, a clip-only control); both reveal the internal wireframe.
     const cutSub = document.getElementById('cutSub');
     const flipRow = document.getElementById('flipRow');
-    const wireGrpEl = document.getElementById('wireGrp');
     let sliceOK = true;
     function syncCutUI() {
       const clip = document.getElementById('clipOn').checked, slice = document.getElementById('sliceOn').checked;
@@ -1009,10 +1017,6 @@ function main() {
       { const sc = document.getElementById('sliceCtl'); if (sc) sc.style.display = (clip || !sliceOK) ? 'none' : ''; }
       cutSub.style.display = (clip || slice) ? '' : 'none';   // axis / flip / position appear only once a mode is chosen
       flipRow.style.display = clip ? '' : 'none';             // flip side is clip-only (the field plane doesn't need it)
-      const w = document.getElementById('wireOn'), want = clip;   // lattice rides along with CLIP only; the field plane hides everything (incl. the lattice)
-      if (w && wireGrpEl && wireGrpEl.style.display !== 'none' && w.checked !== want) {
-        w.checked = want; w.dispatchEvent(new Event('change'));
-      }
       // clip/slice paint a scalar field on the cut — material & flow don't apply there, so grey them out
       const cutActive = clip || slice, cm = document.getElementById('colMode');
       ['material', 'flow'].forEach(v => {
@@ -1341,22 +1345,33 @@ function main() {
           hasHeat: !!pd.getPointData().getArrayByName('hc00'),
           hasFrames: !!pd.getPointData().getArrayByName('T00') };
         colorWire(colMode);
-        actor.setVisibility(document.getElementById('wireOn').checked);
+        actor.setVisibility(document.getElementById('repr').value === 'lattice');
         if (document.getElementById('clipOn').checked) applyCut();   // honour the active clip
         wireLoading = false; renderWindow.render(); setStatus('ready');
       }).catch(err => { wireLoading = false; setStatus('mesh load failed: ' + err, true); });
     }
-    document.getElementById('wireOn').onchange = e => {
-      if (e.target.checked) {
+    // show/hide the lattice actor (lazy-load on first reveal) — driven by the "3D lattice" style option
+    function toggleLattice(on) {
+      if (on) {
         if (!objs.wire && !wireLoading) { wireLoading = true; loadWire(); }
-        else if (objs.wire) { objs.wire.actor.setVisibility(true); renderWindow.render(); }
-      } else if (objs.wire) { objs.wire.actor.setVisibility(false); renderWindow.render(); }
-    };
+        else if (objs.wire) objs.wire.actor.setVisibility(true);
+      } else if (objs.wire) objs.wire.actor.setVisibility(false);
+    }
+    // mesh edges only make sense on the solid surface (task 4); lattice opacity only in lattice mode (task 3)
+    function syncReprUI() {
+      const val = document.getElementById('repr').value;
+      const er = document.getElementById('edgesRow'); if (er) er.style.display = (val === '2') ? '' : 'none';
+      const wg = document.getElementById('wireGrp'); if (wg && wg.dataset.avail !== '0') wg.style.display = (val === 'lattice') ? '' : 'none';
+    }
     document.getElementById('wireOp').oninput = e => {
       if (objs.wire) { objs.wire.actor.getProperty().setOpacity(+e.target.value); renderWindow.render(); }
     };
+    syncReprUI();
     fetch(DATA + 'edges.vtp', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
-      .catch(() => { const wg = document.getElementById('wireGrp'); if (wg) wg.style.display = 'none'; });
+      .catch(() => {   // no lattice data -> drop the option + its opacity control
+        const wg = document.getElementById('wireGrp'); if (wg) { wg.dataset.avail = '0'; wg.style.display = 'none'; }
+        const lo = document.querySelector('#repr option[value="lattice"]'); if (lo) lo.remove();
+      });
 
     // ================= guided tour (cinematic) =================
     // build -> zoom to inlet (red hot water) -> walk the drift as it heats -> hand back
@@ -1943,7 +1958,8 @@ function main() {
       mirActs.forEach(a => renderer.removeActor(a)); mirActs.length = 0;     // drop the mirror-assembly parts
       if (MIR.sIn) renderer.removeActor(MIR.sIn.a); if (MIR.sOut) renderer.removeActor(MIR.sOut.a);   // and the inlet/outlet spheres
       wellActors.forEach(a => a.setVisibility(true));     // restore the scene's inlet/outlet markers
-      const eOn = document.getElementById('edges').checked, rep = +document.getElementById('repr').value;
+      if (objs.wire) objs.wire.actor.setVisibility(document.getElementById('repr').value === 'lattice');   // lattice follows the style select
+      const eOn = document.getElementById('edges').checked, _rv = document.getElementById('repr').value, rep = _rv === 'lattice' ? 2 : +_rv;   // 'lattice' isn't a numeric representation
       if (tourStep < 13) {                                 // a clean step-13 finish KEEPS the heat-cycle finale (water/concrete/air, rock off); only an early abort restores the default layers
         LAYERS.forEach(L => { const o = objs[L.name]; if (o) { const pr = o.actor.getProperty();
           pr.setRepresentation(rep); pr.setPointSize(1); pr.setEdgeVisibility(eOn); pr.setOpacity(OPQ[L.name] ?? 0.3); o.actor.setVisibility(L.visible); } });
@@ -1963,7 +1979,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21z2 · flow enter/exit state restore (rock + opacity) · OPQ TDZ fix', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-21z3 · lattice as a style option · slim axes · edges only on surface · re-show welcome', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2010,7 +2026,7 @@ main();
   }
   segify($('colMode'), { material: 'material', temperature: 'heat', vm: 'stress', flow: 'flow' });
   segify($('cutAxis'));
-  segify($('repr'), { 2: 'surface', 1: 'wire', 0: 'points' });
+  segify($('repr'), { 2: 'surface', 1: 'wire', 0: 'points', lattice: 'lattice' });
 
   // timeline: phase graduations from the transient manifest + progress fill
   const slider = $('timeSlider'), ticksEl = $('timeTicks');
@@ -2107,7 +2123,7 @@ main();
   syncAria();
 
   // ---- welcome (first visit) + control-panel walkthrough ----
-  const SEEN = 'gb_welcomed_v1';
+  const SEEN = 'gb_welcomed_v2';   // bump to re-show the welcome after it changes (returning visitors see it once more)
   const wlScrim = $('wlScrim');
   const showWelcome = open => wlScrim.classList.toggle('open', open);
   const markSeen = () => { try { localStorage.setItem(SEEN, '1'); } catch (e) {} };
