@@ -79,7 +79,13 @@
     backdrop-filter:blur(6px); pointer-events:none; text-shadow:0 1px 6px rgba(0,0,0,.6); }
   #tourTitle b{ color:var(--heat-300); font-weight:700; margin-right:8px; }
   /* during the tour: hide the control widgets but KEEP the Geobattery hero card */
-  body.touring #panel, body.touring #deck, body.touring #infoCard, body.touring #infoScrim, body.touring #coach, body.touring #wlScrim{ display:none !important; }
+  body.touring #panel, body.touring #deck, body.touring #infoCard, body.touring #infoScrim, body.touring #coach, body.touring #wlScrim, body.touring #axLabels{ display:none !important; }
+  #axLabels{ position:fixed; inset:0; z-index:6; pointer-events:none; }
+  #axLabels span{ position:absolute; transform:translate(-50%,-50%); font:700 12px/1 var(--mono);
+    text-shadow:0 1px 3px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.6); }
+  #axLabels span[data-ax="x"]{ color:#ff6b6b; }
+  #axLabels span[data-ax="y"]{ color:#f2d64b; }
+  #axLabels span[data-ax="z"]{ color:#5ed17a; }
   /* the always-on chrome fades (opacity) so the hand-back to the normal view is smooth, not instant */
   body.touring #panelBtn, body.touring #infoBtn, body.touring #hint, body.touring #status{ opacity:0 !important; pointer-events:none !important; }
   #panelBtn, #infoBtn, #hint, #status{ transition:opacity .6s ease; }
@@ -471,7 +477,7 @@
     <div class="grp" id="layers"><h2>Surfaces</h2></div>
 
     <div class="grp fold" id="cutGrp"><h2>Clip &amp; slice</h2>
-      <div class="row" style="justify-content:center;gap:18px"><span id="clipCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="clipOn"><label for="clipOn">clip</label></span>
+      <div class="row" style="justify-content:space-between"><span id="clipCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="clipOn"><label for="clipOn">clip</label></span>
         <span id="sliceCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="sliceOn"><label for="sliceOn">field plane</label></span></div>
       <div id="cutSub" style="display:none">
         <div class="row"><label>axis</label>
@@ -504,6 +510,7 @@
 
 <div id="hint" aria-hidden="true"><span class="coarse">drag to rotate · pinch to zoom</span><span class="fine">drag to rotate · scroll to zoom</span></div>
 <div id="tourTitle" aria-live="polite"></div>
+<div id="axLabels" aria-hidden="true"><span data-ax="x">X</span><span data-ax="y">Y</span><span data-ax="z">Z</span></div>
 
 <div id="deck">
   <div id="timeGrp">
@@ -605,8 +612,8 @@ document.querySelectorAll('#panel .grp h2').forEach(h => {
 
 // ---- colour ramps ----
 // temperature ramp: inferno with a LIGHTER purple low end (low temps read clearly) up to the hot yellow glow.
-const INFERNO = [[0.46,0.26,0.62],[0.58,0.26,0.55],[0.69,0.29,0.44],[0.79,0.28,0.34],
-  [0.88,0.36,0.24],[0.953,0.471,0.098],[0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];
+const INFERNO = [[0.38,0.13,0.60],[0.52,0.16,0.53],[0.66,0.23,0.42],[0.78,0.27,0.33],
+  [0.88,0.36,0.24],[0.953,0.471,0.098],[0.988,0.647,0.039],[0.965,0.835,0.263],[0.988,1.0,0.643]];   // low end = stronger/more-saturated purple so cool temps read on light (tour) backgrounds
 const TCLIM = [10, 80], TMID = 25;   // temperature range; the ramp's MIDPOINT colour lands at TMID (10..25 = lower half, 25..80 = upper half)
 function tempFrac(T) { const f = T <= TMID ? 0.5*(T-TCLIM[0])/(TMID-TCLIM[0]) : 0.5 + 0.5*(T-TMID)/(TCLIM[1]-TMID); return Math.max(0, Math.min(1, f)); }
 function invTempFrac(f) { return f <= 0.5 ? TCLIM[0] + (TMID-TCLIM[0])*(f/0.5) : TMID + (TCLIM[1]-TMID)*((f-0.5)/0.5); }   // fraction -> temperature (two even legs about TMID)
@@ -665,33 +672,43 @@ function main() {
     axesWidget.setMinPixelSize(72);
     axesWidget.setMaxPixelSize(148);
     axesWidget.setEnabled(true);
-    // X/Y/Z letters at the arrow tips — vtkFollower text so they always face the camera and stay readable
-    try {
-      // vtk.js 36.4.1 registers VectorText as vtk.Rendering.Core.vtkVector (NOT Filters.Sources.vtkVectorText)
-      const VVT = (vtk.Filters.Sources && vtk.Filters.Sources.vtkVectorText)
-               || (vtk.Rendering.Core && vtk.Rendering.Core.vtkVector);
-      const VF  = (vtk.Rendering.Core && vtk.Rendering.Core.vtkFollower);
-      const oRen = axesWidget.getRenderer && axesWidget.getRenderer();
-      if (VVT && VVT.newInstance && VF && oRen) {
-        const oCam = oRen.getActiveCamera();
-        const mkLabel = (txt, pos, rgb) => {
-          const vt = VVT.newInstance({ text: txt });
-          const m = vtk.Rendering.Core.vtkMapper.newInstance(); m.setInputConnection(vt.getOutputPort());
-          const f = VF.newInstance(); f.setMapper(m); f.setCamera(oCam);
-          f.setScale(0.3, 0.3, 0.3); f.setPosition(pos[0], pos[1], pos[2]);
-          const p = f.getProperty(); p.setColor(rgb[0], rgb[1], rgb[2]); p.setLighting(false);
-          oRen.addActor(f); return f;
-        };
-        mkLabel('X', [1.15, -0.12, 0], [0.96, 0.40, 0.40]);   // match the axes actor's default arrow colours: X red, Y yellow, Z green
-        mkLabel('Y', [-0.06, 1.15, 0], [0.96, 0.86, 0.28]);
-        mkLabel('Z', [0, -0.1, 1.18], [0.42, 0.82, 0.45]);
-        oRen.resetCameraClippingRange();
-      }
-    } catch (le) { console.warn('axis labels unavailable', le); }
   } catch (e) {
     axesWidget = null; console.warn('orientation axes unavailable', e);
     const _ax = document.getElementById('axesOn'); if (_ax && _ax.closest('.row')) _ax.closest('.row').style.display = 'none';   // hide the dead toggle
   }
+
+  // X/Y/Z labels as an HTML overlay projected from the camera onto the gizmo — deterministic (vtk text-in-gizmo was unreliable).
+  // The marker mirrors the main camera's orientation, so we project each world axis' tip through the main camera and lay a <span> there.
+  if (axesWidget) {
+    const cont = document.getElementById('axLabels');
+    const spans = cont ? { x: cont.querySelector('[data-ax="x"]'), y: cont.querySelector('[data-ax="y"]'), z: cont.querySelector('[data-ax="z"]') } : null;
+    const _cross = (a, b) => [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+    const _norm = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0]/l, a[1]/l, a[2]/l]; };
+    const _dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+    const C = [0.5, 0.5, 0.5];   // gizmo frames the axes' [0,1]^3 bbox -> its centre projects to the gizmo centre
+    const updateAxisLabels = () => {
+      if (!cont || !spans) return;
+      const canvas = document.querySelector('#view canvas');
+      const oRen = axesWidget.getRenderer && axesWidget.getRenderer();
+      if (!canvas || !oRen) return;
+      const cr = canvas.getBoundingClientRect(), vp = oRen.getViewport();   // vp = [x0,y0,x1,y1] normalised, y bottom-up
+      const gx0 = cr.left + vp[0]*cr.width, gx1 = cr.left + vp[2]*cr.width;
+      const gyT = cr.top + (1-vp[3])*cr.height, gyB = cr.top + (1-vp[1])*cr.height;
+      const cx = (gx0+gx1)/2, cy = (gyT+gyB)/2, scale = (Math.min(gx1-gx0, gyB-gyT)/2) / 0.95;   // world radius ~0.866 fills the gizmo
+      const cam = renderer.getActiveCamera(), P = cam.getPosition(), F = cam.getFocalPoint(), U = cam.getViewUp();
+      const vd = _norm([F[0]-P[0], F[1]-P[1], F[2]-P[2]]), rt = _norm(_cross(vd, U)), up = _cross(rt, vd);
+      const place = (span, tip) => { if (!span) return;
+        const O = [tip[0]-C[0], tip[1]-C[1], tip[2]-C[2]];
+        span.style.left = (cx + _dot(O, rt)*scale) + 'px';
+        span.style.top  = (cy - _dot(O, up)*scale) + 'px';
+      };
+      place(spans.x, [1.16, 0, 0]); place(spans.y, [0, 1.16, 0]); place(spans.z, [0, 0, 1.16]);
+    };
+    try { renderer.getActiveCamera().onModified(updateAxisLabels); } catch (e) {}
+    window.addEventListener('resize', updateAxisLabels);
+    setTimeout(updateAxisLabels, 300); setTimeout(updateAxisLabels, 1200);
+    window._axLabels = updateAxisLabels;   // let the #axesOn toggle refresh positions when re-shown
+  } else { const c = document.getElementById('axLabels'); if (c) c.style.display = 'none'; }
 
   // ---- surface layers (Phong + specular per material) ----
   const LAYERS = [
@@ -947,7 +964,10 @@ function main() {
     document.getElementById('edges').onchange = e => {
       Object.values(objs).forEach(o=>o.actor.getProperty().setEdgeVisibility(e.target.checked)); renderWindow.render(); };
     document.getElementById('axesOn').onchange = e => {
-      if (axesWidget) { axesWidget.setEnabled(e.target.checked); renderWindow.render(); } };
+      if (axesWidget) axesWidget.setEnabled(e.target.checked);
+      const c = document.getElementById('axLabels'); if (c) c.style.display = (axesWidget && e.target.checked) ? '' : 'none';
+      if (window._axLabels) window._axLabels();
+      renderWindow.render(); };
 
     // ---- cross-section plane: reads the multi-field domain volume, coloured by
     //      the active mode (heat / stress / material / flow), through the rock ----
@@ -2020,7 +2040,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22b · FIX axis labels namespace (vtkVector) · tour-abort no longer forces tutorial · centring + guards', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22c · HTML axis labels (projected) · clip both-ends · live-demo walkthrough · stronger purple', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2191,18 +2211,34 @@ main();
     { sel: '#sceneGrp', title: 'Choose a scenario',
       body: 'Switch between the surveyed as-built drift (year 1) and the 10-metre array cell (year 10).' },
     { sel: '#colGrp',  title: 'Colour the model',
-      body: 'Colour the surfaces by material, temperature, rock stress or water velocity. In temperature mode, tick “phase animation” to play the heating → storage → cooling → recovery cycle on the timeline at the bottom.' },
+      body: 'Colour the surfaces by material, temperature, rock stress or water velocity — right now it’s showing rock stress. In temperature mode, “phase animation” plays the heating → storage → cooling → recovery cycle on the timeline.' },
     { sel: '#layers',  title: 'Show or hide layers',
-      body: 'Toggle the rock, concrete, water and air surfaces to look inside the flooded drift, and set each one’s opacity.' },
+      body: 'Toggle the rock, concrete, water and air surfaces (and their opacity) — rock is hidden now so you can see inside the flooded drift.' },
     { sel: '#cutGrp',  title: 'Cut it open',
-      body: '“Clip” slices the model with a movable plane. “Field plane” drops a cross-section that paints the active field right through the surrounding rock.' },
+      body: '“Clip” slices the model with a movable plane — it’s cutting through now. “Field plane” instead drops a cross-section that paints the active field through the surrounding rock.' },
     { sel: '#reprGrp', title: 'Style & orientation',
-      body: 'Switch surface / wireframe / points / 3-D lattice, toggle mesh edges (on the surface) and the X·Y·Z orientation axes shown at the bottom-left corner.' },
+      body: 'Switch surface / wireframe / points / 3-D lattice — showing the wireframe now. Also toggles mesh edges (on the surface) and the X·Y·Z orientation axes at the bottom-left corner.' },
     { sel: '#reset',   title: 'Reset & the guided tour',
       body: 'Reframe the view at any time with this button. For the narrated fly-through, hit ▶ guided tour under the title. That’s it — enjoy exploring!' },
   ];
   const coach = $('coach'), hole = $('coachHole'), ccard = $('coachCard');
-  let cIdx = 0;
+  let cIdx = 0, coachSnap = null;
+  // live demo: each step drives a real control so its effect shows in the 3-D view; restored to the snapshot between steps
+  const _setSel = (id, v) => { const el = $(id); if (el && v != null && el.value !== v) { el.value = v; el.dispatchEvent(new Event('change')); } };
+  const _setChk = (id, v) => { const el = $(id); if (el && v != null && el.checked !== v) { el.checked = v; el.dispatchEvent(new Event('change')); } };
+  const coachSnapshot = () => ({
+    colMode: ($('colMode') || {}).value, repr: ($('repr') || {}).value,
+    visRock: $('vis_rock') ? $('vis_rock').checked : null,
+    clip: $('clipOn') ? $('clipOn').checked : false, slice: $('sliceOn') ? $('sliceOn').checked : false });
+  const coachRestore = s => { if (!s) return;
+    _setChk('clipOn', s.clip); _setChk('sliceOn', s.slice);   // clear any demo cut first (it constrains the colour mode)
+    _setSel('colMode', s.colMode); _setSel('repr', s.repr); _setChk('vis_rock', s.visRock); };
+  const COACH_DEMO = {
+    '#colGrp':  () => _setSel('colMode', 'vm'),     // recolour by rock stress
+    '#layers':  () => _setChk('vis_rock', false),   // hide rock -> see inside the drift
+    '#cutGrp':  () => _setChk('clipOn', true),      // drop a clip plane through the model
+    '#reprGrp': () => _setSel('repr', '1'),         // show the wireframe
+  };
   const placeCoach = el => {
     const r = el.getBoundingClientRect(), pad = 8, W = innerWidth, H = innerHeight;
     hole.style.left = (r.left - pad) + 'px'; hole.style.top = (r.top - pad) + 'px';
@@ -2218,6 +2254,7 @@ main();
   const renderCoach = () => {
     const step = COACH[cIdx], el = document.querySelector(step.sel);
     if (!el) { if (++cIdx < COACH.length) return renderCoach(); return endCoach(); }
+    if (coachSnap) { coachRestore(coachSnap); const d = COACH_DEMO[step.sel]; if (d) d(); }   // reset to base, then live-demo this step in the 3-D view
     { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.remove('fold'); }   // reveal a folded group so the showcase shows its contents
     if (innerWidth < 760) { const inPanel = el.closest && el.closest('#panel'); $('panel').classList.toggle('closed', !inPanel); }   // mobile: the bottom-sheet panel covers the deck — close it for the (deck) reset step
     el.scrollIntoView({ block: 'nearest' });
@@ -2231,9 +2268,10 @@ main();
   function startCoach() {
     if (document.body.classList.contains('touring')) return;   // never launch the walkthrough over an active guided tour
     $('panel').classList.remove('closed'); syncAria();       // the walkthrough needs the panel open
+    coachSnap = coachSnapshot();                             // remember the user's state so the demos can be undone
     cIdx = 0; coach.classList.add('on'); setTimeout(renderCoach, 240);
   }
-  function endCoach() { coach.classList.remove('on'); }
+  function endCoach() { coach.classList.remove('on'); if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
   $('cNext').onclick = () => { if (cIdx >= COACH.length - 1) return endCoach(); cIdx++; renderCoach(); };
   $('cPrev').onclick = () => { if (cIdx > 0) { cIdx--; renderCoach(); } };
   $('cEnd').onclick = endCoach;
