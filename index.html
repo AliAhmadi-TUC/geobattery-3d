@@ -139,6 +139,14 @@
 
   .row{ display:flex; align-items:center; gap:10px; margin:7px 0; min-height:24px; }
   .row label{ flex:1; font-size:12px; color:var(--ink-70); }
+  .tut-launch{ display:flex; align-items:center; justify-content:center; gap:7px; width:100%;
+    margin:2px 0 10px; padding:8px 10px; cursor:pointer; border-radius:var(--r-md);
+    background:var(--raise); border:1px solid var(--line); color:var(--ink-70);
+    font:600 11px var(--ui); letter-spacing:.02em;
+    transition:border-color .18s, color .18s, background .18s; }
+  .tut-launch svg{ flex:none; color:var(--heat-400); }
+  .tut-launch:hover{ border-color:var(--heat-700); color:var(--heat-200); background:#20222f; }
+  .tut-launch:hover svg{ color:var(--heat-300); }
   .row input[type=range]{ flex:1.15; }
   .note{ margin:6px 0 0; font:400 10px/1.5 var(--mono); color:var(--mut-2); }
 
@@ -435,7 +443,11 @@
       <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
     </span></button>
 
-    <div class="grp"><h2>Scenario</h2>
+    <button id="tutBtn" class="tut-launch" title="a guided walkthrough of the control panel">
+      <svg width="13" height="13" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="7.2"/><path d="M6.7 6.9a2.3 2.3 0 1 1 3.1 2.15c-.5.2-.8.6-.8 1.15v.4" stroke-linecap="round"/><circle cx="9" cy="13.4" r="0.3" fill="currentColor"/></svg>
+      how to use these controls</button>
+
+    <div class="grp" id="sceneGrp"><h2>Scenario</h2>
       <div class="row"><select id="scene" style="flex:1">
         <option value="drift">As-built drift · end of charge</option>
         <option value="array">10 m array cell · year 10</option>
@@ -459,7 +471,7 @@
     <div class="grp" id="layers"><h2>Surfaces</h2></div>
 
     <div class="grp fold" id="cutGrp"><h2>Clip &amp; slice</h2>
-      <div class="row"><span id="clipCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="clipOn"><label for="clipOn">clip</label></span>
+      <div class="row" style="justify-content:center"><span id="clipCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="clipOn"><label for="clipOn">clip</label></span>
         <span id="sliceCtl" style="margin-left:18px;display:flex;align-items:center;gap:10px"><input type="checkbox" id="sliceOn"><label for="sliceOn">field plane</label></span></div>
       <div id="cutSub" style="display:none">
         <div class="row"><label>axis</label>
@@ -556,9 +568,7 @@
       rock stress and water flow across one annual cycle, in full 3-D.</p>
     <div class="wl-actions">
       <button id="wlTour" class="wl-btn primary"><span class="wl-ic">▶</span>
-        <span class="wl-tx">Take the guided tour<em>a narrated fly-through — best for a first look</em></span></button>
-      <button id="wlTut" class="wl-btn"><span class="wl-ic">◆</span>
-        <span class="wl-tx">Show me the controls<em>a quick walkthrough of the control panel</em></span></button>
+        <span class="wl-tx">Take the guided tour<em>a narrated fly-through, then a quick tour of the controls</em></span></button>
       <button id="wlSkip" class="wl-btn ghost">Skip — I'll explore on my own</button>
     </div>
   </div>
@@ -655,6 +665,27 @@ function main() {
     axesWidget.setMinPixelSize(72);
     axesWidget.setMaxPixelSize(148);
     axesWidget.setEnabled(true);
+    // X/Y/Z letters at the arrow tips — vtkFollower text so they always face the camera and stay readable
+    try {
+      const VVT = (vtk.Filters.Sources && vtk.Filters.Sources.vtkVectorText);
+      const VF  = (vtk.Rendering.Core && vtk.Rendering.Core.vtkFollower);
+      const oRen = axesWidget.getRenderer && axesWidget.getRenderer();
+      if (VVT && VF && oRen) {
+        const oCam = oRen.getActiveCamera();
+        const mkLabel = (txt, pos, rgb) => {
+          const vt = VVT.newInstance({ text: txt });
+          const m = vtk.Rendering.Core.vtkMapper.newInstance(); m.setInputConnection(vt.getOutputPort());
+          const f = VF.newInstance(); f.setMapper(m); f.setCamera(oCam);
+          f.setScale(0.3, 0.3, 0.3); f.setPosition(pos[0], pos[1], pos[2]);
+          const p = f.getProperty(); p.setColor(rgb[0], rgb[1], rgb[2]); p.setLighting(false);
+          oRen.addActor(f); return f;
+        };
+        mkLabel('X', [1.15, -0.12, 0], [0.96, 0.40, 0.40]);   // match the axes actor's default arrow colours: X red, Y yellow, Z green
+        mkLabel('Y', [-0.06, 1.15, 0], [0.96, 0.86, 0.28]);
+        mkLabel('Z', [0, -0.1, 1.18], [0.42, 0.82, 0.45]);
+        oRen.resetCameraClippingRange();
+      }
+    } catch (le) { console.warn('axis labels unavailable', le); }
   } catch (e) {
     axesWidget = null; console.warn('orientation axes unavailable', e);
     const _ax = document.getElementById('axesOn'); if (_ax && _ax.closest('.row')) _ax.closest('.row').style.display = 'none';   // hide the dead toggle
@@ -1975,6 +2006,7 @@ function main() {
       if (tourGoto < 0 && tourStep < 13) { tCam.setViewAngle(baseFov); renderer.resetCamera(); }   // aborted early (✕ end / short walk): reframe to a usable overview
       renderer.resetCameraClippingRange(); renderWindow.render();   // a clean step-13 finish keeps the tour's final overview pose; only the clip range is refreshed
       if (tourGoto >= 0) { const g = tourGoto; tourGoto = -1; tourTargetStep = g; setTimeout(runTour, 60); }   // back-jump: replay + fast-forward
+      else document.dispatchEvent(new CustomEvent('gb:tourend'));   // genuine end -> the welcome may chain the control-panel walkthrough
     }
     const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = () => { if (!touring) { tourTargetStep = 0; tourGoto = -1; } runTour(); }; }
     const _pb = document.getElementById('tourPause');
@@ -1986,7 +2018,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-21z4 · welcome dismissal persists (Esc/backdrop) · repr sub-row re-sync fixes', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22a · XYZ axis labels · centred clip/slice · tour→tutorial · panel tutorial button · fuller walkthrough', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2135,23 +2167,28 @@ main();
   const showWelcome = open => wlScrim.classList.toggle('open', open);
   const markSeen = () => { try { localStorage.setItem(SEEN, '1'); } catch (e) {} };
   const dismissWelcome = () => { markSeen(); showWelcome(false); };   // any dismissal (button, backdrop, Esc) persists, so it won't nag on reload
-  $('wlTour').onclick = () => { dismissWelcome(); const t = $('tourBtn'); if (t) t.click(); };
-  $('wlTut').onclick  = () => { dismissWelcome(); startCoach(); };
+  // "take the tour" runs the cinematic tour, then chains the control-panel walkthrough (first-visit onboarding)
+  let pendingTut = false;
+  $('wlTour').onclick = () => { dismissWelcome(); pendingTut = true; const t = $('tourBtn'); if (t) t.click(); };
   $('wlSkip').onclick = () => { dismissWelcome(); };
   wlScrim.addEventListener('click', e => { if (e.target === wlScrim) dismissWelcome(); });   // click the backdrop to dismiss
+  document.addEventListener('gb:tourend', () => { if (pendingTut) { pendingTut = false; setTimeout(startCoach, 600); } });
+  { const tb = $('tutBtn'); if (tb) tb.onclick = () => startCoach(); }          // re-launch the walkthrough any time from the panel
   { const it = $('infoTut'); if (it) it.onclick = ev => { ev.preventDefault(); setInfo(false); startCoach(); }; }
 
   const COACH = [
+    { sel: '#sceneGrp', title: 'Choose a scenario',
+      body: 'Switch between the surveyed as-built drift (year 1) and the 10-metre array cell (year 10).' },
     { sel: '#colGrp',  title: 'Colour the model',
-      body: 'Choose what the surfaces show — material, temperature, rock stress or water velocity. In temperature mode, tick “phase animation” to play the heating → storage → cooling → recovery cycle on the timeline.' },
+      body: 'Colour the surfaces by material, temperature, rock stress or water velocity. In temperature mode, tick “phase animation” to play the heating → storage → cooling → recovery cycle on the timeline at the bottom.' },
     { sel: '#layers',  title: 'Show or hide layers',
-      body: 'Toggle the rock, concrete, water and air surfaces to look inside the flooded drift.' },
+      body: 'Toggle the rock, concrete, water and air surfaces to look inside the flooded drift, and set each one’s opacity.' },
     { sel: '#cutGrp',  title: 'Cut it open',
       body: '“Clip” slices the model with a movable plane. “Field plane” drops a cross-section that paints the active field right through the surrounding rock.' },
-    { sel: '#reprGrp', title: 'Look & orientation',
-      body: 'Switch surface / wireframe / points, show mesh edges or the 3-D lattice, and toggle the X·Y·Z axes shown at the bottom-left corner.' },
+    { sel: '#reprGrp', title: 'Style & orientation',
+      body: 'Switch surface / wireframe / points / 3-D lattice, toggle mesh edges (on the surface) and the X·Y·Z orientation axes shown at the bottom-left corner.' },
     { sel: '#reset',   title: 'Reset & the guided tour',
-      body: 'This button reframes the view at any time. For the narrated fly-through, hit ▶ guided tour under the title. That’s it — enjoy exploring!' },
+      body: 'Reframe the view at any time with this button. For the narrated fly-through, hit ▶ guided tour under the title. That’s it — enjoy exploring!' },
   ];
   const coach = $('coach'), hole = $('coachHole'), ccard = $('coachCard');
   let cIdx = 0;
@@ -2170,6 +2207,7 @@ main();
   const renderCoach = () => {
     const step = COACH[cIdx], el = document.querySelector(step.sel);
     if (!el) { if (++cIdx < COACH.length) return renderCoach(); return endCoach(); }
+    { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.remove('fold'); }   // reveal a folded group so the showcase shows its contents
     el.scrollIntoView({ block: 'nearest' });
     $('cStep').textContent = 'Step ' + (cIdx + 1) + ' of ' + COACH.length;
     $('cTitle').textContent = step.title; $('cBody').textContent = step.body;
