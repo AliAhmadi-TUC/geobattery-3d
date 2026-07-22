@@ -354,7 +354,9 @@
   #coach.on{ opacity:1; }
   #coachHole{ position:absolute; left:0; top:0; width:0; height:0; border-radius:9px; pointer-events:none;
     box-shadow:0 0 0 9999px rgba(8,9,15,.70), 0 0 0 2px var(--heat) inset;
-    transition:left .32s cubic-bezier(.3,.9,.3,1), top .32s cubic-bezier(.3,.9,.3,1), width .32s, height .32s; }
+    transition:left .32s cubic-bezier(.3,.9,.3,1), top .32s cubic-bezier(.3,.9,.3,1), width .32s, height .32s, box-shadow .5s ease; }
+  /* on a demo step, once the effect is applied the dim lifts so the 3-D showcase is visible (panel ring stays) */
+  #coach.reveal #coachHole{ box-shadow:0 0 0 9999px rgba(8,9,15,.16), 0 0 0 2px var(--heat) inset; }
   #coachCard{ position:absolute; left:50%; top:50%; width:min(86vw,292px); pointer-events:none;
     background:var(--surface); border:1px solid var(--heat-700); border-radius:var(--r-md);
     box-shadow:var(--sh-lg); padding:15px 16px 13px; transition:left .32s ease, top .32s ease; }
@@ -1197,7 +1199,7 @@ function main() {
 
     // ---- timeline = the seasonal phase steps (default; the old annual 4-step is retired) ----
     setStatus('loading phase steps…');
-    fetch(DATA + 'heat.json').then(r => r.json()).then(data => {
+    fetch(DATA + 'heat.json').then(r => { if (!r.ok) throw 0; return r.json(); }).then(data => {   // r.ok guard: a 404 serves HTML (not JSON) -> would throw a cryptic "Unexpected token '<'"
       heatFrames = [];
       (data.phases || []).forEach((ph, pi) => (ph.frames || []).forEach((f, fi) => {
         if (pi > 0 && fi === 0) return;                    // drop each phase's OPENING frame — it duplicates the previous phase's closing value
@@ -1207,7 +1209,13 @@ function main() {
       document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
       switchFrames(heatFrames);                            // phases become the timeline; opens at end-of-charge
       setStatus('ready');
-    }).catch(err => setStatus('phase load failed: ' + err, true));
+    }).catch(() => {   // scenes without phase data (e.g. the array cell) have no heat.json -> no timeline, just show temperature
+      heatFrames = null;
+      const hp = document.getElementById('heatPlayOn'); if (hp && hp.closest('.row')) hp.closest('.row').style.display = 'none';
+      const tg = document.getElementById('timeGrp'); if (tg) tg.style.display = 'none';
+      document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
+      setStatus('ready');
+    });
 
     // ---- flow field (drift only): arrows + moving arrows, lazy-loaded ----
     let flowActor = null, flowLoading = false, flowMeta = null, speedLUT = null;
@@ -2045,7 +2053,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22d · walkthrough re-entry/tour guards · gizmo hidden in tour · flex/flash/vm-guard fixes', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22e · walkthrough lifts dim to reveal the showcase · array-scene heat.json 404 handled', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2228,7 +2236,7 @@ main();
       body: 'Reframe the view at any time with this button. For the narrated fly-through, hit ▶ guided tour under the title. That’s it — enjoy exploring!' },
   ];
   const coach = $('coach'), hole = $('coachHole'), ccard = $('coachCard');
-  let cIdx = 0, coachSnap = null;
+  let cIdx = 0, coachSnap = null, coachRevealT = null;
   // live demo: each step drives a real control so its effect shows in the 3-D view; restored to the snapshot between steps
   const _setSel = (id, v) => { const el = $(id); if (el && v != null && el.value !== v) { el.value = v; el.dispatchEvent(new Event('change')); } };
   const _setChk = (id, v) => { const el = $(id); if (el && v != null && el.checked !== v) { el.checked = v; el.dispatchEvent(new Event('change')); } };
@@ -2260,7 +2268,10 @@ main();
   const renderCoach = () => {
     const step = COACH[cIdx], el = document.querySelector(step.sel);
     if (!el) { if (++cIdx < COACH.length) return renderCoach(); return endCoach(); }
-    if (coachSnap) { coachRestore(coachSnap); const d = COACH_DEMO[step.sel]; if (d) d(); }   // reset to base, then live-demo this step in the 3-D view
+    coach.classList.remove('reveal'); if (coachRevealT) { clearTimeout(coachRevealT); coachRevealT = null; }   // re-dim while switching steps
+    let demoed = false;
+    if (coachSnap) { coachRestore(coachSnap); const d = COACH_DEMO[step.sel]; if (d) { d(); demoed = true; } }   // reset to base, then live-demo this step in the 3-D view
+    if (demoed) coachRevealT = setTimeout(() => coach.classList.add('reveal'), 1200);   // after the effect lands, lift the dim so the 3-D showcase is visible
     { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.remove('fold'); }   // reveal a folded group so the showcase shows its contents
     if (innerWidth < 760) { const inPanel = el.closest && el.closest('#panel'); $('panel').classList.toggle('closed', !inPanel); }   // mobile: the bottom-sheet panel covers the deck — close it for the (deck) reset step
     el.scrollIntoView({ block: 'nearest' });
@@ -2277,7 +2288,7 @@ main();
     if (coachSnap == null) coachSnap = coachSnapshot();       // capture the REAL base state once (idempotent — a mid-run relaunch can't clobber it)
     cIdx = 0; coach.classList.add('on'); setTimeout(renderCoach, 240);
   }
-  function endCoach() { coach.classList.remove('on'); if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
+  function endCoach() { coach.classList.remove('on', 'reveal'); if (coachRevealT) { clearTimeout(coachRevealT); coachRevealT = null; } if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
   $('cNext').onclick = () => { if (cIdx >= COACH.length - 1) return endCoach(); cIdx++; renderCoach(); };
   $('cPrev').onclick = () => { if (cIdx > 0) { cIdx--; renderCoach(); } };
   $('cEnd').onclick = endCoach;
