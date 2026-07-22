@@ -92,6 +92,7 @@
   .readout .rl{ font-size:12px; color:var(--mut); line-height:1.35; }
   .verdict{ margin-left:auto; padding:7px 13px; border-radius:999px; font:800 12px ui-monospace,Consolas,monospace; letter-spacing:.04em; white-space:nowrap; }
   .verdict.pass{ background:var(--grn-dd); color:var(--grn); border:1px solid var(--grn-d); }
+  .verdict.marginal{ background:#241a0e; color:var(--amber); border:1px solid #6b4a1e; }
   .verdict.fail{ background:#2a1512; color:#e08a6f; border:1px solid #6b2f22; }
   .presets{ display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
   .preset{ font:600 11px inherit; padding:6px 10px; border-radius:9px; cursor:pointer; color:var(--mut);
@@ -256,7 +257,7 @@
         </tbody>
       </table>
     </div>
-    <p class="muted" style="margin-top:11px">In warm 30&nbsp;°C rock the same drift "returns" ~38–45%, but 60–80% of that is
+    <p class="muted" style="margin-top:11px">In warm 30&nbsp;°C rock the same drift "returns" ~38–45%, but ~57–81% of that is
       mined geothermal heat, not the solar you stored — so warm rock changes the <b>grade</b>, not the retention.</p>
   </section>
 
@@ -347,7 +348,7 @@
   // ── interactive screening tool: master curve RF(L_c) ──
   (function(){
     // master curve (Fo, RF) — 30-pt scan, gneiss kappa=5, chi=0.5096, first cycle (from dimensionless_scan.csv)
-    const M=[[0.05,0.89961],[0.06655,0.88402],[0.08859,0.86602],[0.11792,0.84524],[0.15697,0.82127],[0.20894,0.79365],[0.27811,0.7619],[0.3702,0.72548],[0.49277,0.68385],[0.65592,0.6365],[0.87309,0.58302],[1.16217,0.52324],[1.54695,0.45751],[2.05914,0.38718],[2.74091,0.31497],[3.64842,0.24502],[4.85639,0.18199],[6.46431,0.12968],[8.60461,0.08974],[11.45356,0.06143],[15.24577,0.04234],[20.29356,0.02967],[27.01265,0.02117],[35.9564,0.01531],[47.86137,0.01119],[63.70802,0.00824],[84.80142,0.00609],[112.87872,0.00452],[150.25227,0.00337],[200,0.00251]];
+    const M=[[0.05,0.89961],[0.06655,0.88402],[0.08859,0.86602],[0.11792,0.84524],[0.15697,0.82127],[0.20894,0.79365],[0.27811,0.7619],[0.3702,0.72548],[0.49277,0.68385],[0.65592,0.6365],[0.87309,0.58302],[1.16217,0.52324],[1.54695,0.45751],[2.05914,0.38718],[2.74091,0.31497],[3.64842,0.24502],[4.85639,0.18199],[6.46431,0.12968],[8.60461,0.08974],[11.45356,0.06143],[13.664,0.04875],[15.24577,0.04234],[20.29356,0.02967],[27.01265,0.02117],[35.9564,0.01531],[47.86137,0.01119],[63.70802,0.00824],[84.80142,0.00609],[112.87872,0.00452],[150.25227,0.00337],[200,0.00251]];
     const ATP = 14.946;   // alpha_rock * t_store [m^2]; Fo = ATP / Lc^2
     const foOf = lc => ATP/(lc*lc);
     const rfOf = lc => { const fo=foOf(lc);            // interpolate RF at Fo (linear in log-Fo)
@@ -382,7 +383,7 @@
       mk.setAttribute('cx',x(lc)); mk.setAttribute('cy',y(rf));
       const pass=rf>=0.5; rfVal.style.color=pass?'#24c46b':(rf>=0.25?'#e8913c':'#e0564a');
       mk.setAttribute('stroke',pass?'#24c46b':(rf>=0.25?'#e8913c':'#e0564a'));
-      vd.className='verdict '+(pass?'pass':'fail'); vd.textContent=pass?'✓ stores it':(rf>=0.25?'△ marginal':'✕ loses it');
+      vd.className='verdict '+(pass?'pass':(rf>=0.25?'marginal':'fail')); vd.textContent=pass?'✓ stores it':(rf>=0.25?'△ marginal':'✕ loses it');
     };
     lcIn.addEventListener('input',update);
     // presets (the opening archetypes)
