@@ -358,7 +358,8 @@
     box-shadow:0 0 0 2px var(--heat) inset, 0 0 24px 3px var(--heat-glow);
     transition:left .32s cubic-bezier(.3,.9,.3,1), top .32s cubic-bezier(.3,.9,.3,1), width .32s, height .32s; }
   /* during the walkthrough: fade everything except the domain, the focused group, and the card */
-  body.coaching #panel .grp, body.coaching #tutBtn, body.coaching #hud, body.coaching #infoBtn{ opacity:.28; transition:opacity .3s ease; }
+  /* fade the header (#hero) + status + info — NOT #hud (it's an ancestor of #panel; opacity would compound and cap the panel) */
+  body.coaching #panel .grp, body.coaching #tutBtn, body.coaching #hero, body.coaching #status, body.coaching #infoBtn{ opacity:.28; transition:opacity .3s ease; }
   body.coaching #panel .grp.coach-focus{ opacity:1; }
   #coachCard{ position:absolute; left:50%; top:50%; width:min(86vw,292px); pointer-events:none;
     background:var(--surface); border:1px solid var(--heat-700); border-radius:var(--r-md);
@@ -2075,7 +2076,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22i · array = year-1 cycle (cold start) + rock animated · tutorial dims other panel groups, not the domain', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22j · fix: tutorial faded #hero not #hud (was compounding onto the whole panel)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
