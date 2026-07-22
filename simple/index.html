@@ -110,8 +110,8 @@
         orientation="0 0 90deg" camera-orbit="35deg 72deg auto" min-field-of-view="12deg"></model-viewer>
       <div class="cbar"><span>10&nbsp;°C</span><span class="grad"></span><span>80&nbsp;°C</span></div>
     </div>
-    <p class="cap" id="cap-drift"><b>One drift, just after charging.</b> The surveyed drift, filled with ~66&nbsp;°C
-      water after a 61-day charge. Over the following months that heat drains into the surrounding rock.</p>
+    <p class="cap" id="cap-drift"><b>One drift, just after charging.</b> The surveyed drift, filled to a mean
+      ~66&nbsp;°C after a 61-day charge. Over the following months that heat drains into the surrounding rock.</p>
     <p class="cap" id="cap-array" hidden><b>A drift array, after ten years.</b> One cell of a 10-m-pitch array
       (its faces are symmetry planes). The rock between drifts has warmed up and stopped being a sink, so the
       stored water stays hot — ~58&nbsp;°C at the end of storage.</p>
@@ -131,13 +131,14 @@
   <section>
     <h2>One drift leaks — an array saves</h2>
     <div class="card">
-      <h3>Heat recovered each winter, over ten years</h3>
-      <p class="sc">Round-trip = heat drawn back ÷ heat stored in the ground.</p>
+      <h3>How much stored heat comes back each winter</h3>
+      <p class="sc">Share of the heat stored in the rock that's drawn back the next winter. The closed array
+        cell nears 100% by construction — but only as low-grade ~25&nbsp;°C water.</p>
       <div class="legend">
-        <span><i style="background:var(--amber)"></i>Single drift</span>
-        <span><i style="background:var(--grn)"></i>10-m drift array</span>
+        <span><i style="background:var(--amber)"></i>Single drift · round-trip</span>
+        <span><i style="background:var(--grn)"></i>10-m array · retained</span>
       </div>
-      <svg class="chart" id="chart-decade" viewBox="0 0 360 210" aria-label="Round-trip recovery over ten years"></svg>
+      <svg class="chart" id="chart-decade" viewBox="0 0 360 210" aria-label="Share of stored heat recovered over ten years"></svg>
     </div>
     <p style="margin-top:12px">A lone drift sits in cold rock that never stops draining it — after a full decade it
       still returns only <b>~13%</b>, as low-grade ~13&nbsp;°C water. Pack drifts into a <b>10-m array</b> and their
@@ -153,7 +154,7 @@
       <p class="sc">Charge → store → discharge → recover (surveyed drift, year&nbsp;1).</p>
       <svg class="chart" id="chart-year" viewBox="0 0 360 210" aria-label="Water temperature over one year"></svg>
     </div>
-    <p style="margin-top:12px">Sixty-one days of charging drive the water to <b>~68&nbsp;°C</b>. Through storage and
+    <p style="margin-top:12px">Sixty-one days of charging drive the outlet to a peak <b>~68&nbsp;°C</b>. Through storage and
       discharge that heat bleeds into the surrounding rock, and by the depths of winter the drift hands back water
       only a few degrees above ambient — a <b>monthly buffer</b>, not a seasonal store.</p>
   </section>
@@ -220,12 +221,15 @@
     s.appendChild(el('path', { d:area, fill:'url(#ag)' }));
     s.appendChild(el('path', { d:path(drift), fill:'none', stroke:'#e8913c', 'stroke-width':'2.4', 'stroke-linejoin':'round' }));
     s.appendChild(el('path', { d:path(array), fill:'none', stroke:'#25c76b', 'stroke-width':'2.6', 'stroke-linejoin':'round' }));
-    // endpoint dots + labels
+    // endpoint dots + labels (both placed BELOW the dot so the near-ceiling array label stays inside the frame)
     [[drift,'#e8913c','12.8%'],[array,'#25c76b','98.5%']].forEach(([arr,c,lab]) => {
       s.appendChild(el('circle', { cx:x(9), cy:y(arr[9]), r:3.2, fill:c }));
-      const tx = el('text', { x:x(9)-4, y:y(arr[9]) + (lab==='12.8%'?16:-8), 'text-anchor':'end', fill:c, 'font-weight':'700' });
+      const tx = el('text', { x:x(9)-4, y:y(arr[9]) + 16, 'text-anchor':'end', fill:c, 'font-weight':'700' });
       tx.textContent = lab; s.appendChild(tx);
     });
+    // honesty note: the array's ~100% is the closed cell, not a free efficiency
+    const cc = el('text', { x:x(9)-4, y:y(array[9]) + 29, 'text-anchor':'end', fill:'#6a7178', 'font-size':'9' });
+    cc.textContent = 'closed cell'; s.appendChild(cc);
     const yl = el('text', { x:-(H/2)+6, y:11, transform:'rotate(-90)', 'text-anchor':'middle' }); yl.textContent='recovered %'; s.appendChild(yl);
   })();
 
