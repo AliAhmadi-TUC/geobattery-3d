@@ -353,10 +353,13 @@
   /* ── control-panel walkthrough (coach marks) ── */
   #coach{ position:fixed; inset:0; z-index:42; pointer-events:none; opacity:0; transition:opacity .3s ease; }
   #coach.on{ opacity:1; }
-  /* light scrim so the 3-D showcase AND the panel stay visible, with a bright ring on the current group */
+  /* ring only (NO screen scrim) so the 3-D domain stays fully clear; the OTHER panel groups + chrome dim instead */
   #coachHole{ position:absolute; left:0; top:0; width:0; height:0; border-radius:9px; pointer-events:none;
-    box-shadow:0 0 0 9999px rgba(8,9,15,.20), 0 0 0 2px var(--heat) inset, 0 0 22px 2px var(--heat-glow);
+    box-shadow:0 0 0 2px var(--heat) inset, 0 0 24px 3px var(--heat-glow);
     transition:left .32s cubic-bezier(.3,.9,.3,1), top .32s cubic-bezier(.3,.9,.3,1), width .32s, height .32s; }
+  /* during the walkthrough: fade everything except the domain, the focused group, and the card */
+  body.coaching #panel .grp, body.coaching #tutBtn, body.coaching #hud, body.coaching #infoBtn{ opacity:.28; transition:opacity .3s ease; }
+  body.coaching #panel .grp.coach-focus{ opacity:1; }
   #coachCard{ position:absolute; left:50%; top:50%; width:min(86vw,292px); pointer-events:none;
     background:var(--surface); border:1px solid var(--heat-700); border-radius:var(--r-md);
     box-shadow:var(--sh-lg); padding:15px 16px 13px; transition:left .32s ease, top .32s ease; }
@@ -458,7 +461,7 @@
     <div class="grp" id="sceneGrp"><h2>Scenario</h2>
       <div class="row"><select id="scene" style="flex:1">
         <option value="drift">As-built drift · end of charge</option>
-        <option value="array">10 m array cell · year 10</option>
+        <option value="array">10 m array cell · year 1</option>
       </select></div>
     </div>
 
@@ -643,7 +646,7 @@ function tempCTF() {
 
 function main() {
   if (!window.vtk) { setStatus('vtk.js failed to load.', true); return; }
-  const SCENES = { drift:'As-built drift · end of charge', array:'10 m array cell · year 10 storage' };
+  const SCENES = { drift:'As-built drift · end of charge', array:'10 m array cell · year 1 cycle' };
   const q = new URLSearchParams(location.search).get('scene');
   const SCENE = (q && SCENES[q]) ? q : 'drift';
   let DATA = 'data/' + SCENE + '/';
@@ -766,6 +769,7 @@ function main() {
       renderer.addActor(actor);
       objs[L.name] = { mapper, actor };
       objs[L.name].hasVM = !!rd.getOutputData(0).getPointData().getArrayByName('vm');
+      objs[L.name].hasHeat = !!rd.getOutputData(0).getPointData().getArrayByName('hc00');   // carries the per-phase heat series?
       buildRow(L);
     }).catch(() => { /* region absent in this scenario — skip */ });
   }
@@ -795,7 +799,7 @@ function main() {
   let flowSaved = null;                                  // pre-flow rock state, so leaving flow restores exactly what entering it changed
   const fn = i => 'T' + String(i).padStart(2, '0');      // water-surface per-frame array name
   const frameCache = {};
-  const HEAT_SURFS = ['water', 'air', 'concrete'];        // drift surfaces recoloured through the phases
+  const HEAT_SURFS = ['water', 'air', 'concrete', 'rock'];  // surfaces recoloured through the phases (rock only carries heat arrays in the array scene; others skip via hasHeat)
   const HEAT_CLIM = [10, 80], HEAT_TSPLIT = 20, HEAT_SPLIT = 0.66;   // magma high part reached by 20 C, then keeps gradating to 80
   let _heatLUT = null;
   function infernoAt(f) {                                 // sample the magma ramp at fraction f
@@ -855,7 +859,7 @@ function main() {
   }
   function applyHeatSurfaces(arr) {                        // colour the drift surfaces by a step's field
     const lut = heatLUT();
-    HEAT_SURFS.forEach(nm => { const o = objs[nm]; if (!o) return;
+    HEAT_SURFS.forEach(nm => { const o = objs[nm]; if (!o || !o.hasHeat) return;   // skip surfaces without the phase heat series (e.g. the drift's rock)
       o.mapper.setLookupTable(lut); o.mapper.setScalarModeToUsePointFieldData();
       o.mapper.setColorByArrayName(arr); o.mapper.setScalarRange(HEAT_CLIM[0], HEAT_CLIM[1]);
       o.mapper.setScalarVisibility(true); o.mapper.setInterpolateScalarsBeforeMapping(true);
@@ -2071,7 +2075,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22h · field plane hides lattice too · demo skips unavailable field plane · walkthrough restores mesh-edges', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22i · array = year-1 cycle (cold start) + rock animated · tutorial dims other panel groups, not the domain', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2241,7 +2245,7 @@ main();
 
   const COACH = [
     { sel: '#sceneGrp', title: 'Choose a scenario',
-      body: 'Switch between the surveyed as-built drift (year 1) and the 10-metre array cell (year 10).' },
+      body: 'Switch between the surveyed as-built drift and the 10-metre array cell (both year 1).' },
     { sel: '#colGrp',  title: 'Colour the model',
       body: 'Colour the surfaces by material, temperature, rock stress or water velocity — right now it’s showing rock stress. In temperature mode, “phase animation” plays the heating → storage → cooling → recovery cycle on the timeline.' },
     { sel: '#layers',  title: 'Show or hide layers',
@@ -2296,6 +2300,8 @@ main();
     if (coachSnap) { coachRestore(coachSnap); const d = COACH_DEMO[step.sel];   // reset to base, then live-demo this step (option a now, option b after a beat)
       if (d) { if (d[0]) d[0](); if (d[1]) coachDemoT = setTimeout(d[1], 1500); } }
     { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.remove('fold'); }   // reveal a folded group so the showcase shows its contents
+    document.querySelectorAll('.coach-focus').forEach(e => e.classList.remove('coach-focus'));   // un-dim only the current group (others stay faded; the domain is never dimmed)
+    { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.add('coach-focus'); }
     if (innerWidth < 760) { const inPanel = el.closest && el.closest('#panel'); $('panel').classList.toggle('closed', !inPanel); }   // mobile: the bottom-sheet panel covers the deck — close it for the (deck) reset step
     el.scrollIntoView({ block: 'nearest' });
     $('cStep').textContent = 'Step ' + (cIdx + 1) + ' of ' + COACH.length;
@@ -2309,9 +2315,11 @@ main();
     if (document.body.classList.contains('touring') || coach.classList.contains('on')) return;   // not over a tour, and not if already running
     $('panel').classList.remove('closed'); syncAria();       // the walkthrough needs the panel open
     if (coachSnap == null) coachSnap = coachSnapshot();       // capture the REAL base state once (idempotent — a mid-run relaunch can't clobber it)
-    cIdx = 0; coach.classList.add('on'); setTimeout(renderCoach, 240);
+    cIdx = 0; coach.classList.add('on'); document.body.classList.add('coaching'); setTimeout(renderCoach, 240);
   }
-  function endCoach() { coach.classList.remove('on'); if (coachDemoT) { clearTimeout(coachDemoT); coachDemoT = null; } if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
+  function endCoach() { coach.classList.remove('on'); document.body.classList.remove('coaching');
+    document.querySelectorAll('.coach-focus').forEach(e => e.classList.remove('coach-focus'));
+    if (coachDemoT) { clearTimeout(coachDemoT); coachDemoT = null; } if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
   $('cNext').onclick = () => { if (cIdx >= COACH.length - 1) return endCoach(); cIdx++; renderCoach(); };
   $('cPrev').onclick = () => { if (cIdx > 0) { cIdx--; renderCoach(); } };
   $('cEnd').onclick = endCoach;
