@@ -2076,7 +2076,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22j · fix: tutorial faded #hero not #hud (was compounding onto the whole panel)', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22k · tutorial frames whole domain + surface-with-edges · rebuilt lite viewer (story + charts)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2166,6 +2166,14 @@ main();
     try {
       const r = uiView.renderer, c = r.getActiveCamera();
       r.resetCamera(); c.azimuth(-28); c.elevation(-62); c.orthogonalizeViewUp(); c.zoom(2.7);
+      r.resetCameraClippingRange(); uiView.renderWindow.render();
+    } catch (e) {}
+  };
+  // walkthrough overview: frame the WHOLE domain (rock + all) at a legible 3/4 angle
+  const coachCam = () => {
+    try {
+      const r = uiView.renderer, c = r.getActiveCamera();
+      r.resetCamera(); c.azimuth(-24); c.elevation(-56); c.orthogonalizeViewUp(); c.zoom(1.18);
       r.resetCameraClippingRange(); uiView.renderWindow.render();
     } catch (e) {}
   };
@@ -2272,8 +2280,8 @@ main();
   const coachRestore = s => { if (!s) return;
     _setChk('clipOn', s.clip); _setChk('sliceOn', s.slice);   // clear any demo cut first (it constrains the colour mode)
     _setSel('colMode', s.colMode); _setSel('repr', s.repr);
-    _setChk('vis_rock', s.visRock); _setChk('vis_concrete', s.visConcrete);
-    _setChk('edges', s.edges); };   // restore mesh-edges AFTER repr (the clip->lattice demo unchecks it via the lattice style)
+    _setChk('vis_rock', s.visRock); _setChk('vis_concrete', s.visConcrete); };
+    // NOTE: edges is handled separately — forced ON during the showcase (surface+edges so the rock reads), restored to s.edges on end
   // each step demos TWO options (a -> b after a short beat) so the range of each control is shown
   const COACH_DEMO = {
     '#colGrp':  [ () => { if (_hasVm()) _setSel('colMode', 'vm'); }, () => _setSel('colMode', 'temperature') ],   // rock stress -> temperature
@@ -2298,8 +2306,8 @@ main();
     const step = COACH[cIdx], el = document.querySelector(step.sel);
     if (!el) { if (++cIdx < COACH.length) return renderCoach(); return endCoach(); }
     if (coachDemoT) { clearTimeout(coachDemoT); coachDemoT = null; }
-    if (coachSnap) { coachRestore(coachSnap); const d = COACH_DEMO[step.sel];   // reset to base, then live-demo this step (option a now, option b after a beat)
-      if (d) { if (d[0]) d[0](); if (d[1]) coachDemoT = setTimeout(d[1], 1500); } }
+    if (coachSnap) { coachRestore(coachSnap); _setChk('edges', true);   // reset to base + surface-with-EDGES (so the rock reads); then live-demo (option a now, option b after a beat)
+      const d = COACH_DEMO[step.sel]; if (d) { if (d[0]) d[0](); if (d[1]) coachDemoT = setTimeout(d[1], 1500); } }
     { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.remove('fold'); }   // reveal a folded group so the showcase shows its contents
     document.querySelectorAll('.coach-focus').forEach(e => e.classList.remove('coach-focus'));   // un-dim only the current group (others stay faded; the domain is never dimmed)
     { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.add('coach-focus'); }
@@ -2316,11 +2324,12 @@ main();
     if (document.body.classList.contains('touring') || coach.classList.contains('on')) return;   // not over a tour, and not if already running
     $('panel').classList.remove('closed'); syncAria();       // the walkthrough needs the panel open
     if (coachSnap == null) coachSnap = coachSnapshot();       // capture the REAL base state once (idempotent — a mid-run relaunch can't clobber it)
+    stopOrbit(); coachCam();                                  // stop the idle spin + frame the whole domain so every showcase is legible
     cIdx = 0; coach.classList.add('on'); document.body.classList.add('coaching'); setTimeout(renderCoach, 240);
   }
   function endCoach() { coach.classList.remove('on'); document.body.classList.remove('coaching');
     document.querySelectorAll('.coach-focus').forEach(e => e.classList.remove('coach-focus'));
-    if (coachDemoT) { clearTimeout(coachDemoT); coachDemoT = null; } if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
+    if (coachDemoT) { clearTimeout(coachDemoT); coachDemoT = null; } if (coachSnap) { coachRestore(coachSnap); _setChk('edges', coachSnap.edges); coachSnap = null; } }   // undo the demos (incl. the forced-on edges)
   $('cNext').onclick = () => { if (cIdx >= COACH.length - 1) return endCoach(); cIdx++; renderCoach(); };
   $('cPrev').onclick = () => { if (cIdx > 0) { cIdx--; renderCoach(); } };
   $('cEnd').onclick = endCoach;
