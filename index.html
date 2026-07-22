@@ -79,7 +79,7 @@
     backdrop-filter:blur(6px); pointer-events:none; text-shadow:0 1px 6px rgba(0,0,0,.6); }
   #tourTitle b{ color:var(--heat-300); font-weight:700; margin-right:8px; }
   /* during the tour: hide the control widgets but KEEP the Geobattery hero card */
-  body.touring #panel, body.touring #deck, body.touring #infoCard, body.touring #infoScrim{ display:none !important; }
+  body.touring #panel, body.touring #deck, body.touring #infoCard, body.touring #infoScrim, body.touring #coach, body.touring #wlScrim{ display:none !important; }
   /* the always-on chrome fades (opacity) so the hand-back to the normal view is smooth, not instant */
   body.touring #panelBtn, body.touring #infoBtn, body.touring #hint, body.touring #status{ opacity:0 !important; pointer-events:none !important; }
   #panelBtn, #infoBtn, #hint, #status{ transition:opacity .6s ease; }
@@ -471,8 +471,8 @@
     <div class="grp" id="layers"><h2>Surfaces</h2></div>
 
     <div class="grp fold" id="cutGrp"><h2>Clip &amp; slice</h2>
-      <div class="row" style="justify-content:center"><span id="clipCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="clipOn"><label for="clipOn">clip</label></span>
-        <span id="sliceCtl" style="margin-left:18px;display:flex;align-items:center;gap:10px"><input type="checkbox" id="sliceOn"><label for="sliceOn">field plane</label></span></div>
+      <div class="row" style="justify-content:center;gap:18px"><span id="clipCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="clipOn"><label for="clipOn">clip</label></span>
+        <span id="sliceCtl" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="sliceOn"><label for="sliceOn">field plane</label></span></div>
       <div id="cutSub" style="display:none">
         <div class="row"><label>axis</label>
           <select id="cutAxis" class="seg-src"><option value="0">X</option><option value="1">Y</option><option value="2" selected>Z</option></select>
@@ -667,10 +667,12 @@ function main() {
     axesWidget.setEnabled(true);
     // X/Y/Z letters at the arrow tips — vtkFollower text so they always face the camera and stay readable
     try {
-      const VVT = (vtk.Filters.Sources && vtk.Filters.Sources.vtkVectorText);
+      // vtk.js 36.4.1 registers VectorText as vtk.Rendering.Core.vtkVector (NOT Filters.Sources.vtkVectorText)
+      const VVT = (vtk.Filters.Sources && vtk.Filters.Sources.vtkVectorText)
+               || (vtk.Rendering.Core && vtk.Rendering.Core.vtkVector);
       const VF  = (vtk.Rendering.Core && vtk.Rendering.Core.vtkFollower);
       const oRen = axesWidget.getRenderer && axesWidget.getRenderer();
-      if (VVT && VF && oRen) {
+      if (VVT && VVT.newInstance && VF && oRen) {
         const oCam = oRen.getActiveCamera();
         const mkLabel = (txt, pos, rgb) => {
           const vt = VVT.newInstance({ text: txt });
@@ -2006,7 +2008,7 @@ function main() {
       if (tourGoto < 0 && tourStep < 13) { tCam.setViewAngle(baseFov); renderer.resetCamera(); }   // aborted early (✕ end / short walk): reframe to a usable overview
       renderer.resetCameraClippingRange(); renderWindow.render();   // a clean step-13 finish keeps the tour's final overview pose; only the clip range is refreshed
       if (tourGoto >= 0) { const g = tourGoto; tourGoto = -1; tourTargetStep = g; setTimeout(runTour, 60); }   // back-jump: replay + fast-forward
-      else document.dispatchEvent(new CustomEvent('gb:tourend'));   // genuine end -> the welcome may chain the control-panel walkthrough
+      else document.dispatchEvent(new CustomEvent('gb:tourend', { detail: { completed: tourStep >= 13 } }));   // completed vs ✕-aborted -> the welcome only chains the walkthrough on a full finish
     }
     const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = () => { if (!touring) { tourTargetStep = 0; tourGoto = -1; } runTour(); }; }
     const _pb = document.getElementById('tourPause');
@@ -2018,7 +2020,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22a · XYZ axis labels · centred clip/slice · tour→tutorial · panel tutorial button · fuller walkthrough', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22b · FIX axis labels namespace (vtkVector) · tour-abort no longer forces tutorial · centring + guards', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2169,10 +2171,19 @@ main();
   const dismissWelcome = () => { markSeen(); showWelcome(false); };   // any dismissal (button, backdrop, Esc) persists, so it won't nag on reload
   // "take the tour" runs the cinematic tour, then chains the control-panel walkthrough (first-visit onboarding)
   let pendingTut = false;
-  $('wlTour').onclick = () => { dismissWelcome(); pendingTut = true; const t = $('tourBtn'); if (t) t.click(); };
+  $('wlTour').onclick = () => {
+    dismissWelcome();
+    const t = $('tourBtn');
+    if (t && t.style.display !== 'none') { pendingTut = true; t.click(); }   // only arm the chain if the tour is actually wired/ready
+    else startCoach();                                                        // tour not available yet -> go straight to the walkthrough
+  };
   $('wlSkip').onclick = () => { dismissWelcome(); };
   wlScrim.addEventListener('click', e => { if (e.target === wlScrim) dismissWelcome(); });   // click the backdrop to dismiss
-  document.addEventListener('gb:tourend', () => { if (pendingTut) { pendingTut = false; setTimeout(startCoach, 600); } });
+  document.addEventListener('gb:tourend', e => {   // chain the walkthrough only after a genuine full finish, never after an ✕-abort
+    if (!pendingTut) return;
+    pendingTut = false;
+    if (e.detail && e.detail.completed) setTimeout(startCoach, 600);
+  });
   { const tb = $('tutBtn'); if (tb) tb.onclick = () => startCoach(); }          // re-launch the walkthrough any time from the panel
   { const it = $('infoTut'); if (it) it.onclick = ev => { ev.preventDefault(); setInfo(false); startCoach(); }; }
 
@@ -2208,6 +2219,7 @@ main();
     const step = COACH[cIdx], el = document.querySelector(step.sel);
     if (!el) { if (++cIdx < COACH.length) return renderCoach(); return endCoach(); }
     { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.remove('fold'); }   // reveal a folded group so the showcase shows its contents
+    if (innerWidth < 760) { const inPanel = el.closest && el.closest('#panel'); $('panel').classList.toggle('closed', !inPanel); }   // mobile: the bottom-sheet panel covers the deck — close it for the (deck) reset step
     el.scrollIntoView({ block: 'nearest' });
     $('cStep').textContent = 'Step ' + (cIdx + 1) + ' of ' + COACH.length;
     $('cTitle').textContent = step.title; $('cBody').textContent = step.body;
@@ -2217,6 +2229,7 @@ main();
     requestAnimationFrame(() => setTimeout(() => placeCoach(el), 30));
   };
   function startCoach() {
+    if (document.body.classList.contains('touring')) return;   // never launch the walkthrough over an active guided tour
     $('panel').classList.remove('closed'); syncAria();       // the walkthrough needs the panel open
     cIdx = 0; coach.classList.add('on'); setTimeout(renderCoach, 240);
   }
