@@ -1524,6 +1524,7 @@ function main() {
     // (triangulated surface reveals), in light colours. Next parts are guided later.
     const PT = [0.90, 0.93, 0.98], SURF = [0.72, 0.77, 0.84], EDGE = [0.38, 0.42, 0.50];
     async function runTour() {
+      if (SCENE !== 'drift') return;                      // the cinematic is drift-only (its geometry/assets don't exist for other scenes)
       const btn = document.getElementById('tourBtn');
       if (touring) { touring = false; return; }           // second click = end
       touring = true; if (btn) btn.textContent = '✕ end';
@@ -2043,7 +2044,8 @@ function main() {
       if (tourGoto >= 0) { const g = tourGoto; tourGoto = -1; tourTargetStep = g; setTimeout(runTour, 60); }   // back-jump: replay + fast-forward
       else document.dispatchEvent(new CustomEvent('gb:tourend', { detail: { completed: tourStep >= 13 } }));   // completed vs ✕-aborted -> the welcome only chains the walkthrough on a full finish
     }
-    const _tb = document.getElementById('tourBtn'); if (_tb) { _tb.style.display = ''; _tb.onclick = () => { if (!touring) { tourTargetStep = 0; tourGoto = -1; } runTour(); }; }
+    // the guided tour is authored for the drift (its inlet/outlet + mesh cinematic); other scenes lack those assets, so keep it drift-only
+    const _tb = document.getElementById('tourBtn'); if (_tb && SCENE === 'drift') { _tb.style.display = ''; _tb.onclick = () => { if (!touring) { tourTargetStep = 0; tourGoto = -1; } runTour(); }; }
     const _pb = document.getElementById('tourPause');
     if (_pb) _pb.onclick = () => { if (!touring) return; tourPaused = !tourPaused; _pb.textContent = tourPaused ? '▶ resume' : '⏸ pause'; };
     { const fw = document.getElementById('tourFwd'), bk = document.getElementById('tourBack');
@@ -2053,7 +2055,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22e · walkthrough lifts dim to reveal the showcase · array-scene heat.json 404 handled', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22f · guided tour is drift-only (array scene degrades cleanly)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
