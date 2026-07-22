@@ -1054,18 +1054,20 @@ function main() {
     ['clipOn','sliceOn','cutAxis','clipFlip','cutPos'].forEach(id => {
       document.getElementById(id).addEventListener('input', applyCut);
       document.getElementById(id).addEventListener('change', applyCut); });
-    // field plane on -> hide the surrounding surfaces for a clean cross-section; restore on off
-    let savedSurfVis = null;
+    // field plane on -> hide the surrounding surfaces AND the lattice for a clean cross-section; restore on off
+    let savedSurfVis = null, savedWireVis = null;
     document.getElementById('sliceOn').addEventListener('change', e => {
       const boxes = ['vis_water','vis_rock','vis_concrete','vis_air'];   // surfaces to hide for a clean field plane
       if (e.target.checked) {
         savedSurfVis = {};
         boxes.forEach(id => { const cb = document.getElementById(id);
           if (cb) { savedSurfVis[id] = cb.checked; if (cb.checked) { cb.checked = false; cb.dispatchEvent(new Event('change')); } } });
+        if (objs.wire) { savedWireVis = objs.wire.actor.getVisibility(); objs.wire.actor.setVisibility(false); }   // Representation is greyed out under the field plane, so hide the lattice here too (else it'd be un-hideable)
       } else if (savedSurfVis) {
         boxes.forEach(id => { const cb = document.getElementById(id);
           if (cb && savedSurfVis[id] && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); } });
-        savedSurfVis = null;
+        if (objs.wire && savedWireVis) objs.wire.actor.setVisibility(true);
+        savedSurfVis = null; savedWireVis = null;
       }
     });
 
@@ -1110,7 +1112,8 @@ function main() {
     });
     syncCutUI();
     fetch(DATA + 'domain.vti', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; })
-      .catch(() => { sliceOK = false; const sc = document.getElementById('sliceCtl'); if (sc) sc.style.display = 'none'; });   // field plane needs domain.vti
+      .catch(() => { sliceOK = false; const sc = document.getElementById('sliceCtl'); if (sc) sc.style.display = 'none';
+        const so = document.getElementById('sliceOn'); if (so) so.disabled = true; });   // field plane needs domain.vti; disable the toggle so nothing (incl. the walkthrough) can trigger a 404
 
     // ---- colour surfaces: material / temperature / von Mises / water velocity ----
     function setFieldVis() {
@@ -2068,7 +2071,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22g · walkthrough light-scrim + two-option demos · clip→lattice · field disables repr/phase · lattice clears edges', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22h · field plane hides lattice too · demo skips unavailable field plane · walkthrough restores mesh-edges', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2254,22 +2257,24 @@ main();
   let cIdx = 0, coachSnap = null, coachDemoT = null;
   // live demo: each step drives a real control so its effect shows in the 3-D view; restored to the snapshot between steps
   const _setSel = (id, v) => { const el = $(id); if (el && v != null && el.value !== v) { el.value = v; el.dispatchEvent(new Event('change')); } };
-  const _setChk = (id, v) => { const el = $(id); if (el && v != null && el.checked !== v) { el.checked = v; el.dispatchEvent(new Event('change')); } };
+  const _setChk = (id, v) => { const el = $(id); if (el && !el.disabled && v != null && el.checked !== v) { el.checked = v; el.dispatchEvent(new Event('change')); } };   // skip disabled/unavailable controls (e.g. field plane on scenes without domain.vti)
   const _chk = id => $(id) ? $(id).checked : null;
   const _hasVm = () => $('colMode') && $('colMode').querySelector('option[value="vm"]');
   const coachSnapshot = () => ({
     colMode: ($('colMode') || {}).value, repr: ($('repr') || {}).value,
-    visRock: _chk('vis_rock'), visConcrete: _chk('vis_concrete'),
+    visRock: _chk('vis_rock'), visConcrete: _chk('vis_concrete'), edges: _chk('edges'),
     clip: _chk('clipOn') || false, slice: _chk('sliceOn') || false });
   const coachRestore = s => { if (!s) return;
     _setChk('clipOn', s.clip); _setChk('sliceOn', s.slice);   // clear any demo cut first (it constrains the colour mode)
     _setSel('colMode', s.colMode); _setSel('repr', s.repr);
-    _setChk('vis_rock', s.visRock); _setChk('vis_concrete', s.visConcrete); };
+    _setChk('vis_rock', s.visRock); _setChk('vis_concrete', s.visConcrete);
+    _setChk('edges', s.edges); };   // restore mesh-edges AFTER repr (the clip->lattice demo unchecks it via the lattice style)
   // each step demos TWO options (a -> b after a short beat) so the range of each control is shown
   const COACH_DEMO = {
     '#colGrp':  [ () => { if (_hasVm()) _setSel('colMode', 'vm'); }, () => _setSel('colMode', 'temperature') ],   // rock stress -> temperature
     '#layers':  [ () => _setChk('vis_rock', false), () => _setChk('vis_concrete', false) ],                        // hide rock -> also hide concrete
-    '#cutGrp':  [ () => _setChk('clipOn', true), () => { _setChk('clipOn', false); _setChk('sliceOn', true); } ],  // clip plane -> field plane
+    '#cutGrp':  [ () => _setChk('clipOn', true),
+                  () => { const so = $('sliceOn'); if (so && !so.disabled) { _setChk('clipOn', false); _setChk('sliceOn', true); } } ],  // clip plane -> field plane (skip the field-plane half where it's unavailable, e.g. the array cell)
     '#reprGrp': [ () => _setSel('repr', '1'), () => _setSel('repr', '0') ],                                        // wireframe -> points
   };
   const placeCoach = el => {
