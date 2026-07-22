@@ -199,6 +199,7 @@
     box-shadow:inset 0 0 0 1px var(--heat-700), inset 0 0 14px rgba(240,120,30,.12); }
   .seg-opt.is-off, .seg-opt:disabled{ opacity:.32; cursor:not-allowed; background:transparent; color:var(--mut-2); }
   .seg-opt.is-off:hover{ background:transparent; color:var(--mut-2); }
+  .ctl-off{ opacity:.38; pointer-events:none; }   /* a control group that doesn't apply in the current mode (e.g. representation under the field plane) */
 
   /* inlet / outlet chips */
   .legend-io{ gap:14px; }
@@ -352,11 +353,10 @@
   /* ── control-panel walkthrough (coach marks) ── */
   #coach{ position:fixed; inset:0; z-index:42; pointer-events:none; opacity:0; transition:opacity .3s ease; }
   #coach.on{ opacity:1; }
+  /* light scrim so the 3-D showcase AND the panel stay visible, with a bright ring on the current group */
   #coachHole{ position:absolute; left:0; top:0; width:0; height:0; border-radius:9px; pointer-events:none;
-    box-shadow:0 0 0 9999px rgba(8,9,15,.70), 0 0 0 2px var(--heat) inset;
-    transition:left .32s cubic-bezier(.3,.9,.3,1), top .32s cubic-bezier(.3,.9,.3,1), width .32s, height .32s, box-shadow .5s ease; }
-  /* on a demo step, once the effect is applied the dim lifts so the 3-D showcase is visible (panel ring stays) */
-  #coach.reveal #coachHole{ box-shadow:0 0 0 9999px rgba(8,9,15,.16), 0 0 0 2px var(--heat) inset; }
+    box-shadow:0 0 0 9999px rgba(8,9,15,.20), 0 0 0 2px var(--heat) inset, 0 0 22px 2px var(--heat-glow);
+    transition:left .32s cubic-bezier(.3,.9,.3,1), top .32s cubic-bezier(.3,.9,.3,1), width .32s, height .32s; }
   #coachCard{ position:absolute; left:50%; top:50%; width:min(86vw,292px); pointer-events:none;
     background:var(--surface); border:1px solid var(--heat-700); border-radius:var(--r-md);
     box-shadow:var(--sh-lg); padding:15px 16px 13px; transition:left .32s ease, top .32s ease; }
@@ -960,6 +960,7 @@ function main() {
       const val = e.target.value, lattice = val === 'lattice';
       const rep = lattice ? 2 : +val;                      // in lattice mode the surfaces stay solid so you see the mesh through them
       Object.values(objs).forEach(o => { if (o && !o.isWire) o.actor.getProperty().setRepresentation(rep); });
+      if (lattice) { const ed = document.getElementById('edges'); if (ed && ed.checked) { ed.checked = false; ed.dispatchEvent(new Event('change')); } }   // lattice: drop the surface mesh-edges so the lattice reads cleanly
       toggleLattice(lattice);
       syncReprUI();
       renderWindow.render();
@@ -1086,9 +1087,21 @@ function main() {
         document.querySelectorAll('.seg-opt[data-val="' + v + '"]').forEach(b => { b.disabled = cutActive; b.classList.toggle('is-off', cutActive); });
       });
       if (cutActive && (colMode === 'material' || colMode === 'flow')) { cm.value = 'temperature'; setColorMode('temperature'); }
+      // the field plane hides the surfaces + shows an image slice -> the surface Representation and phase animation don't apply, so grey them out
+      { const rg = document.getElementById('reprGrp'); if (rg) rg.classList.toggle('ctl-off', slice); }
+      { const hp = document.getElementById('heatPlayOn'), hr = hp && hp.closest('.row'); if (hr) hr.classList.toggle('ctl-off', slice); }
     }
+    let clipPrevRepr = null;   // remember the style before clip so we can restore it when clip turns off
     document.getElementById('clipOn').addEventListener('change', e => {
-      if (e.target.checked) { const s = document.getElementById('sliceOn'); if (s.checked) { s.checked = false; s.dispatchEvent(new Event('change')); } }
+      if (e.target.checked) {
+        const s = document.getElementById('sliceOn'); if (s.checked) { s.checked = false; s.dispatchEvent(new Event('change')); }
+        const r = document.getElementById('repr');     // clip: default to the 3-D lattice so the cut reveals the internal mesh
+        if (r && r.value !== 'lattice' && r.querySelector('option[value="lattice"]')) { clipPrevRepr = r.value; r.value = 'lattice'; r.dispatchEvent(new Event('change')); }
+      } else {
+        const r = document.getElementById('repr');     // restore the pre-clip style (only if we're the ones who set lattice)
+        if (r && clipPrevRepr != null && r.value === 'lattice') { r.value = clipPrevRepr; r.dispatchEvent(new Event('change')); }
+        clipPrevRepr = null;
+      }
       syncCutUI();
     });
     document.getElementById('sliceOn').addEventListener('change', e => {
@@ -2055,7 +2068,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22f · guided tour is drift-only (array scene degrades cleanly)', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22g · walkthrough light-scrim + two-option demos · clip→lattice · field disables repr/phase · lattice clears edges', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2238,22 +2251,26 @@ main();
       body: 'Reframe the view at any time with this button. For the narrated fly-through, hit ▶ guided tour under the title. That’s it — enjoy exploring!' },
   ];
   const coach = $('coach'), hole = $('coachHole'), ccard = $('coachCard');
-  let cIdx = 0, coachSnap = null, coachRevealT = null;
+  let cIdx = 0, coachSnap = null, coachDemoT = null;
   // live demo: each step drives a real control so its effect shows in the 3-D view; restored to the snapshot between steps
   const _setSel = (id, v) => { const el = $(id); if (el && v != null && el.value !== v) { el.value = v; el.dispatchEvent(new Event('change')); } };
   const _setChk = (id, v) => { const el = $(id); if (el && v != null && el.checked !== v) { el.checked = v; el.dispatchEvent(new Event('change')); } };
+  const _chk = id => $(id) ? $(id).checked : null;
+  const _hasVm = () => $('colMode') && $('colMode').querySelector('option[value="vm"]');
   const coachSnapshot = () => ({
     colMode: ($('colMode') || {}).value, repr: ($('repr') || {}).value,
-    visRock: $('vis_rock') ? $('vis_rock').checked : null,
-    clip: $('clipOn') ? $('clipOn').checked : false, slice: $('sliceOn') ? $('sliceOn').checked : false });
+    visRock: _chk('vis_rock'), visConcrete: _chk('vis_concrete'),
+    clip: _chk('clipOn') || false, slice: _chk('sliceOn') || false });
   const coachRestore = s => { if (!s) return;
     _setChk('clipOn', s.clip); _setChk('sliceOn', s.slice);   // clear any demo cut first (it constrains the colour mode)
-    _setSel('colMode', s.colMode); _setSel('repr', s.repr); _setChk('vis_rock', s.visRock); };
+    _setSel('colMode', s.colMode); _setSel('repr', s.repr);
+    _setChk('vis_rock', s.visRock); _setChk('vis_concrete', s.visConcrete); };
+  // each step demos TWO options (a -> b after a short beat) so the range of each control is shown
   const COACH_DEMO = {
-    '#colGrp':  () => { if ($('colMode') && $('colMode').querySelector('option[value="vm"]')) _setSel('colMode', 'vm'); },   // recolour by rock stress (skip if the scene has no stress)
-    '#layers':  () => _setChk('vis_rock', false),   // hide rock -> see inside the drift
-    '#cutGrp':  () => _setChk('clipOn', true),      // drop a clip plane through the model
-    '#reprGrp': () => _setSel('repr', '1'),         // show the wireframe
+    '#colGrp':  [ () => { if (_hasVm()) _setSel('colMode', 'vm'); }, () => _setSel('colMode', 'temperature') ],   // rock stress -> temperature
+    '#layers':  [ () => _setChk('vis_rock', false), () => _setChk('vis_concrete', false) ],                        // hide rock -> also hide concrete
+    '#cutGrp':  [ () => _setChk('clipOn', true), () => { _setChk('clipOn', false); _setChk('sliceOn', true); } ],  // clip plane -> field plane
+    '#reprGrp': [ () => _setSel('repr', '1'), () => _setSel('repr', '0') ],                                        // wireframe -> points
   };
   const placeCoach = el => {
     const r = el.getBoundingClientRect(), pad = 8, W = innerWidth, H = innerHeight;
@@ -2270,10 +2287,9 @@ main();
   const renderCoach = () => {
     const step = COACH[cIdx], el = document.querySelector(step.sel);
     if (!el) { if (++cIdx < COACH.length) return renderCoach(); return endCoach(); }
-    coach.classList.remove('reveal'); if (coachRevealT) { clearTimeout(coachRevealT); coachRevealT = null; }   // re-dim while switching steps
-    let demoed = false;
-    if (coachSnap) { coachRestore(coachSnap); const d = COACH_DEMO[step.sel]; if (d) { d(); demoed = true; } }   // reset to base, then live-demo this step in the 3-D view
-    if (demoed) coachRevealT = setTimeout(() => coach.classList.add('reveal'), 1200);   // after the effect lands, lift the dim so the 3-D showcase is visible
+    if (coachDemoT) { clearTimeout(coachDemoT); coachDemoT = null; }
+    if (coachSnap) { coachRestore(coachSnap); const d = COACH_DEMO[step.sel];   // reset to base, then live-demo this step (option a now, option b after a beat)
+      if (d) { if (d[0]) d[0](); if (d[1]) coachDemoT = setTimeout(d[1], 1500); } }
     { const grp = el.closest && el.closest('.grp'); if (grp) grp.classList.remove('fold'); }   // reveal a folded group so the showcase shows its contents
     if (innerWidth < 760) { const inPanel = el.closest && el.closest('#panel'); $('panel').classList.toggle('closed', !inPanel); }   // mobile: the bottom-sheet panel covers the deck — close it for the (deck) reset step
     el.scrollIntoView({ block: 'nearest' });
@@ -2290,7 +2306,7 @@ main();
     if (coachSnap == null) coachSnap = coachSnapshot();       // capture the REAL base state once (idempotent — a mid-run relaunch can't clobber it)
     cIdx = 0; coach.classList.add('on'); setTimeout(renderCoach, 240);
   }
-  function endCoach() { coach.classList.remove('on', 'reveal'); if (coachRevealT) { clearTimeout(coachRevealT); coachRevealT = null; } if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
+  function endCoach() { coach.classList.remove('on'); if (coachDemoT) { clearTimeout(coachDemoT); coachDemoT = null; } if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
   $('cNext').onclick = () => { if (cIdx >= COACH.length - 1) return endCoach(); cIdx++; renderCoach(); };
   $('cPrev').onclick = () => { if (cIdx > 0) { cIdx--; renderCoach(); } };
   $('cEnd').onclick = endCoach;
