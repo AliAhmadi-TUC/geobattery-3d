@@ -1415,6 +1415,10 @@ function main() {
     });
 
     setColorMode(document.getElementById('colMode').value);
+    // deep-link entry (?mode=temperature|vm|flow · ?play=1) — lets the interactive poster open a specific view
+    { const qp = new URLSearchParams(location.search);
+      const m = qp.get('mode'); if (m) { const cm = document.getElementById('colMode'), o = cm.querySelector('option[value="' + m + '"]'); if (o && !o.disabled) { cm.value = m; setColorMode(m); } }
+      if (qp.get('play') === '1') setTimeout(() => { const hp = document.getElementById('heatPlayOn'); if (hp && !hp.checked) { hp.checked = true; hp.dispatchEvent(new Event('change')); } const pb = document.getElementById('timePlay'); if (pb && colMode === 'temperature') pb.click(); }, 900); }
     // ---- 3-D mesh wireframe (drift): real tet lattice, field-coloured, lazy + device-gated ----
     let wireLoading = false;
     function loadWire() {
@@ -2076,7 +2080,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22l · honesty: array 98.5% = RETENTION (closed cell), not efficiency — fixed in lite chart + info card', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22m · ?mode/?play deep-links for the interactive poster (/poster/)', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
