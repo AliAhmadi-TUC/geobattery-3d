@@ -81,8 +81,8 @@
   /* during the tour: hide the control widgets but KEEP the Geobattery hero card */
   body.touring #panel, body.touring #deck, body.touring #infoCard, body.touring #infoScrim, body.touring #coach, body.touring #wlScrim, body.touring #axLabels{ display:none !important; }
   #axLabels{ position:fixed; inset:0; z-index:6; pointer-events:none; }
-  #axLabels span{ position:absolute; transform:translate(-50%,-50%); font:700 12px/1 var(--mono);
-    text-shadow:0 1px 3px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.6); }
+  #axLabels span{ position:absolute; visibility:hidden; transform:translate(-50%,-50%); font:700 12px/1 var(--mono);
+    text-shadow:0 1px 3px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.6); }   /* hidden until the first projection writes real coordinates */
   #axLabels span[data-ax="x"]{ color:#ff6b6b; }
   #axLabels span[data-ax="y"]{ color:#f2d64b; }
   #axLabels span[data-ax="z"]{ color:#5ed17a; }
@@ -701,6 +701,7 @@ function main() {
         const O = [tip[0]-C[0], tip[1]-C[1], tip[2]-C[2]];
         span.style.left = (cx + _dot(O, rt)*scale) + 'px';
         span.style.top  = (cy - _dot(O, up)*scale) + 'px';
+        span.style.visibility = 'visible';
       };
       place(spans.x, [1.16, 0, 0]); place(spans.y, [0, 1.16, 0]); place(spans.z, [0, 0, 1.16]);
     };
@@ -1072,8 +1073,8 @@ function main() {
     let sliceOK = true;
     function syncCutUI() {
       const clip = document.getElementById('clipOn').checked, slice = document.getElementById('sliceOn').checked;
-      document.getElementById('clipCtl').style.display = slice ? 'none' : '';   // clip button hides while the field plane is active, and vice versa
-      { const sc = document.getElementById('sliceCtl'); if (sc) sc.style.display = (clip || !sliceOK) ? 'none' : ''; }
+      document.getElementById('clipCtl').style.display = slice ? 'none' : 'flex';   // 'flex' (not '') so the inline flex layout survives the toggle
+      { const sc = document.getElementById('sliceCtl'); if (sc) sc.style.display = (clip || !sliceOK) ? 'none' : 'flex'; }
       cutSub.style.display = (clip || slice) ? '' : 'none';   // axis / flip / position appear only once a mode is chosen
       flipRow.style.display = clip ? '' : 'none';             // flip side is clip-only (the field plane doesn't need it)
       // clip/slice paint a scalar field on the cut — material & flow don't apply there, so grey them out
@@ -1519,6 +1520,8 @@ function main() {
       if (touring) { touring = false; return; }           // second click = end
       touring = true; if (btn) btn.textContent = '✕ end';
       document.body.classList.add('touring');              // hide all other widgets/panels for the tour
+      document.dispatchEvent(new CustomEvent('gb:tourstart'));   // close the control-panel walkthrough if it was open (and restore its demos)
+      if (axesWidget) axesWidget.setEnabled(false);        // hide the orientation gizmo for a clean cinematic (its HTML labels are CSS-hidden anyway)
       tourPaused = false; tourStep = 0; const pBtn = document.getElementById('tourPause');
       if (pBtn) { pBtn.style.display = ''; pBtn.textContent = '⏸ pause'; }
       { const bk = document.getElementById('tourBack'), fw = document.getElementById('tourFwd');
@@ -2005,6 +2008,8 @@ function main() {
       touring = false; tourPaused = false; _hideLabels(); _title('', '');
       renderer.setBackground(voidRGB[0], voidRGB[1], voidRGB[2]);   // restore the normal dark void (step 13 lightened it just for itself)
       document.body.classList.remove('touring');           // restore the normal UI
+      if (axesWidget) axesWidget.setEnabled(document.getElementById('axesOn').checked);   // restore the gizmo per its panel toggle
+      if (window._axLabels) window._axLabels();             // reposition the (now-unhidden) X/Y/Z labels
       if (pActor) { pOn = false; pActor.setVisibility(false); if (pRAF) { cancelAnimationFrame(pRAF); pRAF = null; } } pSpeedMul = 1;   // stop the tour's flow arrows, reset speed
       if (document.getElementById('tourBtn')) document.getElementById('tourBtn').textContent = '▶ guided tour';
       ['tourPause', 'tourBack', 'tourFwd'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = 'none'; });
@@ -2040,7 +2045,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22c · HTML axis labels (projected) · clip both-ends · live-demo walkthrough · stronger purple', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-22d · walkthrough re-entry/tour guards · gizmo hidden in tour · flex/flash/vm-guard fixes', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
@@ -2204,6 +2209,7 @@ main();
     pendingTut = false;
     if (e.detail && e.detail.completed) setTimeout(startCoach, 600);
   });
+  document.addEventListener('gb:tourstart', () => endCoach());   // a tour starting closes + restores the walkthrough if it was open
   { const tb = $('tutBtn'); if (tb) tb.onclick = () => startCoach(); }          // re-launch the walkthrough any time from the panel
   { const it = $('infoTut'); if (it) it.onclick = ev => { ev.preventDefault(); setInfo(false); startCoach(); }; }
 
@@ -2234,7 +2240,7 @@ main();
     _setChk('clipOn', s.clip); _setChk('sliceOn', s.slice);   // clear any demo cut first (it constrains the colour mode)
     _setSel('colMode', s.colMode); _setSel('repr', s.repr); _setChk('vis_rock', s.visRock); };
   const COACH_DEMO = {
-    '#colGrp':  () => _setSel('colMode', 'vm'),     // recolour by rock stress
+    '#colGrp':  () => { if ($('colMode') && $('colMode').querySelector('option[value="vm"]')) _setSel('colMode', 'vm'); },   // recolour by rock stress (skip if the scene has no stress)
     '#layers':  () => _setChk('vis_rock', false),   // hide rock -> see inside the drift
     '#cutGrp':  () => _setChk('clipOn', true),      // drop a clip plane through the model
     '#reprGrp': () => _setSel('repr', '1'),         // show the wireframe
@@ -2266,9 +2272,9 @@ main();
     requestAnimationFrame(() => setTimeout(() => placeCoach(el), 30));
   };
   function startCoach() {
-    if (document.body.classList.contains('touring')) return;   // never launch the walkthrough over an active guided tour
+    if (document.body.classList.contains('touring') || coach.classList.contains('on')) return;   // not over a tour, and not if already running
     $('panel').classList.remove('closed'); syncAria();       // the walkthrough needs the panel open
-    coachSnap = coachSnapshot();                             // remember the user's state so the demos can be undone
+    if (coachSnap == null) coachSnap = coachSnapshot();       // capture the REAL base state once (idempotent — a mid-run relaunch can't clobber it)
     cIdx = 0; coach.classList.add('on'); setTimeout(renderCoach, 240);
   }
   function endCoach() { coach.classList.remove('on'); if (coachSnap) { coachRestore(coachSnap); coachSnap = null; } }   // undo the demos
