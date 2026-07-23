@@ -184,6 +184,10 @@
   .story .dots i{ width:7px; height:7px; border-radius:50%; background:var(--line-2); display:block; transition:background .2s, width .2s; }
   .story .dots i.on{ background:var(--grn-d); width:18px; border-radius:4px; }
   .story .cap{ margin-left:auto; font:600 10.5px var(--mono); letter-spacing:.04em; color:var(--ink-3); }
+  .mth{ font:500 14px/1.7 var(--mono); color:#EAF2ED; background:var(--dark); border-radius:8px;
+    padding:9px 13px; margin:6px 0 7px; overflow-x:auto; white-space:nowrap; letter-spacing:.01em; }
+  .mth b{ color:#8FE3B4; font-weight:600; } .mth sub,.mth sup{ font-size:.72em; }
+  @media (max-width:620px){ .mth{ font-size:12px; padding:8px 10px; } }
   .beat{ font:400 12.5px/1.45 var(--sans); color:var(--ink-2); margin:2px 2px 8px; min-height:36px; }
   .beat b{ color:var(--ink); } .beat em{ font-style:normal; color:var(--grn-d); font-weight:600; }
   .beat .num{ font:700 12.5px var(--mono); color:var(--rust); }
@@ -455,7 +459,7 @@
 
   <!-- ══════════ §07 · the numerical challenges ══════════ -->
   <div class="modal wide" id="m-num" role="dialog" aria-modal="true" hidden>
-    <div class="mh"><h2><span class="k">07 · numerical challenges</span>Three FEniCSx lessons — rotate them, then re-solve them</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mh"><h2><span class="k">07 · numerical challenges</span>Three theorems every Galerkin code lives with</h2><button class="x" data-close aria-label="close">✕</button></div>
     <div class="mb">
       <div class="tabs" id="n-tabs">
         <button class="tab on" data-t="a">A · energy through a Dirichlet inlet</button>
@@ -465,10 +469,11 @@
 
       <!-- ---- A ---- -->
       <div class="npane" data-p="a">
-        <p class="lead warm">The heat crossing a temperature-pinned inlet is <b>not</b> the nodal
-          k&thinsp;dT/dn — that quantity is mesh-dependent and simply wrong. The true flux is the
-          <b>reaction on the constrained degrees of freedom</b>: assemble the unconstrained row, then evaluate it on
-          the solved field. Below, a real P1 problem is assembled and solved in your browser, both ways.</p>
+        <p class="lead">Wherever a finite-element method fixes a value on a boundary, the <b>flux across that
+          boundary</b> is not obtained by differentiating the answer. It is the <b>reaction</b>: the residual of the
+          equation the constraint deleted. This is a general property of Galerkin methods — nothing here is specific
+          to heat, or to this study. Step through it, then re-solve it yourself: a genuine P1 problem is assembled
+          and solved in your browser at every mesh you choose.</p>
         <div class="split">
           <div>
             <canvas class="mini" id="n3d-a"></canvas>
@@ -495,19 +500,15 @@
         <p class="mut">Both are computed from the same solved vector: the nodal gradient from a one-sided
           difference, the reaction as (A<sub>row</sub>·T − f)|<sub>Γ</sub> using the row that was <em>discarded</em>
           when the Dirichlet condition was applied. The reaction is exact at every h — that is the whole point.</p>
-        <div class="card2">
-          <h3>What it buys, in the real run</h3>
-          <p class="sc">Energy balance residual per phase of the year-1 3-D decade, in kWh, against ~4.5×10⁵ kWh delivered.</p>
-          <table class="tb" id="a-clos"></table>
-        </div>
+
       </div>
 
       <!-- ---- B ---- -->
       <div class="npane" data-p="b" hidden>
-        <p class="lead warm">A sealed face is a <b>Neumann</b> condition — it is already satisfied naturally by the
-          weak form. Pinning it with a Dirichlet value instead does not seal it: it drives heat through it, and at
-          the rock/concrete corner the shared node is <b>over-constrained</b> by two conditions at once. Toggle it
-          and read the leak.</p>
+        <p class="lead">A zero-flux boundary is a <b>natural</b> condition: integrating by parts leaves a boundary
+          term that is already zero, so the correct action is to write <b>nothing at all</b>. Imposing it as a value
+          instead replaces the physics — and where two boundaries meet, one node inherits two conditions and the
+          system is over-determined. Again, general: this is true of any variational problem, not just this one.</p>
         <div class="split">
           <div>
             <canvas class="mini" id="n3d-b"></canvas>
@@ -531,8 +532,8 @@
         <input type="range" id="b-nin" min="4" max="400" step="2" value="40" aria-label="element count">
         <div class="stats">
           <div class="st" id="b-leakbox"><b id="b-leak">0.0 W/m²</b><span>flux through the “sealed” face</span></div>
-          <div class="st"><b id="b-e">0 kWh</b><span>over one 123-day seal, on the drift's 441.5 m² wall</span></div>
-          <div class="st"><b id="b-share">0%</b><span>of the 88.4 MWh actually stored</span></div>
+          <div class="st" hidden><b id="b-e">0 kWh</b><span>a wall that must pass nothing, passing something</span></div>
+          <div class="st" hidden><b id="b-share">0%</b><span>of the 88.4 MWh actually stored</span></div>
         </div>
         <p class="mut" id="b-say"></p>
         <p class="mut">A 1-D idealisation of the same error: rock (k&nbsp;=&nbsp;3&nbsp;W/mK, 0.6&nbsp;m) against
@@ -543,9 +544,11 @@
 
       <!-- ---- C ---- -->
       <div class="npane" data-p="c" hidden>
-        <p class="lead warm">Incompressible Stokes makes the Taylor–Hood system <b>symmetric indefinite</b>: the
-          pressure block is zero, so there is no Cholesky and no cheap CG/AMG. A direct factorisation is robust — and
-          it is what <b>caps the mesh</b>. Every number below was measured on this machine.</p>
+        <p class="lead">Constrain a minimisation and carry the constraint with a Lagrange multiplier, and the
+          stationary point stops being a minimum: it becomes a <b>saddle</b>. The matrix stays symmetric but turns
+          <b>indefinite</b>, which costs you Cholesky and conjugate gradients. Stokes, incompressible elasticity,
+          contact and constrained optimisation all land here. The measurements below are this study's — offered as
+          confirmation of the theorem, not as its subject.</p>
         <div class="split">
           <div>
             <canvas class="mini" id="n3d-c"></canvas>
@@ -1720,9 +1723,9 @@ const lerp=(a,b,t)=>a+(b-a)*t;
    geometry would read as a zoom. An unpainted cage pins the box instead. */
 const cage=b=>({type:'line',pts:[[b[0],b[2],b[4]],[b[1],b[2],b[4]],[b[1],b[3],b[4]],[b[0],b[3],b[4]],
                                  [b[0],b[2],b[5]],[b[1],b[2],b[5]],[b[1],b[3],b[5]],[b[0],b[3],b[5]]]});
-function storyBar(el, st, labels, onRender){
-  el.insertAdjacentHTML('afterend','<div class="beat"></div>');
-  const say=el.nextElementSibling;
+function storyBar(el, st, labels, eqs){
+  el.insertAdjacentHTML('afterend','<div class="mth"></div><div class="beat"></div>');
+  const mth=el.nextElementSibling, say=mth.nextElementSibling;
   el.innerHTML='<button data-a="prev" title="previous beat" aria-label="previous beat">◀</button>'+
     '<button class="play" data-a="play" title="play" aria-label="play">▶</button>'+
     '<button data-a="next" title="next beat" aria-label="next beat">▶|</button>'+
@@ -1734,6 +1737,7 @@ function storyBar(el, st, labels, onRender){
   st.say=h=>{ say.innerHTML=h; };
   st.S.sync=()=>{ [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===st.S.i));
     if(labels&&labels[st.S.i]) say.innerHTML=labels[st.S.i];
+    if(eqs&&eqs[st.S.i]) mth.innerHTML=eqs[st.S.i];
     el.querySelector('[data-a="play"]').textContent=st.S.playing?'❚❚':'▶';
     el.querySelector('[data-a="prev"]').disabled=st.S.i===0;
     el.querySelector('[data-a="next"]').disabled=st.S.i===st.n-1;
@@ -1831,122 +1835,6 @@ function numTab(t){
 }
 document.querySelectorAll('#n-tabs .tab').forEach(b=>b.onclick=()=>numTab(b.dataset.t));
 
-/* ═════════════════════════════════════════════════════════════════════════
-   §07 A — a real P1 solve, both fluxes
-   Model: -k T'' = f on (0,1), T(0)=Tin (pinned), T(1)=Tout.  k=1, f=1.
-   Exact:  T = -x²/2 + Cx + Tin,  C = Tout - Tin + 1/2,  q_exact = -k T'(0) = -C.
-   ═════════════════════════════════════════════════════════════════════════ */
-const FEM_A=(function(){
-  const k=1, f=1, Tin=1, Tout=0, C=Tout-Tin+0.5, qExact=-k*C;
-  function solve(n){
-    const h=1/n, N=n+1;
-    // unconstrained tridiagonal stiffness + load
-    const a=new Float64Array(N), b=new Float64Array(N), c=new Float64Array(N), r=new Float64Array(N);
-    for(let i=0;i<N;i++){ b[i]=(i===0||i===N-1)?k/h:2*k/h; if(i>0)a[i]=-k/h; if(i<N-1)c[i]=-k/h;
-      r[i]=f*h*((i===0||i===N-1)?0.5:1); }
-    const A0=[b[0],c[0]], f0=r[0];                       // the row Dirichlet is about to discard
-    // strong Dirichlet at both ends
-    b[0]=1; c[0]=0; r[0]=Tin;
-    b[N-1]=1; a[N-1]=0; r[N-1]=Tout;
-    // Thomas
-    const cp=new Float64Array(N), dp=new Float64Array(N);
-    cp[0]=c[0]/b[0]; dp[0]=r[0]/b[0];
-    for(let i=1;i<N;i++){ const m=b[i]-a[i]*cp[i-1]; cp[i]=c[i]/m; dp[i]=(r[i]-a[i]*dp[i-1])/m; }
-    const T=new Float64Array(N); T[N-1]=dp[N-1];
-    for(let i=N-2;i>=0;i--) T[i]=dp[i]-cp[i]*T[i+1];
-    const qNodal=-k*(T[1]-T[0])/h;                       // the tempting, wrong one
-    const qReact=A0[0]*T[0]+A0[1]*T[1]-f0;               // the consistent reaction
-    return {h,T,qNodal,qReact};
-  }
-  return {solve,qExact,k,Tin,Tout};
-})();
-(function(){
-  let A_ST=null, A_MX=null;      // declared before upd() runs — a TDZ const throws even under typeof
-  const nIn=$('a-nin');
-  function upd(){
-    const n=+nIn.value, r=FEM_A.solve(n); A_LVL=n;
-    $('a-n').textContent=n;
-    if(A_ST && A_ST.S.i!==2 && !A_ST.S.playing) A_ST.go(2,false);
-    $('a-nod').textContent=fmt(r.qNodal,5);
-    $('a-rea').textContent=fmt(r.qReact,5);
-    $('a-exa').textContent=fmt(FEM_A.qExact,5);
-    $('a-err').textContent=(Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)*100).toFixed(2)+'%';
-    // convergence chart
-    const s=$('c-num-a'), W=300,H=178,L=40,R=12,Tp=12,B=32; clear(s);
-    const ns=[]; for(let m=2;m<=512;m*=1.5) ns.push(Math.round(m)); ns.push(512);
-    const pts=ns.map(m=>{ const q=FEM_A.solve(m); return [m,
-      Math.max(1e-16,Math.abs(q.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)),
-      Math.max(1e-16,Math.abs(q.qReact-FEM_A.qExact)/Math.abs(FEM_A.qExact))]; });
-    const e0=1e-16,e1=1;
-    const X=m=>L+(W-L-R)*(Math.log(m)-Math.log(2))/(Math.log(512)-Math.log(2));
-    const Y=e=>Tp+(H-Tp-B)*(1-(Math.log10(e)-Math.log10(e0))/(Math.log10(e1)-Math.log10(e0)));
-    [0,-4,-8,-12,-16].forEach(p=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(Math.pow(10,p)),y2:Y(Math.pow(10,p))}));
-      s.appendChild(T(L-5,Y(Math.pow(10,p))+4,'1e'+p,{'text-anchor':'end','font-size':'9'})); });
-    [2,8,32,128,512].forEach(m=>s.appendChild(T(X(m),H-13,m,{'text-anchor':'middle','font-size':'9'})));
-    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' '),
-      fill:'none',stroke:'#B4501E','stroke-width':'2.4'}));
-    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[2]).toFixed(1)).join(' '),
-      fill:'none',stroke:'#0A6E38','stroke-width':'2.4'}));
-    s.appendChild(T(W-R-2,Y(pts[pts.length-1][1])-7,'nodal k dT/dn',{'text-anchor':'end',fill:'#B4501E','font-size':'9','font-weight':'700'}));
-    s.appendChild(T(W-R-2,Y(1e-15)-7,'reaction',{'text-anchor':'end',fill:'#0A6E38','font-size':'9','font-weight':'700'}));
-    const cur=Math.max(1e-16,Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact));
-    s.appendChild(E('circle',{cx:X(n),cy:Y(cur),r:4,fill:'#fff',stroke:'#C97A10','stroke-width':'2.6'}));
-    s.appendChild(T((L+W-R)/2,H-2,'elements',{'text-anchor':'middle','font-size':'9'}));
-    s.appendChild(T(-(H/2)+8,10,'relative flux error',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
-  }
-  nIn.addEventListener('input',upd); upd();
-  // closure table
-  let h='<thead><tr><th>Phase</th><th>residual [kWh]</th><th>relative to 4.5×10⁵ kWh</th></tr></thead><tbody>';
-  CLOSURE.forEach(([p,v])=>{ h+='<tr><td>'+p+'</td><td>'+v.toExponential(3)+'</td><td>'+
-    (Math.abs(v)/DELIVERED_KWH).toExponential(1)+'</td></tr>'; });
-  h+='</tbody>'; $('a-clos').innerHTML=h;
-  // ---- the story: five beats, the same P1 solve driving every number ----
-  const A_BEATS=[
-    'Everything the model claims in a year crosses <b>this one face</b> — <span class="num">454 532 kWh</span> of it. Get its flux wrong and the whole balance is wrong.',
-    'Pin the face to a temperature. The nodal values are now <em>exact at every node</em> — and the slope you read off them is <span class="num">50 %</span> wrong at 2 elements.',
-    'Refine, and watch which number moves. The nodal gradient falls only as <b>O(h)</b>: <span class="num">50 → 12.5 → 3.1 → 0.78 → 0.20 %</span>. It never arrives.',
-    'The pin <b>overwrote a row</b> of the assembled system. Keep that row, and evaluate it on the solved field: that is the reaction.',
-    'The reaction is <em>exact at every mesh</em> — <span class="num">1e-13</span>, not a limit you approach. In the real 3-D run it closes each phase to <span class="num">~1e-6 kWh</span> in 4.5×10⁵.'];
-  A_ST=story(5,()=>{ if(A_MX) A_MX.draw(); },[420,520,640,480,420]);
-  A_MX=mini3d($('n3d-a'),()=>{
-    const i=A_ST.S.i, t=A_ST.S.t, it=[];
-    it.push(cage([-0.30,1.05,0.0,0.95,-0.15,0.95]));
-    box3([0.18,0.05,0.05],[0.72,0.80,0.62],'rgba(223,231,238,'+(i>=3?0.22:0.42)+')','#9AA3AB',1).forEach(x=>it.push(x));
-    // the inlet face: dormant, then pinned
-    const fa=i===0?0.35:lerp(0.35,0.62,seg(t,0,0.35)*(i>=1?1:0))+(i>=2?0.27:0);
-    it.push({type:'poly',pts:[[0.18,0.05,0.05],[0.18,0.85,0.05],[0.18,0.85,0.67],[0.18,0.05,0.67]],
-      fill:'rgba(42,111,176,'+Math.min(0.62,fa).toFixed(2)+')',stroke:'#2A6FB0',lw:1.6});
-    // beat 1: the inflow arrives
-    if(i===0) [[0.25,0.22],[0.45,0.22],[0.65,0.22],[0.25,0.48],[0.45,0.48],[0.65,0.48]].forEach(([y,z],k)=>{
-      const g=seg(t,k*0.06,k*0.06+0.55);
-      it.push({type:'arrow',pts:[[-0.12,y,z],[lerp(-0.12,0.30,g),y,z]],stroke:'#E39A26',lw:2.6,head:7}); });
-    else [[0.25,0.22],[0.45,0.22],[0.65,0.22],[0.25,0.48],[0.45,0.48],[0.65,0.48]].forEach(([y,z])=>
-      it.push({type:'arrow',pts:[[-0.12,y,z],[0.30,y,z]],stroke:'#E39A26',lw:2.2,head:6}));
-    // beat 2: the two nodes the slope is read from
-    if(i>=1&&i<=2){ const pop=i===1?seg(t,0.35,1):1;
-      [[0.18,0.45,0.36],[0.18+0.72/Math.max(2,A_LVL),0.45,0.36]].forEach((q,k)=>
-        it.push({type:'dot',pts:[q],r:3+2*pop*(k?1:0),fill:k?'#B4501E':'#2A6FB0'})); }
-    // beat 3: the mesh refines — slice planes, honest to 32 then only the first three
-    if(i===2){ const n=Math.min(32,Math.max(2,Math.round(lerp(2,A_LVL,t)))), lim=Math.min(n,32);
-      for(let j=1;j<lim;j++){ const x=0.18+j*0.72/n; if(x>0.90) break;
-        it.push({type:'line',pts:[[x,0.05,0.05],[x,0.85,0.05],[x,0.85,0.67],[x,0.05,0.67],[x,0.05,0.05]],
-          stroke:'rgba(58,63,69,0.30)',lw:0.8}); } }
-    // beat 4: the discarded row
-    if(i===3){ it.push({type:'text',pts:[[0.54,0.45,0.86]],text:'row kept',color:'#0A6E38',font:'700 11px "IBM Plex Mono",monospace'}); }
-    if(i===4){ it.push({type:'text',pts:[[0.54,0.45,0.86]],text:'qn = rh|Γ',color:'#0A6E38',font:'700 12px "IBM Plex Mono",monospace'});
-      it.push({type:'dot',pts:[[0.18,0.45,0.36]],r:5,fill:'#0A6E38'}); }
-    it.push({type:'text',pts:[[0.18,0.92,0.78]],text:'Γin',color:'#2A6FB0',font:'700 11px "IBM Plex Mono",monospace'});
-    return it;
-  },-58*Math.PI/180,20*Math.PI/180);
-  storyBar($('st-a'),A_ST,A_BEATS);
-  STORIES.a=A_ST;
-})();
-
-/* ═════════════════════════════════════════════════════════════════════════
-   §07 B — pinning a sealed face is not sealing it
-   Two-material bar: rock (k=3, 0.6 m) | concrete (k=1.5, 0.4 m).
-   x = 1 m is the inlet at 80 °C; x = 0 is the face that must be sealed.
-   ═════════════════════════════════════════════════════════════════════════ */
 const FEM_B=(function(){
   const kR=3.0,kC=1.5,LR=0.6,LC=0.4,Ltot=LR+LC,Tin=80,T0=10;
   function solve(n,pin){
@@ -1967,135 +1855,244 @@ const FEM_B=(function(){
   }
   return {solve,Ltot,Tin,T0};
 })();
-(function(){
-  let pin=false;
-  const nIn=$('b-nin');
-  document.querySelectorAll('#b-mode .chip').forEach(b=>b.onclick=()=>{
-    pin=b.dataset.b==='pin';
-    document.querySelectorAll('#b-mode .chip').forEach(c=>c.classList.toggle('on',c===b)); upd(); });
-  function upd(){
-    const n=+nIn.value, r=FEM_B.solve(n,pin), rw=FEM_B.solve(n,false);
-    $('b-n').textContent=n;
-    const kWh=r.q*AWET*TSTORE0*DAY/3.6e6;
-    $('b-leak').textContent=fmt(r.q,1)+' W/m²';
-    $('b-e').textContent=(kWh>=1000?fmt(kWh/1000,1)+' MWh':fmt(kWh,0)+' kWh');
-    $('b-share').textContent=(100*kWh/STORED_KWH).toFixed(kWh/STORED_KWH<0.1?2:0)+'%';
-    $('b-leakbox').className='st '+(pin?'bad':'hi');
-    $('b-say').innerHTML=pin
-      ? 'The face is <b>not</b> sealed: it is a 10&nbsp;°C sink. In steady state it drains '+fmt(r.q,1)+
-        '&nbsp;W/m² — and refining the mesh does not help, because the error is in the model, not the discretisation. '+
-        'In 3-D the same pin also fights the material-continuity condition on the shared rock/concrete corner node.'
-      : 'Zero flux, exactly, at every mesh size — the no-flux condition is the <b>natural</b> one, already satisfied '+
-        'by the weak form. Nothing has to be imposed strongly, so no corner node is ever asked to satisfy two '+
-        'conditions at once.';
-    const s=$('c-num-b'), W=300,H=178,L=38,R=12,Tp=12,B=30; clear(s);
-    const X=x=>L+(W-L-R)*x/FEM_B.Ltot, Y=t=>Tp+(H-Tp-B)*(1-(t-0)/90);
-    s.appendChild(E('rect',{x:X(0),y:Tp,width:X(0.6)-X(0),height:H-Tp-B,fill:'#D0D0CD','fill-opacity':'.35'}));
-    s.appendChild(E('rect',{x:X(0.6),y:Tp,width:X(1.0)-X(0.6),height:H-Tp-B,fill:'#E6E0D2','fill-opacity':'.6'}));
-    s.appendChild(T(X(0.3),Tp+12,'rock',{'text-anchor':'middle',fill:'#6B7278','font-size':'9'}));
-    s.appendChild(T(X(0.8),Tp+12,'concrete',{'text-anchor':'middle',fill:'#6B7278','font-size':'9'}));
-    [0,30,60,90].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
-      s.appendChild(T(L-5,Y(g)+4,g,{'text-anchor':'end','font-size':'9'})); });
-    const path=t=>{ let d=''; for(let i=0;i<t.length;i++){ const x=i*FEM_B.Ltot/(t.length-1);
-      d+=(i?'L':'M')+X(x).toFixed(1)+' '+Y(t[i]).toFixed(1); } return d; };
-    s.appendChild(E('path',{d:path(rw.T),fill:'none',stroke:'#0A6E38','stroke-width':pin?1.4:2.6,'stroke-dasharray':pin?'4 3':''}));
-    if(pin) s.appendChild(E('path',{d:path(r.T),fill:'none',stroke:'#C0392B','stroke-width':'2.6'}));
-    s.appendChild(T(L,H-13,'sealed face',{'text-anchor':'start','font-size':'9',fill:pin?'#C0392B':'#0A6E38','font-weight':'700'}));
-    s.appendChild(T(W-R,H-13,'inlet 80 °C',{'text-anchor':'end','font-size':'9'}));
-    s.appendChild(T(-(H/2)+8,10,'temperature [°C]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
-    MB.draw();
-  }
-  const MB=mini3d($('n3d-b'),()=>{
-    const it=[];
-    box3([0.05,0.05,0.05],[0.52,0.72,0.55],'rgba(208,208,205,.72)','#9AA3AB',1).forEach(b=>it.push(b));
-    box3([0.57,0.05,0.05],[0.22,0.72,0.55],'rgba(230,224,210,.9)','#B6AF9C',1).forEach(b=>it.push(b));
-    it.push({type:'line',pts:[[0.57,0.05,0.05],[0.57,0.05,0.60]],stroke:'#C0392B',lw:3.4});
-    it.push({type:'dot',pts:[[0.57,0.05,0.60]],r:5,fill:'#C0392B'});
-    it.push({type:'text',pts:[[0.90,0.05,0.76]],text:'shared corner node\n(over-constrained)',color:'#C0392B',
-      align:'left',font:'600 10px "IBM Plex Mono",monospace'});
-    it.push({type:'text',pts:[[0.30,0.40,-0.02]],text:'rock',color:'#6B7278',font:'500 11px "IBM Plex Mono",monospace'});
-    it.push({type:'text',pts:[[0.68,0.40,-0.02]],text:'concrete',color:'#6B7278',font:'500 10px "IBM Plex Mono",monospace'});
-    [0.22,0.55].forEach(y=>it.push({type:'arrow',pts:[[0.05,y,0.32],[-0.13,y,0.32]],
-      stroke:pin?'#C0392B':'#00824A',lw:2.4,head:7}));
-    it.push({type:'text',pts:[[-0.34,0.38,0.20]],text:pin?'T pinned → leak':'k∇T·n = 0',
-      color:pin?'#C0392B':'#00824A',font:'700 11px "IBM Plex Mono",monospace'});
-    return it;
-  },-52*Math.PI/180,22*Math.PI/180);
-  nIn.addEventListener('input',upd); upd();
-})();
 
 /* ═════════════════════════════════════════════════════════════════════════
-   §07 C — the saddle point, measured
+   §07 — three theorems of the finite-element method, told in 3-D.
+   These are not facts about a mine. They are general results in the calculus
+   of variations, and they bite in every Galerkin code ever written. The
+   project's own measurements appear only as EVIDENCE that each theorem holds.
    ═════════════════════════════════════════════════════════════════════════ */
-(function(){
-  let sel=0;
-  const box=$('c-op');
-  MUMPS.ops.forEach((o,i)=>{ const b=document.createElement('button');
-    b.className='chip'+(i===0?' on':''); b.textContent=o.n;
-    b.onclick=()=>{ sel=i; [...box.children].forEach((c,j)=>c.classList.toggle('on',j===i)); upd(); };
-    box.appendChild(b); });
-  function upd(){
-    const o=MUMPS.ops[sel];
-    $('c-dof').textContent=grp(o.dof);
-    $('c-fill').textContent=fmt(o.fill,1)+'×';
-    $('c-mem').textContent=grp(o.mem)+' MB';
-    $('c-t').textContent=fmt(o.t,2)+' s';
-    $('c-say').innerHTML=o.piv+'. Factor entries: <b>'+grp(o.fac)+'</b> from '+grp(o.nnz)+
-      ' matrix non-zeros — '+fmt(o.gf,1)+'&nbsp;GFLOP of elimination.'+
-      (sel===0?' Compare it with the LDLᵀ and Cholesky rows: the saddle point pays roughly <b>2×</b> the memory of '+
-        'the SPD problem it would otherwise be.':'');
-    // scaling chart
-    const s=$('c-num-c'), W=300,H=178,L=42,R=14,Tp=12,B=32; clear(s);
-    const M=MUMPS.meshes;
-    const X=d=>L+(W-L-R)*(Math.log(d)-Math.log(3e5))/(Math.log(9e5)-Math.log(3e5));
-    const Y=m=>Tp+(H-Tp-B)*(1-(Math.log10(m)-Math.log10(500))/(Math.log10(30000)-Math.log10(500)));
-    [1000,3000,10000,30000].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
-      s.appendChild(T(L-5,Y(g)+4,(g/1000)+' GB',{'text-anchor':'end','font-size':'8.5'})); });
-    [3e5,5e5,8e5].forEach(d=>s.appendChild(T(X(d),H-13,(d/1e3)+'k',{'text-anchor':'middle','font-size':'9'})));
-    s.appendChild(E('line',{x1:L,x2:W-R,y1:Y(15000),y2:Y(15000),stroke:'#C0392B','stroke-width':'1.3','stroke-dasharray':'5 4'}));
-    s.appendChild(T(W-R-2,Y(15000)-5,'15 GB in-core ceiling',{'text-anchor':'end',fill:'#C0392B','font-size':'8.5','font-weight':'700'}));
-    const ok=M.filter(m=>m.ok);
-    s.appendChild(E('path',{d:ok.map((m,i)=>(i?'L':'M')+X(m.dof).toFixed(1)+' '+Y(m.mem).toFixed(1)).join(' '),
-      fill:'none',stroke:'#2A6FB0','stroke-width':'2.4'}));
-    // measured trend extended to the mesh that did not fit
-    const g=Math.log(M[1].mem/M[0].mem)/Math.log(M[1].dof/M[0].dof);
-    const pred=M[1].mem*Math.pow(M[2].dof/M[1].dof,g);
-    s.appendChild(E('path',{d:'M'+X(M[1].dof)+' '+Y(M[1].mem)+'L'+X(M[2].dof)+' '+Y(pred),
-      fill:'none',stroke:'#2A6FB0','stroke-width':'1.6','stroke-dasharray':'4 3','stroke-opacity':'.7'}));
-    M.forEach(m=>{ const yy=m.ok?m.mem:pred;
-      s.appendChild(E('circle',{cx:X(m.dof),cy:Y(yy),r:m.ok?4.5:5.5,fill:m.ok?'#2A6FB0':'#fff',
-        stroke:m.ok?'#fff':'#C0392B','stroke-width':m.ok?1.6:2.8}));
-      s.appendChild(T(X(m.dof),Y(yy)-11,m.ok?fmt(m.mem/1000,1)+' GB':'✕',
-        {'text-anchor':'middle','font-size':'9','font-weight':'700',fill:m.ok?'#2A6FB0':'#C0392B'})); });
-    s.appendChild(T(X(M[2].dof)-4,Y(pred)+16,'did not fit',{'text-anchor':'end',fill:'#C0392B','font-size':'8.5'}));
-    s.appendChild(T((L+W-R)/2,H-2,'degrees of freedom',{'text-anchor':'middle','font-size':'9'}));
-    s.appendChild(T(-(H/2)+8,10,'factorisation memory',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
-    // the operator table
-    let h='<thead><tr><th>Operator</th><th>fill</th><th>GFLOP</th><th>memory</th><th>factor</th></tr></thead><tbody>';
-    MUMPS.ops.forEach((op,i)=>{ h+='<tr class="clk'+(i===sel?' sel':'')+'" data-i="'+i+'"><td>'+op.n+'</td><td>'+
-      fmt(op.fill,1)+'×</td><td>'+fmt(op.gf,1)+'</td><td>'+grp(op.mem)+' MB</td><td>'+fmt(op.t,2)+' s</td></tr>'; });
-    h+='</tbody>'; const tb=$('c-tab'); tb.innerHTML=h;
-    tb.querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>{ sel=+tr.dataset.i;
-      [...box.children].forEach((c,j)=>c.classList.toggle('on',j===sel)); upd(); });
+
+/* a height field z = f(x,y) over [-1,1]², as painter-sorted quads */
+function surf(f,n,lo,hi,warm){
+  const it=[], h=2/n;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){
+    const x0=-1+h*i, x1=x0+h, y0=-1+h*j, y1=y0+h;
+    const q=[[x0,y0,f(x0,y0)],[x1,y0,f(x1,y0)],[x1,y1,f(x1,y1)],[x0,y1,f(x0,y1)]];
+    const zm=(q[0][2]+q[1][2]+q[2][2]+q[3][2])/4, u=clamp01((zm-lo)/(hi-lo));
+    const c=warm?[Math.round(lerp(232,180,u)),Math.round(lerp(238,60,u)),Math.round(lerp(244,40,u))]
+                :[Math.round(lerp(214,26,u)),Math.round(lerp(232,110,u)),Math.round(lerp(244,180,u))];
+    it.push({type:'poly',pts:q,fill:`rgba(${c[0]},${c[1]},${c[2]},.93)`,stroke:'rgba(255,255,255,.5)',lw:.6});
   }
-  mini3d($('n3d-c'),()=>{
-    const it=[];
-    const blocks=[[[0.10,0.55],0.62,'rgba(42,111,176,.92)','A'],
-                  [[0.55,0.55],0.34,'rgba(139,184,221,.92)','Bᵀ'],
-                  [[0.10,0.10],0.34,'rgba(139,184,221,.92)','B'],
-                  [[0.55,0.10],0.015,'rgba(201,201,201,.95)','0']];
-    blocks.forEach(([[x,y],hh,col,lab])=>{
-      box3([x,y,0],[0.36,0.36,hh],col,'#FFFFFF',1.2).forEach(b=>it.push(b));
-      it.push({type:'text',pts:[[x+0.18,y+0.18,hh+0.10]],text:lab,color:'#181C20',font:'700 13px "IBM Plex Mono",monospace'});
-    });
-    it.push({type:'text',pts:[[0.73,0.28,-0.22]],text:'indefinite',color:'#C0392B',font:'700 12px "IBM Plex Mono",monospace'});
-    it.push({type:'text',pts:[[0.73,0.28,-0.36]],text:'no Cholesky, no cheap CG',color:'#8A8F86',font:'500 9.5px "IBM Plex Mono",monospace'});
+  return it;
+}
+/* a P1 hat function φ_i standing on the interval, as a tent */
+const tent=(x,w,hgt,col,op)=>({type:'poly',
+  pts:[[x-w,0,0],[x,0,hgt],[x+w,0,0],[x,0.34,hgt*0.55],[x-w,0.34,0]],
+  fill:col,stroke:'rgba(40,48,56,.5)',lw:.8,op});
+
+(function(){
+  /* ── A · the boundary flux is the equation you deleted ─────────────────── */
+  let A_ST=null, A_MX=null, A_N=32;
+  const EQ_A=[
+    '−∇·(k∇u) = f &nbsp;in Ω &nbsp;&nbsp;·&nbsp;&nbsp; u = g &nbsp;on Γ<sub>D</sub>',
+    'q<sub>Γ</sub> ≟ −k ∂u<sub>h</sub>/∂n |<sub>Γ</sub>',
+    '‖q − q<sub>h</sub>‖ = <b>O(h<sup>p</sup>)</b> &nbsp;— it never becomes exact',
+    'a(u<sub>h</sub>, φ<sub>i</sub>) − ℓ(φ<sub>i</sub>) = r<sub>i</sub>',
+    '∮<sub>Γ</sub> q φ<sub>i</sub> ds = r<sub>i</sub> &nbsp;⟹&nbsp; <b>Q = Σ<sub>i∈Γ</sub> r<sub>i</sub></b>'];
+  const CAP_A=[
+    'A field problem with a value <b>fixed</b> on part of the boundary. The flux that crosses that part is what you usually want — and it is the one thing the solution does not hand you directly.',
+    'The obvious move: differentiate the computed solution at the wall. Its nodal values are <em>exact</em> here, so surely its slope is too.',
+    'It is not. Refine the mesh and the slope keeps moving: <span class="num">50 → 12.5 → 3.1 → 0.78 → 0.20 %</span>. Galerkin makes the solution optimal in <em>energy</em>, and promises nothing about a derivative at a point.',
+    'But the method already knows the answer. Each basis function φ<sub>i</sub> has an equation. At the fixed node that equation was <b>deleted</b> to impose the value. Put it back and evaluate it.',
+    'What is left over <em>is</em> the flux — not an approximation of it. Exact for every mesh, because it is a statement about the discrete system, not about a derivative. <span class="num">Verified to 1e-13</span> at every refinement.'];
+  A_ST=story(5,()=>{ if(A_MX) A_MX.draw(); },[520,520,700,560,520]);
+  A_MX=mini3d($('n3d-a'),()=>{
+    const i=A_ST.S.i, t=A_ST.S.t, it=[];
+    it.push(cage([-1.15,1.15,-0.15,0.65,-0.30,1.15]));
+    // Ω as a slab, Γ_D its left face
+    box3([-1,0,0],[2,0.34,0.30],'rgba(226,232,238,.5)','#9AA3AB',1).forEach(x=>it.push(x));
+    const pin=i>=1?1:seg(t,0,.6);
+    it.push({type:'poly',pts:[[-1,0,0],[-1,0.34,0],[-1,0.34,0.30],[-1,0,0.30]],
+      fill:`rgba(42,111,176,${(0.28+0.34*pin).toFixed(2)})`,stroke:'#2A6FB0',lw:1.8});
+    it.push({type:'text',pts:[[-1,0.17,0.52]],text:'ΓD',color:'#2A6FB0',font:'700 12px "IBM Plex Mono",monospace'});
+    it.push({type:'text',pts:[[0.75,0.17,0.46]],text:'Ω',color:'#6B7278',font:'700 12px "IBM Plex Mono",monospace'});
+    if(i===0){ for(let k=0;k<5;k++){ const y=-0.9+0.45*k, g=seg(t,k*0.07,k*0.07+0.5);
+      it.push({type:'arrow',pts:[[-1.35,0.17,0.15],[lerp(-1.35,-1.02,g),0.17,0.15]],stroke:'#E39A26',lw:2.4,head:6}); }
+      it.push({type:'text',pts:[[-1.05,0.17,-0.20]],text:'q = ?',color:'#B4501E',font:'700 12px "IBM Plex Mono",monospace'}); }
+    if(i===1||i===2){                                    // the solution, and the slope read off it
+      const n=i===2?Math.max(2,Math.round(lerp(3,Math.min(24,A_N),t))):3, u=x=>0.55*(1-x*x)*0.5+0.12;
+      let d=''; const pts=[];
+      for(let k=0;k<=40;k++){ const x=-1+2*k/40; pts.push([x,0.17,u(x)+0.32]); }
+      it.push({type:'line',pts,stroke:'#0A6E38',lw:2.4});
+      for(let k=1;k<n;k++){ const x=-1+2*k/n;
+        it.push({type:'line',pts:[[x,0,0],[x,0.34,0]],stroke:'rgba(58,63,69,.28)',lw:.8}); }
+      const x1=-1+2/n;
+      it.push({type:'line',pts:[[-1,0.17,u(-1)+0.32],[x1,0.17,u(x1)+0.32]],stroke:'#C0392B',lw:2.6});
+      it.push({type:'dot',pts:[[-1,0.17,u(-1)+0.32]],r:4,fill:'#2A6FB0'});
+      it.push({type:'dot',pts:[[x1,0.17,u(x1)+0.32]],r:4,fill:'#C0392B'});
+      it.push({type:'text',pts:[[x1+0.30,0.17,u(x1)+0.52]],text:i===2?('h = 2/'+n):'slope',color:'#C0392B',
+        font:'700 11px "IBM Plex Mono",monospace'}); }
+    if(i>=3){                                            // the hat functions, and the one that was deleted
+      const N=5;
+      for(let k=0;k<=N;k++){ const x=-1+2*k/N, edge=k===0;
+        const gl=edge?seg(t,0,.55):1;
+        it.push(tent(x,2/N,edge?0.34+0.30*gl:0.26,
+          edge?`rgba(10,110,56,${(0.35+0.45*gl).toFixed(2)})`:'rgba(180,190,200,.42)'));
+        if(edge) it.push({type:'text',pts:[[x,0.17,0.86+0.10*gl]],text:'φi',color:'#0A6E38',
+          font:'700 12px "IBM Plex Mono",monospace'}); }
+      if(i===4){ const g=seg(t,.25,1);
+        it.push({type:'arrow',pts:[[-1,0.17,0.62],[-1-0.42*g,0.17,0.62]],stroke:'#0A6E38',lw:3,head:8});
+        it.push({type:'text',pts:[[-1.5,0.17,0.40]],text:'ri',color:'#0A6E38',font:'700 13px "IBM Plex Mono",monospace'}); } }
     return it;
-  },-60*Math.PI/180,26*Math.PI/180);
-  upd();
+  },-52*Math.PI/180,18*Math.PI/180);
+  storyBar($('st-a'),A_ST,CAP_A,EQ_A);
+  STORIES.a=A_ST;
+  const nIn=$('a-nin');
+  function updA(){ const n=+nIn.value, r=FEM_A.solve(n); A_N=n;
+    $('a-n').textContent=n;
+    $('a-nod').textContent=fmt(r.qNodal,5);
+    $('a-rea').textContent=fmt(r.qReact,5);
+    $('a-exa').textContent=fmt(FEM_A.qExact,5);
+    $('a-err').textContent=(Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)*100).toFixed(2)+'%';
+    if(A_ST && !A_ST.S.playing && A_ST.S.i<2) A_ST.go(2,false); else if(A_MX) A_MX.draw();
+  }
+  nIn.addEventListener('input',updA); updA();
 })();
 
-console.log('%c● GEOBATTERY poster build 2026-07-23a · badges removed · QR→button · ?fig= 3-D matches · live FIG1/4a/4b/5 tools · §07 re-solvable','color:#009640;font-weight:bold');
+(function(){
+  /* ── B · natural means do nothing ──────────────────────────────────────── */
+  let B_ST=null, B_MX=null, B_PIN=false;
+  const EQ_B=[
+    '∫<sub>Ω</sub> k∇u·∇v = ∫<sub>Ω</sub> f v + ∮<sub>∂Ω</sub> (k ∂u/∂n) v ds',
+    '∂u/∂n = 0 &nbsp;⟹&nbsp; ∮<sub>Γ<sub>N</sub></sub> (·) v ds = 0 &nbsp;— <b>nothing to impose</b>',
+    'u = g &nbsp;on Γ<sub>N</sub> &nbsp;⟹&nbsp; q = Δu / Σ(L<sub>i</sub>/k<sub>i</sub>) ≠ 0',
+    'x ∈ Γ<sub>1</sub> ∩ Γ<sub>2</sub> : &nbsp; u(x) = g<sub>1</sub> &nbsp;<b>and</b>&nbsp; u(x) = g<sub>2</sub>',
+    'a(u,v) + (γ/h)∮ u v = ℓ(v) + (γ/h)∮ g v &nbsp; — <b>weakly</b>'];
+  const CAP_B=[
+    'Integrate the strong form by parts and a boundary term appears on its own. Every boundary condition in a finite-element method is a statement about <em>that</em> term.',
+    'A no-flux wall makes the integrand zero, so the term vanishes from the equation. A <b>natural</b> condition is satisfied by writing nothing at all — the wall is sealed because you left it alone.',
+    'Impose it as a value instead and you have not sealed it, you have replaced it. The wall now drives a flux set purely by the material stack — and refining the mesh will never reduce it, because the error is in the model, not the discretisation.',
+    'Worse at a corner. A node on two boundary patches belongs to both. Two strong conditions arrive at one unknown, and the system is over-determined — the flux there is whatever the solver''s tie-break happens to be.',
+    'So impose it <em>weakly</em>: add the condition to the bilinear form with a penalty rather than deleting a row. The corner keeps one equation, both conditions are satisfied in the weak sense, and the leak is <span class="num">exactly zero</span> at every mesh.'];
+  B_ST=story(5,()=>{ if(B_MX) B_MX.draw(); },[520,560,640,700,620]);
+  B_MX=mini3d($('n3d-b'),()=>{
+    const i=B_ST.S.i, t=B_ST.S.t, it=[];
+    it.push(cage([-1.0,0.95,-0.1,0.85,-0.35,1.0]));
+    box3([-0.85,0.05,0.05],[0.85,0.72,0.50],'rgba(206,210,214,.62)','#98A0A8',1).forEach(x=>it.push(x));
+    box3([0.00,0.05,0.05],[0.62,0.72,0.50],'rgba(232,226,212,.78)','#B6AF9C',1).forEach(x=>it.push(x));
+    it.push({type:'text',pts:[[-0.45,0.40,-0.06]],text:'k1',color:'#6B7278',font:'600 11px "IBM Plex Mono",monospace'});
+    it.push({type:'text',pts:[[0.32,0.40,-0.06]],text:'k2',color:'#8A7F63',font:'600 11px "IBM Plex Mono",monospace'});
+    // the boundary term, as a ring on ∂Ω
+    if(i===0){ const g=seg(t,.15,1);
+      it.push({type:'line',pts:[[-0.85,0.05,0.05],[-0.85,0.77,0.05],[-0.85,0.77,0.55],[-0.85,0.05,0.55],[-0.85,0.05,0.05]],
+        stroke:`rgba(201,122,16,${(0.35+0.6*g).toFixed(2)})`,lw:3});
+      it.push({type:'text',pts:[[-0.85,0.40,0.80]],text:'∮ ds',color:'#C97A10',font:'700 13px "IBM Plex Mono",monospace'}); }
+    if(i===1){ const f=1-seg(t,.2,1);                     // the term fades to nothing
+      it.push({type:'line',pts:[[-0.85,0.05,0.05],[-0.85,0.77,0.05],[-0.85,0.77,0.55],[-0.85,0.05,0.55],[-0.85,0.05,0.05]],
+        stroke:`rgba(201,122,16,${(0.9*f).toFixed(2)})`,lw:3,dash:[5,4]});
+      it.push({type:'text',pts:[[-0.85,0.40,0.80]],text:'= 0',color:'#0A6E38',font:'700 13px "IBM Plex Mono",monospace'});
+      [0.22,0.55].forEach(y=>it.push({type:'arrow',pts:[[-0.85,y,0.30],[-0.85-0.001,y,0.30]],stroke:'#00824A',lw:2})); }
+    if(i===2||i===4){                                     // pinned: it leaks. weak: it does not.
+      const leak=i===2?seg(t,.25,1):1-seg(t,.15,.8);
+      it.push({type:'poly',pts:[[-0.85,0.05,0.05],[-0.85,0.77,0.05],[-0.85,0.77,0.55],[-0.85,0.05,0.55]],
+        fill:i===2?`rgba(192,57,43,${(0.10+0.30*leak).toFixed(2)})`:`rgba(10,110,56,${(0.30*(1-leak)+0.10).toFixed(2)})`,
+        stroke:i===2?'#C0392B':'#0A6E38',lw:1.6});
+      [0.22,0.42,0.62].forEach((y,k)=>{ const L=0.42*leak*(i===2?1:1);
+        if(L>0.02) it.push({type:'arrow',pts:[[-0.85,y,0.30],[-0.85-L,y,0.30]],
+          stroke:i===2?'#C0392B':'#0A6E38',lw:2.6,head:7}); });
+      it.push({type:'text',pts:[[-1.42,0.40,0.30]],text:i===2?'q ≠ 0':'q = 0',
+        color:i===2?'#C0392B':'#0A6E38',font:'700 13px "IBM Plex Mono",monospace'}); }
+    if(i===3){                                            // the corner: two masters, one unknown
+      it.push({type:'line',pts:[[0.00,0.05,0.05],[0.00,0.05,0.55]],stroke:'#C0392B',lw:3.4});
+      const g=seg(t,.2,1);
+      it.push({type:'arrow',pts:[[-0.55,0.05,0.62],[lerp(-0.55,-0.06,g),0.05,0.58]],stroke:'#2A6FB0',lw:2.6,head:7});
+      it.push({type:'arrow',pts:[[0.55,0.05,0.62],[lerp(0.55,0.06,g),0.05,0.58]],stroke:'#C97A10',lw:2.6,head:7});
+      it.push({type:'dot',pts:[[0.00,0.05,0.55]],r:4+3*g,fill:'#C0392B'});
+      it.push({type:'text',pts:[[0.00,0.05,0.86]],text:'g1 ? g2',color:'#C0392B',font:'700 12px "IBM Plex Mono",monospace'}); }
+    return it;
+  },-46*Math.PI/180,20*Math.PI/180);
+  storyBar($('st-b'),B_ST,CAP_B,EQ_B);
+  STORIES.b=B_ST;
+  const bIn=$('b-nin');
+  function updB(){ const n=+bIn.value, r=FEM_B.solve(n,B_PIN);
+    $('b-n').textContent=n;
+    $('b-leak').textContent=fmt(r.q,1)+' W/m²';
+    $('b-leakbox').className='st '+(B_PIN?'bad':'hi');
+    if(B_MX) B_MX.draw(); }
+  bIn.addEventListener('input',updB);
+  document.querySelectorAll('#b-mode .chip').forEach(b=>b.onclick=()=>{
+    B_PIN=b.dataset.b==='pin';
+    document.querySelectorAll('#b-mode .chip').forEach(c=>c.classList.toggle('on',c===b));
+    B_ST.S.playing=false; B_ST.go(B_PIN?2:4,true); updB(); });
+  updB();
+})();
+
+(function(){
+  /* ── C · it is a saddle, not a bowl ────────────────────────────────────── */
+  let C_ST=null, C_MX=null, C_OP=0;
+  const EQ_C=[
+    'min<sub>u</sub> &nbsp;J(u) = ½ u<sup>T</sup>A u − f<sup>T</sup>u &nbsp;&nbsp;⟹&nbsp;&nbsp; A u = f, &nbsp; A ≻ 0',
+    'ℒ(u,p) = J(u) + p<sup>T</sup>(B u − g) &nbsp;— stationary, not minimal',
+    '[ A &nbsp;B<sup>T</sup> ; &nbsp;B &nbsp;<b>0</b> ] [ u ; p ] = [ f ; g ]',
+    'inertia(K) = ( n<sub>u</sub> positive , n<sub>p</sub> <b>negative</b> ) &nbsp;— Sylvester',
+    'K = L D L<sup>T</sup>, &nbsp; D indefinite &nbsp;— no Cholesky, no CG'];
+  const CAP_C=[
+    'An unconstrained energy minimisation is a <b>bowl</b>. The matrix is symmetric positive definite, a ball released anywhere rolls to the one bottom, and every cheap method — Cholesky, conjugate gradients — is built on exactly that shape.',
+    'Now add a constraint the solution must satisfy, and carry it with a Lagrange multiplier. You are no longer minimising: you minimise in u and <em>maximise</em> in p. The bowl becomes a <b>saddle</b>, and the ball no longer settles anywhere.',
+    'Differentiating gives the block system. The multiplier appears in the corner, and the bottom-right block is <b>identically zero</b> — the constraint does not test against itself. That single zero is the whole difficulty.',
+    'The matrix stays symmetric but its eigenvalues now straddle zero: one negative direction per constraint. Measured on this system — <span class="num">17 110 negative pivots</span> against <span class="num">17 123</span> pressure unknowns. The theorem, confirmed by a factorisation.',
+    'So Cholesky is unavailable — it needs every pivot positive — and the constrained problem costs about <b>twice the memory</b> of the SPD problem it would otherwise be. That, not the physics, is what caps the mesh.'];
+  C_ST=story(5,()=>{ if(C_MX) C_MX.draw(); },[620,760,560,620,520]);
+  C_MX=mini3d($('n3d-c'),()=>{
+    const i=C_ST.S.i, t=C_ST.S.t, it=[];
+    it.push(cage([-1.25,1.25,-1.25,1.25,-1.15,1.15]));
+    if(i<=1){                                             // the bowl becomes a saddle
+      const m=i===0?0:seg(t,0,1);                         // 0 → bowl, 1 → saddle
+      const f=(x,y)=>0.72*(x*x - m*2*y*y) - (m?0:0.30);
+      surf(f,11,-0.85,0.75,false).forEach(q=>it.push(q));
+      const bx=i===0?lerp(0.75,0.03,seg(t,.25,1)):lerp(0.03,0.92,seg(t,.35,1));
+      const by=i===0?0:lerp(0.0,0.62,seg(t,.35,1));
+      it.push({type:'dot',pts:[[bx,by,f(bx,by)+0.12]],r:6,fill:'#B4501E'});
+      it.push({type:'text',pts:[[0,-1.15,0.92]],text:i===0?'A > 0':'saddle',
+        color:i===0?'#0A6E38':'#B4501E',font:'700 13px "IBM Plex Mono",monospace'});
+    } else {                                              // the block system, and its inertia
+      const tiles=[[-0.55,0.55,'A','rgba(42,111,176,.92)',0.42],
+                   [0.55,0.55,'BT','rgba(139,184,221,.92)',0.24],
+                   [-0.55,-0.55,'B','rgba(139,184,221,.92)',0.24],
+                   [0.55,-0.55,'0','rgba(214,214,214,.55)',0.012]];
+      tiles.forEach(([x,y,lab,col,h],k)=>{
+        const g=i===2?seg(t,k*0.10,k*0.10+0.6):1, hh=Math.max(0.012,h*g);
+        box3([x-0.42,y-0.42,0],[0.84,0.84,hh],col,lab==='0'?'#C0392B':'#FFFFFF',lab==='0'?1.6:1.1).forEach(q=>it.push(q));
+        it.push({type:'text',pts:[[x,y,hh+0.16]],text:lab,color:'#181C20',font:'700 13px "IBM Plex Mono",monospace'});
+      });
+      if(i>=3){                                           // eigenvalues straddling zero
+        const g=seg(t,.1,1);
+        it.push({type:'line',pts:[[-1.15,0,-0.75],[1.15,0,-0.75]],stroke:'#3A3F45',lw:1.4});
+        it.push({type:'text',pts:[[0,0,-0.95]],text:'0',color:'#6B7278',font:'600 11px "IBM Plex Mono",monospace'});
+        for(let k=0;k<9;k++){ const u=(k+1)/10;
+          it.push({type:'dot',pts:[[lerp(0.06,1.02,u)*g,0,-0.75]],r:3,fill:'#0A6E38'});
+          if(k<4) it.push({type:'dot',pts:[[-lerp(0.10,0.92,k/4)*g,0,-0.75]],r:3.4,fill:'#C0392B'}); }
+        it.push({type:'text',pts:[[-0.62,0,-1.02]],text:'negative',color:'#C0392B',font:'700 11px "IBM Plex Mono",monospace'});
+      }
+      if(i===4){ it.push({type:'text',pts:[[0,0,1.02]],text:'no Cholesky',color:'#C0392B',
+        font:'700 13px "IBM Plex Mono",monospace'}); }
+    }
+    return it;
+  },-58*Math.PI/180,24*Math.PI/180);
+  storyBar($('st-c'),C_ST,CAP_C,EQ_C);
+  STORIES.c=C_ST;
+  const box=$('c-op');
+  MUMPS.ops.forEach((o,k)=>{ const b=document.createElement('button');
+    b.className='chip'+(k===0?' on':''); b.textContent=o.n;
+    b.onclick=()=>{ C_OP=k; [...box.children].forEach((c,j)=>c.classList.toggle('on',j===k)); updC(); };
+    box.appendChild(b); });
+  function updC(){ const o=MUMPS.ops[C_OP];
+    $('c-dof').textContent=grp(o.dof); $('c-fill').textContent=fmt(o.fill,1)+'×';
+    $('c-mem').textContent=grp(o.mem)+' MB'; $('c-t').textContent=fmt(o.t,2)+' s';
+    $('c-say').innerHTML=o.piv+'. Factor entries <b>'+grp(o.fac)+'</b> from '+grp(o.nnz)+
+      ' non-zeros — '+fmt(o.gf,1)+'&nbsp;GFLOP of elimination.';
+    let h='<thead><tr><th>Operator</th><th>fill</th><th>GFLOP</th><th>memory</th><th>factor</th></tr></thead><tbody>';
+    MUMPS.ops.forEach((op,k)=>{ h+=`<tr class="clk${k===C_OP?' sel':''}" data-i="${k}"><td>${op.n}</td><td>${fmt(op.fill,1)}×</td>`+
+      `<td>${fmt(op.gf,1)}</td><td>${grp(op.mem)} MB</td><td>${fmt(op.t,2)} s</td></tr>`; });
+    $('c-tab').innerHTML=h+'</tbody>';
+    $('c-tab').querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>{ C_OP=+tr.dataset.i;
+      [...box.children].forEach((c,j)=>c.classList.toggle('on',j===C_OP)); updC(); });
+    if(C_MX) C_MX.draw(); }
+  updC();
+})();
+
+console.log('%c● GEOBATTERY poster build 2026-07-24a · §07 rebuilt as three theorems told in 3-D','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
