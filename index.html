@@ -421,7 +421,38 @@
   @media (prefers-reduced-motion:reduce){
     *{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
     #hint{ opacity:.8; }
+    #figchip{ left:10px; right:10px; max-width:none; }
   }
+
+  /* ---- figure-match mode (?fig=…): the canvas reproduces a printed poster figure ----
+     The poster's 3-D panels are rendered on WHITE. In figure mode the void turns white too,
+     so the chrome that normally sits on the dark void has to flip to ink. */
+  body.figmode #hero .title, body.figmode #hero .tagline, body.figmode #hero .eyebrow,
+  body.figmode #hero .scene-line, body.figmode #status{ color:#20262e !important; }
+  body.figmode #hero .title em{ color:#0a6e38 !important; }
+  body.figmode #hint{ color:#4a525c !important; }
+  body.figmode .orb{ background:rgba(255,255,255,.92) !important; color:#20262e !important; border-color:#c8c4ba !important; }
+  body.figmode #deck{ background:rgba(255,255,255,.9) !important; border-color:#d3cfc5 !important;
+    box-shadow:0 10px 34px rgba(30,34,40,.18) !important; color:#20262e !important; }
+  body.figmode #deck, body.figmode #deck *{ color:#3a424c !important; }
+  body.figmode .cbar{ border-left-color:#dedad0 !important; }
+  body.figmode .cbar .grad{ border-color:rgba(0,0,0,.16) !important; }
+  body.figmode #panel{ box-shadow:0 14px 44px rgba(20,24,30,.28) !important; }
+
+  #figchip{ position:absolute; left:50%; transform:translateX(-50%); bottom:104px; z-index:7;
+    display:none; align-items:center; gap:11px; max-width:min(680px, calc(100vw - 32px));
+    background:#ffffff; color:#20262e; border:1px solid #d8d4ca; border-radius:11px;
+    padding:9px 12px 9px 13px; box-shadow:0 10px 30px rgba(30,34,40,.2); }
+  body.figmode #figchip{ display:flex; }
+  #figchip .fk{ font:700 9.5px/1 var(--mono); letter-spacing:.15em; text-transform:uppercase;
+    color:#0a6e38; background:#e6f3ec; border:1px solid #bfe0cd; border-radius:5px; padding:5px 7px; flex:none; }
+  #figchip .ft{ font-size:12px; line-height:1.35; color:#3a424c; min-width:0; }
+  #figchip .ft b{ color:#20262e; }
+  #figchip .fx{ margin-left:auto; flex:none; font:700 11px/1 inherit; cursor:pointer;
+    background:#0c1015; color:#fff; border:0; border-radius:7px; padding:8px 11px; }
+  #figchip .fx:hover{ background:#0a6e38; }
+  @media (max-width:900px){ #figchip{ bottom:150px; } #figchip .ft{ font-size:11px; } }
+  @media (max-width:640px){ #figchip{ bottom:auto; top:calc(10px + env(safe-area-inset-top)); } }
 </style>
 <script src="https://unpkg.com/vtk.js@36.4.1/vtk.js"></script>
 </head>
@@ -517,6 +548,12 @@
 <div id="hint" aria-hidden="true"><span class="coarse">drag to rotate · pinch to zoom</span><span class="fine">drag to rotate · scroll to zoom</span></div>
 <div id="tourTitle" aria-live="polite"></div>
 <div id="axLabels" aria-hidden="true"><span data-ax="x">X</span><span data-ax="y">Y</span><span data-ax="z">Z</span></div>
+
+<div id="figchip" role="status">
+  <span class="fk" id="figKick">FIG</span>
+  <span class="ft" id="figTxt"></span>
+  <button class="fx" id="figFree" type="button">free the view</button>
+</div>
 
 <div id="deck">
   <div id="timeGrp">
@@ -1093,7 +1130,7 @@ function main() {
         const o = cm.querySelector('option[value="' + v + '"]'); if (o) o.disabled = cutActive;   // segify's rebuild/sync mirrors this onto the buttons
         document.querySelectorAll('.seg-opt[data-val="' + v + '"]').forEach(b => { b.disabled = cutActive; b.classList.toggle('is-off', cutActive); });
       });
-      if (cutActive && (colMode === 'material' || colMode === 'flow')) { cm.value = 'temperature'; setColorMode('temperature'); }
+      if (!window._figLock && cutActive && (colMode === 'material' || colMode === 'flow')) { cm.value = 'temperature'; setColorMode('temperature'); }
       // the field plane hides the surfaces + shows an image slice -> the surface Representation and phase animation don't apply, so grey them out
       { const rg = document.getElementById('reprGrp'); if (rg) rg.classList.toggle('ctl-off', slice); }
       { const hp = document.getElementById('heatPlayOn'), hr = hp && hp.closest('.row'); if (hr) hr.classList.toggle('ctl-off', slice); }
@@ -1415,9 +1452,95 @@ function main() {
     });
 
     setColorMode(document.getElementById('colMode').value);
-    // deep-link entry (?mode=temperature|vm|flow · ?play=1) — lets the interactive poster open a specific view
+
+    // =================================================================================
+    //  Deep-link entry — ?mode= · ?play=1 · ?fig=<id>
+    //  ?fig= reproduces a printed poster panel: the poster's 3-D figures are rendered on
+    //  WHITE with a fixed field, cut and camera, so the preset flips the void to white and
+    //  restates the same field / layers / cut. Everything stays draggable — that is the point.
+    // =================================================================================
+    const FIGS = {
+      cutaway: { kick:'FIG 2', txt:'The surveyed drift, cut open — the poster panel, live. Same four materials, same cut.',
+                 mode:'material', layers:{ rock:[1,0.28], water:[1,0.95], concrete:[1,1.0], air:[1,0.55] },
+                 clip:{ axis:1, pos:0.5, flip:false }, repr:'2', cam:{ dir:[0.62,0.78,-0.55], zoom:1.20 } },
+      plume:   { kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
+                 mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
+                 clip:{ axis:2, pos:0.60, flip:false }, repr:'2', play:1, cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
+      flow:    { kick:'FIG 3B', txt:'The charge flow as arrows — colour is speed, on the poster’s scale. Green marker = inlet, red = outlet.',
+                 mode:'flow', repr:'2', cam:{ dir:[0.20,0.96,-0.20], zoom:1.45 } },
+      stress:  { kick:'FIG 6', txt:'Von Mises stress at end of charge, sliced at the crown — the poster’s panel (a), live.',
+                 mode:'vm', layers:{ rock:[1,1.0], water:[1,0.9], concrete:[1,1.0], air:[0,0.3] },
+                 clip:{ axis:2, pos:0.60, flip:false }, repr:'2', cam:{ dir:[0.10,0.55,-0.83], zoom:1.35 } },
+      arraydomain:{ kick:'FIX', txt:'The simulated unit cell — the red box in the poster figure — as real geometry. Drifts repeat at 10 m pitch either side.',
+                 mode:'material', layers:{ rock:[1,0.20], water:[1,0.95], concrete:[1,1.0], air:[1,0.5] },
+                 repr:'2', cam:{ dir:[-0.60,0.68,-0.39], zoom:1.15 } },
+      arrayresult:{ kick:'RESULT', txt:'The array cell’s stored heat, on the poster’s <b>10–80 °C</b> scale — the warm halo reaching the cell walls.',
+                 mode:'temperature', layers:{ rock:[1,0.90], water:[1,1.0], concrete:[1,0.95], air:[1,0.5] },
+                 clip:{ axis:0, pos:0.5, flip:false }, repr:'2', cam:{ dir:[-0.73,0.54,-0.41], zoom:1.15 } },
+    };
+
+    function figCam(dir, zoom) {
+      const cam = renderer.getActiveCamera(), bb = renderer.computeVisiblePropBounds();
+      if (!bb || !isFinite(bb[0]) || bb[1] <= bb[0]) return;
+      const c = [(bb[0]+bb[1])/2, (bb[2]+bb[3])/2, (bb[4]+bb[5])/2];
+      const R = 0.5 * Math.hypot(bb[1]-bb[0], bb[3]-bb[2], bb[5]-bb[4]);
+      const n = Math.hypot(dir[0], dir[1], dir[2]) || 1, d = dir.map(v => v/n);
+      cam.setFocalPoint(c[0], c[1], c[2]);
+      cam.setPosition(c[0]-d[0]*2.5*R, c[1]-d[1]*2.5*R, c[2]-d[2]*2.5*R);
+      cam.setViewUp(0, 0, 1);
+      renderer.resetCamera();                      // keeps the direction, solves the framing distance (same as the figure scripts)
+      if (zoom && zoom !== 1) cam.zoom(zoom);
+      renderer.resetCameraClippingRange();
+    }
+    function figLayer(nm, vis, op) {
+      const cb = document.getElementById('vis_' + nm), sl = document.getElementById('op_' + nm), o = objs[nm];
+      if (cb) cb.checked = !!vis;
+      if (o) o.actor.setVisibility(!!vis);
+      if (op != null) { if (sl) sl.value = op; if (o) o.actor.getProperty().setOpacity(op); }
+    }
+    let figApplied = false;
+    function applyFig(id, refreshOnly) {                 // refreshOnly: fields that arrived late (stress · flow) — never re-grab the camera
+      const F = FIGS[id]; if (!F) return;
+      window._figLock = true;                       // let material/flow survive an active clip (the printed panels do)
+      document.body.classList.add('figmode');
+      renderer.setBackground(1, 1, 1);              // the poster renders its 3-D panels on white
+      const cm = document.getElementById('colMode');
+      if (F.clip) {
+        const on = document.getElementById('clipOn');
+        document.getElementById('cutAxis').value = String(F.clip.axis);
+        document.getElementById('clipFlip').checked = !!F.clip.flip;
+        document.getElementById('cutPos').value = F.clip.pos;
+        if (!on.checked) { on.checked = true; on.dispatchEvent(new Event('change')); }
+        document.getElementById('cutAxis').dispatchEvent(new Event('change'));
+        document.getElementById('cutPos').dispatchEvent(new Event('input'));
+      }
+      if (F.repr) { const r = document.getElementById('repr');   // printed panels are solid surfaces, not the lattice the clip defaults to
+        if (r && r.value !== F.repr) { r.value = F.repr; r.dispatchEvent(new Event('change')); } }
+      const o = cm.querySelector('option[value="' + F.mode + '"]');
+      if (o) { cm.value = F.mode; cm.dispatchEvent(new Event('change')); }
+      if (F.layers && F.mode !== 'flow') Object.keys(F.layers).forEach(nm => figLayer(nm, F.layers[nm][0], F.layers[nm][1]));
+      if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom);
+      const chip = document.getElementById('figchip');
+      document.getElementById('figKick').textContent = F.kick;
+      document.getElementById('figTxt').innerHTML = F.txt + ' <b>Drag to rotate.</b>';
+      if (F.play && !figApplied) setTimeout(() => {
+        const hp = document.getElementById('heatPlayOn');
+        if (hp && !hp.checked) { hp.checked = true; hp.dispatchEvent(new Event('change')); }
+      }, 500);
+      figApplied = true;
+      renderWindow.render();
+    }
+    document.getElementById('figFree').onclick = () => {          // back to the lab's own dark void, controls untouched
+      window._figLock = false;
+      document.body.classList.remove('figmode');
+      renderer.setBackground(voidRGB[0], voidRGB[1], voidRGB[2]);
+      renderWindow.render();
+    };
+
     { const qp = new URLSearchParams(location.search);
       const m = qp.get('mode'); if (m) { const cm = document.getElementById('colMode'), o = cm.querySelector('option[value="' + m + '"]'); if (o && !o.disabled) { cm.value = m; setColorMode(m); } }
+      const fg = qp.get('fig');
+      if (fg && FIGS[fg]) { applyFig(fg); setTimeout(() => applyFig(fg, true), 1500); }   // re-apply once the lazy fields (stress · flow · phases) have landed
       if (qp.get('play') === '1') setTimeout(() => { const hp = document.getElementById('heatPlayOn'); if (hp && !hp.checked) { hp.checked = true; hp.dispatchEvent(new Event('change')); } const pb = document.getElementById('timePlay'); if (pb && colMode === 'temperature') pb.click(); }, 900); }
     // ---- 3-D mesh wireframe (drift): real tet lattice, field-coloured, lazy + device-gated ----
     let wireLoading = false;
@@ -2080,7 +2203,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-22m · ?mode/?play deep-links for the interactive poster (/poster/)', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-23a · ?fig= figure-match presets (white void + printed field/cut/camera) for /poster/', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 

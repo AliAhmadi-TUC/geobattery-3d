@@ -4,123 +4,215 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Geobattery · the interactive poster</title>
-<meta name="description" content="The ALERT 2026 geobattery poster, made interactive — tap any figure to explore it in 3-D or with a live tool.">
+<meta name="description" content="The ALERT 2026 geobattery poster, made interactive — every figure opens the real thing: the 3-D model, the screening nomogram, the decade of scenarios, the numerics.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* sampled from the poster itself */
-    --dark:#0c0f15; --grn:#20c267; --grn-d:#096e37; --cream:#f4f1e9;
-    --ink:#1c2128; --mut:#6d7480; --line:#dcd8cf; --card:#ffffff;
-    --amber:#d9791f; --red:#c0392b; --blue:#3f6f9e;
+    /* lifted straight out of poster_print.html — the printed poster's own palette */
+    --dark:#0C1015; --grn:#009640; --grn-b:#20C368; --grn-d:#0A6E38; --grn-l:#8FE3B4;
+    --cream:#F4F2EA; --ink:#181C20; --ink-2:#3E444A; --ink-3:#565D62; --mut:#8A8F86;
+    --line:#E3E0D6; --line-2:#D9D6CC; --card:#FFFFFF;
+    --soft-g:#EAF3ED; --soft-g-b:#CFE4D7; --soft-w:#F7ECE6; --soft-w-b:#E8CFC1;
+    --gold:#C97A10; --rust:#B4501E; --steel:#3D5A72;
+    --sans:'Archivo',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
   }
   *{ box-sizing:border-box; }
-  html,body{ margin:0; background:var(--cream); color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  html,body{ margin:0; background:var(--cream); color:var(--ink); font-family:var(--sans);
     -webkit-font-smoothing:antialiased; line-height:1.5; }
   a{ color:var(--grn-d); text-decoration:none; }
 
-  /* top bar — mirrors the poster's dark header band */
-  .bar{ position:sticky; top:0; z-index:20; background:var(--dark); color:#fff; }
-  .bar .in{ max-width:1080px; margin:0 auto; padding:10px 14px; display:flex; align-items:center; gap:10px; }
-  .bar .dot{ width:8px; height:8px; border-radius:50%; background:var(--grn); box-shadow:0 0 9px var(--grn); flex:none; }
-  .bar .t{ font:700 12.5px/1.25 ui-monospace,Menlo,Consolas,monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--grn); }
-  .bar .t small{ display:block; font:500 11px/1.4 -apple-system,Segoe UI,sans-serif; letter-spacing:0;
-    text-transform:none; color:#b9c0c8; margin-top:2px; }
-  .bar .lab{ margin-left:auto; background:var(--grn); color:#06210f; font:800 12px inherit; padding:9px 14px;
-    border-radius:8px; white-space:nowrap; }
-  .bar .lab:hover{ filter:brightness(1.08); }
+  /* ── masthead: the poster's own dark band ─────────────────────────────── */
+  .bar{ position:sticky; top:0; z-index:30; background:var(--dark); color:#fff;
+    background-image:linear-gradient(rgba(45,224,138,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(45,224,138,.055) 1px,transparent 1px);
+    background-size:34px 34px; border-bottom:2px solid var(--grn); }
+  .bar .in{ max-width:1180px; margin:0 auto; padding:9px 14px; display:flex; align-items:center; gap:12px; }
+  .bar .dot{ width:8px; height:8px; border-radius:50%; background:#2DE08A; box-shadow:0 0 10px #2DE08A; flex:none; }
+  .bar .t{ font:600 11.5px/1.2 var(--mono); letter-spacing:.15em; text-transform:uppercase; color:var(--grn-l); }
+  .bar .t small{ display:block; font:400 11px/1.4 var(--sans); letter-spacing:0; text-transform:none; color:#98A0A8; margin-top:2px; }
+  .bar .sp{ margin-left:auto; }
+  .toggle{ display:inline-flex; align-items:center; gap:7px; font:500 11px var(--mono); letter-spacing:.06em;
+    color:#98A0A8; cursor:pointer; user-select:none; white-space:nowrap; }
+  .toggle input{ appearance:none; width:30px; height:17px; border-radius:9px; background:#2A3138; position:relative;
+    cursor:pointer; transition:background .18s; margin:0; flex:none; }
+  .toggle input::after{ content:''; position:absolute; top:2px; left:2px; width:13px; height:13px; border-radius:50%;
+    background:#8A929A; transition:transform .18s, background .18s; }
+  .toggle input:checked{ background:#134A2C; } .toggle input:checked::after{ transform:translateX(13px); background:#2DE08A; }
+  .labbtn{ background:var(--grn); color:#fff; font:800 12px var(--sans); padding:9px 15px; border-radius:8px;
+    white-space:nowrap; border:0; cursor:pointer; }
+  .labbtn:hover{ background:var(--grn-b); color:#06210F; }
 
-  .note{ max-width:1080px; margin:14px auto 8px; padding:0 14px; color:var(--mut); font-size:13px; }
+  .note{ max-width:1180px; margin:13px auto 7px; padding:0 15px; color:var(--ink-3); font-size:13px; }
   .note b{ color:var(--grn-d); }
 
-  /* poster */
-  .stagewrap{ max-width:1080px; margin:6px auto 26px; padding:0 12px; }
-  .poster{ position:relative; overflow:hidden; box-shadow:0 8px 34px rgba(0,0,0,.18); background:#fff; border-radius:4px; }
+  /* ── the poster ───────────────────────────────────────────────────────── */
+  .stagewrap{ max-width:1180px; margin:5px auto 26px; padding:0 12px; }
+  .poster{ position:relative; overflow:hidden; box-shadow:0 10px 40px rgba(12,16,21,.20); background:#fff; border-radius:3px; }
   .poster img{ width:100%; display:block; }
 
-  /* hotspots */
-  .hot{ position:absolute; display:block; border:1.5px dashed rgba(9,110,55,.5); border-radius:6px;
-    background:rgba(32,194,103,.07); cursor:pointer; text-decoration:none; -webkit-tap-highlight-color:transparent;
-    transition:background .15s, border-color .15s, box-shadow .15s; }
-  .hot:hover, .hot:focus-visible{ background:rgba(32,194,103,.18); border-color:var(--grn-d); border-style:solid;
-    box-shadow:0 0 0 2px rgba(32,194,103,.35), 0 6px 22px rgba(9,110,55,.25); outline:none; }
-  .hot .badge{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    background:var(--grn-d); color:#fff; font:700 clamp(8.5px,1.35vw,12px)/1 -apple-system,Segoe UI,sans-serif;
-    padding:6px 11px; border-radius:999px; box-shadow:0 3px 12px rgba(0,0,0,.4); white-space:nowrap;
-    display:inline-flex; align-items:center; gap:6px; opacity:.94; transition:opacity .15s, transform .15s; }
-  .hot:hover .badge, .hot:focus-visible .badge{ opacity:1; transform:translate(-50%,-50%) scale(1.06); background:var(--grn); color:#06210f; }
-  .hot .badge svg{ width:11px; height:11px; }
-  .hot.primary{ border-color:var(--grn); border-style:solid; background:rgba(32,194,103,.14); }
-  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(32,194,103,0);} 50%{ box-shadow:0 0 0 5px rgba(32,194,103,.32);} }
-  body.hinton .hot{ animation:pulse 2.2s ease-in-out 2; }
-  @media (prefers-reduced-motion:reduce){ body.hinton .hot{ animation:none; } }
+  /* hotspots — no badge, no pill: a quiet outline plus a corner glyph, both only when spots are ON */
+  .hot{ position:absolute; display:block; border:1px solid transparent; border-radius:7px; background:transparent;
+    cursor:pointer; text-decoration:none; -webkit-tap-highlight-color:transparent;
+    transition:background .14s, border-color .14s, box-shadow .14s; }
+  body.spots .hot{ border-color:rgba(0,150,64,.30); background:rgba(0,150,64,.045); }
+  .hot .cnr{ position:absolute; top:4px; right:4px; width:19px; height:19px; border-radius:5px; opacity:0;
+    background:rgba(12,16,21,.55); color:#fff; display:grid; place-items:center; transition:opacity .14s, background .14s; }
+  body.spots .hot .cnr{ opacity:.55; }
+  .hot .cnr svg{ width:10px; height:10px; }
+  .hot:hover, .hot:focus-visible{ background:rgba(0,150,64,.13); border-color:var(--grn); outline:none;
+    box-shadow:0 0 0 2px rgba(0,150,64,.28), 0 8px 26px rgba(10,110,56,.22); }
+  .hot:hover .cnr, .hot:focus-visible .cnr{ opacity:1; background:var(--grn-d); }
+  @keyframes breathe{ 0%,100%{ box-shadow:0 0 0 0 rgba(0,150,64,0);} 50%{ box-shadow:0 0 0 5px rgba(0,150,64,.26);} }
+  body.hinton.spots .hot{ animation:breathe 2.3s ease-in-out 2; }
+  @media (prefers-reduced-motion:reduce){ body.hinton.spots .hot{ animation:none; } }
 
-  .foot{ max-width:1080px; margin:0 auto 44px; padding:0 14px; color:var(--mut); font-size:12.5px; line-height:1.65; }
+  /* hover caption — dark like the poster masthead, never a green button */
+  #tip{ position:absolute; z-index:12; pointer-events:none; opacity:0; transform:translate(-50%,-4px);
+    background:var(--dark); color:#fff; font:600 12px/1.25 var(--sans); padding:7px 11px; border-radius:7px;
+    white-space:nowrap; box-shadow:0 6px 20px rgba(12,16,21,.42); transition:opacity .13s; max-width:90vw; }
+  #tip::after{ content:''; position:absolute; left:50%; bottom:-5px; margin-left:-5px; border:5px solid transparent;
+    border-top-color:var(--dark); border-bottom:0; }
+  #tip.below::after{ bottom:auto; top:-5px; border-top:0; border-bottom-color:var(--dark); border-bottom-width:5px; }
+  #tip span{ color:var(--grn-l); font:600 10px var(--mono); letter-spacing:.12em; text-transform:uppercase; display:block; margin-bottom:2px; }
+
+  /* ── the QR patch: the printed placeholder replaced by a real button ──── */
+  #qrpatch{ position:absolute; z-index:8; background:var(--cream); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:3.5%; text-align:center; padding:1% 0.5%; }
+  #qrpatch .k{ font:700 clamp(6px,.62vw,10px) var(--mono); letter-spacing:.14em; color:var(--mut); }
+  #qrbtn{ width:92%; border:0; border-radius:9%/6%; cursor:pointer; background:var(--dark); color:#fff;
+    padding:7% 4%; display:flex; flex-direction:column; align-items:center; gap:5%; text-decoration:none;
+    box-shadow:0 4px 16px rgba(12,16,21,.28); transition:background .15s, transform .15s; }
+  #qrbtn:hover{ background:var(--grn-d); transform:translateY(-2px); }
+  #qrbtn .ic{ width:26%; max-width:34px; color:#2DE08A; display:block; }
+  #qrbtn .l1{ font:800 clamp(8px,.86vw,15px)/1.05 var(--sans); letter-spacing:-.01em; }
+  #qrbtn .l2{ font:400 clamp(5.5px,.58vw,10px)/1.2 var(--mono); color:#9FE7C0; }
+  #qrpatch .sub{ font:400 clamp(5.5px,.56vw,9.5px)/1.25 var(--mono); color:#6B7278; }
+
+  .foot{ max-width:1180px; margin:0 auto 46px; padding:0 15px; color:var(--ink-3); font-size:12.5px; line-height:1.65; }
   .foot b{ color:var(--ink); }
 
-  /* modals */
-  .scrim{ position:fixed; inset:0; z-index:40; background:rgba(12,15,21,.62); backdrop-filter:blur(3px);
-    -webkit-backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .25s; display:grid; place-items:center; padding:16px; }
+  /* ── modals ───────────────────────────────────────────────────────────── */
+  .scrim{ position:fixed; inset:0; z-index:40; background:rgba(12,16,21,.66); backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .22s; display:grid;
+    place-items:center; padding:14px; }
   .scrim.open{ opacity:1; pointer-events:auto; }
-  .modal{ width:min(96vw,560px); max-height:90vh; overflow:auto; background:var(--card); border-radius:14px;
-    box-shadow:0 22px 64px rgba(0,0,0,.45); padding:0 0 16px; transform:translateY(10px); transition:transform .25s; }
+  .modal{ width:min(97vw,720px); max-height:92vh; overflow:auto; background:var(--card); border-radius:13px;
+    box-shadow:0 24px 70px rgba(0,0,0,.48); padding:0 0 17px; transform:translateY(10px); transition:transform .22s; }
+  .modal.wide{ width:min(97vw,900px); }
   .scrim.open .modal{ transform:none; }
-  .mh{ background:var(--dark); color:#fff; padding:15px 18px; border-radius:14px 14px 0 0; display:flex; align-items:flex-start; gap:10px; }
-  .mh h2{ margin:0; font-size:18px; letter-spacing:-.01em; color:#fff; }
-  .mh .k{ display:block; font:700 10px ui-monospace,Consolas,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--grn); margin-bottom:4px; }
-  .mh .x{ margin-left:auto; flex:none; width:30px; height:30px; border-radius:50%; border:1px solid #39414c;
-    background:transparent; color:#b9c0c8; cursor:pointer; font-size:16px; line-height:1; }
-  .mh .x:hover{ color:#fff; border-color:var(--grn); }
+  .mh{ position:sticky; top:0; z-index:3; background:var(--dark); color:#fff; padding:14px 18px;
+    border-radius:13px 13px 0 0; display:flex; align-items:flex-start; gap:10px;
+    background-image:linear-gradient(rgba(45,224,138,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(45,224,138,.05) 1px,transparent 1px);
+    background-size:32px 32px; }
+  .mh h2{ margin:0; font:800 18px/1.2 var(--sans); letter-spacing:-.01em; color:#fff; }
+  .mh .k{ display:block; font:700 10px var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--grn-l); margin-bottom:4px; }
+  .mh .x{ margin-left:auto; flex:none; width:30px; height:30px; border-radius:50%; border:1px solid #39414C;
+    background:transparent; color:#B9C0C8; cursor:pointer; font-size:15px; line-height:1; }
+  .mh .x:hover{ color:#fff; border-color:var(--grn-b); }
   .mb{ padding:15px 18px 0; }
-  .modal p{ margin:0 0 11px; font-size:14.5px; color:#3a4149; } .modal p b{ color:var(--ink); }
-  .modal .mut{ color:var(--mut); font-size:12.5px; }
-  .card2{ border:1px solid var(--line); border-radius:11px; padding:12px 11px 8px; margin:10px 0; background:#fcfbf8; }
-  .card2 h3{ margin:0 0 1px; font-size:14px; } .card2 .sc{ color:var(--mut); font-size:11.5px; margin:0 0 6px; }
-  svg.chart{ width:100%; height:auto; display:block; overflow:visible; }
-  .chart text{ font:10.5px ui-monospace,Consolas,monospace; fill:#8c9199; }
+  .modal p{ margin:0 0 11px; font-size:14px; color:var(--ink-2); } .modal p b{ color:var(--ink); }
+  .modal .mut{ color:var(--ink-3); font-size:12.5px; }
+  .lead{ background:var(--soft-g); border:1px solid var(--soft-g-b); border-radius:9px; padding:10px 13px;
+    font:400 13px/1.5 var(--sans); color:#28382E; margin:0 0 13px; }
+  .lead.warm{ background:var(--soft-w); border-color:var(--soft-w-b); color:#3A2E28; }
+  .lead b{ color:var(--grn-d); } .lead.warm b{ color:var(--rust); }
+  .card2{ border:1px solid var(--line); border-radius:10px; padding:11px 12px 9px; margin:11px 0; background:#FCFBF8; }
+  .card2 h3{ margin:0 0 1px; font:700 13.5px var(--sans); } .card2 .sc{ color:var(--ink-3); font-size:11.5px; margin:0 0 7px; }
+  svg.chart{ width:100%; height:auto; display:block; overflow:visible; touch-action:none; }
+  .chart text{ font:10.5px var(--mono); fill:#8C9199; }
   .chart .grid{ stroke:var(--line); stroke-width:1; }
-  .legend{ display:flex; gap:14px; margin:1px 2px 7px; font-size:11.5px; color:var(--mut); flex-wrap:wrap; }
+  .chart .ttl{ font:700 10px var(--mono); fill:var(--ink-3); letter-spacing:.06em; }
+  .legend{ display:flex; gap:13px; margin:2px 2px 8px; font-size:11.5px; color:var(--ink-3); flex-wrap:wrap; }
   .legend i{ display:inline-block; width:14px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle; }
+  .legend label{ display:inline-flex; align-items:center; gap:5px; cursor:pointer; }
+  .legend label input{ margin:0; accent-color:var(--grn-d); }
+  .legend .off{ opacity:.38; }
 
-  .tool .row{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
-  .tool label{ font:700 11.5px ui-monospace,Consolas,monospace; letter-spacing:.05em; color:var(--mut); text-transform:uppercase; }
-  .tool .lcval{ font:800 17px ui-monospace,Consolas,monospace; color:var(--ink); }
+  /* controls */
+  .row2{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:9px; }
+  .row2 label{ font:700 10.5px var(--mono); letter-spacing:.07em; color:var(--ink-3); text-transform:uppercase; }
+  .row2 .v{ font:700 15px var(--mono); color:var(--ink); }
   input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:4px;
-    background:linear-gradient(90deg,#e0a04a,#e0b93a,var(--grn)); outline:none; margin:9px 0 3px; }
-  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--grn-d); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3); }
-  input[type=range]::-moz-range-thumb{ width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid var(--grn-d); cursor:pointer; }
-  .ticks{ display:flex; justify-content:space-between; font:9.5px ui-monospace,Consolas,monospace; color:#a7aca6; }
-  .readout{ display:flex; align-items:center; gap:13px; margin:12px 0 4px; }
-  .readout .rf{ font:800 32px/1 ui-monospace,Consolas,monospace; letter-spacing:-.02em; }
-  .readout .rl{ font-size:11.5px; color:var(--mut); line-height:1.35; }
-  .verdict{ margin-left:auto; padding:7px 13px; border-radius:999px; font:800 12px ui-monospace,Consolas,monospace; white-space:nowrap; }
-  .verdict.pass{ background:#e2f4ea; color:var(--grn-d); border:1px solid #a9d6bf; }
-  .verdict.marginal{ background:#fbf0dd; color:#a4620f; border:1px solid #ecd2a3; }
-  .verdict.fail{ background:#fbe4e0; color:#a3372a; border:1px solid #eab9b0; }
-  .presets{ display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
-  .preset{ font:600 11px inherit; padding:6px 10px; border-radius:8px; cursor:pointer; color:var(--mut); background:#f5f4f0; border:1px solid var(--line); }
-  .preset:hover{ color:var(--ink); border-color:var(--grn-d); }
-  .scn{ width:100%; border-collapse:collapse; font-size:12.5px; margin-top:4px; }
-  .scn th,.scn td{ padding:7px; text-align:right; border-bottom:1px solid var(--line); }
-  .scn th{ color:var(--mut); font:700 10px ui-monospace,Consolas,monospace; letter-spacing:.03em; text-transform:uppercase; }
-  .scn td:first-child,.scn th:first-child{ text-align:left; color:var(--ink); }
-  .scn tr:last-child td{ border-bottom:0; } .scn .big{ color:var(--grn-d); font-weight:800; } .scn .em{ color:var(--amber); font-weight:700; }
-  .mcta{ display:block; text-align:center; margin:12px 0 0; background:var(--grn-d); color:#fff; font-weight:800; padding:12px; border-radius:10px; font-size:14px; }
-  .mcta:hover{ filter:brightness(1.12); }
+    background:var(--line); outline:none; margin:8px 0 2px; }
+  input[type=range].heat{ background:linear-gradient(90deg,#C0392B,#E0A04A,#E0B93A,var(--grn)); }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:21px; height:21px; border-radius:50%;
+    background:#fff; border:3px solid var(--grn-d); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.28); }
+  input[type=range]::-moz-range-thumb{ width:19px; height:19px; border-radius:50%; background:#fff;
+    border:3px solid var(--grn-d); cursor:pointer; }
+  .ticks{ display:flex; justify-content:space-between; font:9.5px var(--mono); color:#A7ACA6; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin:9px 0 2px; }
+  .chip{ font:600 11px var(--sans); padding:6px 10px; border-radius:7px; cursor:pointer; color:var(--ink-3);
+    background:#F5F4F0; border:1px solid var(--line); }
+  .chip:hover{ color:var(--ink); border-color:var(--grn-d); }
+  .chip.on{ background:var(--grn-d); border-color:var(--grn-d); color:#fff; }
+  .stats{ display:flex; gap:8px; flex-wrap:wrap; margin:11px 0 4px; }
+  .st{ flex:1 1 108px; background:#fff; border:1px solid var(--line); border-radius:9px; padding:8px 10px; }
+  .st b{ display:block; font:800 19px/1.05 var(--mono); letter-spacing:-.02em; color:var(--ink); }
+  .st span{ display:block; font:400 10px/1.3 var(--mono); color:var(--ink-3); margin-top:4px; }
+  .st.hi{ background:var(--soft-g); border-color:var(--soft-g-b); } .st.hi b{ color:var(--grn-d); }
+  .st.bad{ background:var(--soft-w); border-color:var(--soft-w-b); } .st.bad b{ color:var(--rust); }
+  .verdict{ display:inline-block; padding:6px 12px; border-radius:999px; font:700 12px var(--mono); white-space:nowrap; }
+  .verdict.pass{ background:#E2F4EA; color:var(--grn-d); border:1px solid #A9D6BF; }
+  .verdict.marginal{ background:#FBF0DD; color:#A4620F; border:1px solid #ECD2A3; }
+  .verdict.fail{ background:#FBE4E0; color:#A3372A; border:1px solid #EAB9B0; }
+  table.tb{ width:100%; border-collapse:collapse; font-size:12.5px; margin-top:5px; }
+  table.tb th,table.tb td{ padding:6px 7px; text-align:right; border-bottom:1px solid var(--line); }
+  table.tb th{ color:var(--ink-3); font:700 9.5px var(--mono); letter-spacing:.04em; text-transform:uppercase; }
+  table.tb td:first-child,table.tb th:first-child{ text-align:left; color:var(--ink); }
+  table.tb tr:last-child td{ border-bottom:0; }
+  table.tb tr.sel td{ background:var(--soft-g); }
+  table.tb tr.clk{ cursor:pointer; } table.tb tr.clk:hover td{ background:#F5F4F0; }
+  table.tb .sw{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:7px; vertical-align:-1px; }
+  .mcta{ display:block; text-align:center; margin:13px 0 0; background:var(--grn-d); color:#fff; font-weight:800;
+    padding:12px; border-radius:9px; font-size:14px; }
+  .mcta:hover{ background:var(--grn); }
+  .eq{ font:500 12.5px/1.7 var(--mono); background:var(--dark); color:#EAF2ED; border-radius:9px; padding:11px 14px; margin:10px 0; }
+  .eq em{ color:#7E8A83; font-style:normal; }
+  .tabs{ display:flex; gap:0; border-bottom:1px solid var(--line); margin:2px 0 12px; overflow-x:auto; }
+  .tab{ flex:1 1 auto; background:transparent; border:0; border-bottom:3px solid transparent; cursor:pointer;
+    padding:9px 8px; font:700 12px var(--sans); color:var(--ink-3); white-space:nowrap; }
+  .tab:hover{ color:var(--ink); } .tab.on{ color:var(--grn-d); border-bottom-color:var(--grn-d); }
+  canvas.mini{ width:100%; height:230px; display:block; background:#fff; border:1px solid var(--line);
+    border-radius:9px; cursor:grab; touch-action:none; }
+  canvas.mini:active{ cursor:grabbing; }
+  .capt{ font:400 11px/1.4 var(--sans); color:var(--ink-3); margin:5px 2px 0; }
+  .capt b{ color:var(--gold); font-weight:600; }
+  .split{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+  @media (max-width:620px){ .split{ grid-template-columns:1fr; } .mb{ padding:13px 13px 0; } }
 </style>
 </head>
-<body class="hinton">
+<body class="hinton spots">
 
   <div class="bar"><div class="in">
     <span class="dot"></span>
-    <div class="t">Interactive poster<small>ALERT Geomaterials 2026 · tap any highlighted figure</small></div>
-    <a class="lab" href="../">3-D lab ↗</a>
+    <div class="t">Interactive poster<small>ALERT Geomaterials 2026 · Aussois — every figure is live</small></div>
+    <span class="sp"></span>
+    <label class="toggle" title="show or hide the clickable regions"><input type="checkbox" id="spotSw" checked>spots</label>
+    <a class="labbtn" href="../">3-D lab ↗</a>
   </div></div>
 
-  <p class="note">The poster exactly as printed — the <b>outlined figures are live</b>: tap one to open it in 3-D or as an interactive tool.</p>
+  <p class="note">The poster exactly as printed. <b>Every figure is a door</b> — click one and it opens as the real
+    thing: the 3-D model on its own white background, the nomogram you can drag, the decade you can scrub, the
+    numerics you can rotate and re-solve.</p>
 
   <div class="stagewrap">
     <div class="poster" id="poster">
       <img src="poster.png" alt="Geobattery: a dimensionless criterion for seasonal heat storage in flooded mine workings — ALERT Geomaterials 2026 poster">
+      <!-- the printed QR placeholder is covered and replaced by a working button -->
+      <div id="qrpatch">
+        <div class="k">INTERACTIVE · 3-D MODELS</div>
+        <a id="qrbtn" href="../">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2.6 21 7.3v9.4L12 21.4 3 16.7V7.3z"/><path d="M3 7.3 12 12l9-4.7M12 12v9.4"/>
+          </svg>
+          <span class="l1">OPEN THE<br>3-D LAB</span>
+          <span class="l2">rotate · cut · play</span>
+        </a>
+        <div class="sub">no scanning — you are already here</div>
+      </div>
+      <div id="tip" aria-hidden="true"></div>
     </div>
   </div>
 
@@ -131,188 +223,986 @@
     &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../">Full 3-D lab →</a>
   </div>
 
-  <div class="scrim" id="scrim">
-    <!-- SCREENING TOOL -->
-    <div class="modal" id="m-screening" role="dialog" aria-modal="true" hidden>
-      <div class="mh"><h2><span class="k">04 · when it does work</span>Read your mine before you dig</h2><button class="x" data-close aria-label="close">✕</button></div>
-      <div class="mb">
-        <p>Retention collapses onto three dimensionless groups, so <b>absolute size cancels</b> — a mine reads its own
-          recovery off one master curve. The only geometry that matters is the opening's reach
-          <b>L<sub>c</sub>&nbsp;=&nbsp;2·V/A</b>. Drag it:</p>
-        <div class="tool">
-          <div class="row"><label>Opening reach&nbsp; L<sub>c</sub></label><span class="lcval" id="lcval">1.05 m</span></div>
-          <input type="range" id="lc" min="0.5" max="5" step="0.01" value="1.05" aria-label="opening effective radius">
-          <div class="ticks"><span>0.5 m</span><span>drift</span><span>chamber</span><span>shaft 5 m</span></div>
-          <div class="readout">
-            <div><div class="rf" id="rfval">4.9%</div><div class="rl">of stored heat still<br>recoverable · first cycle</div></div>
-            <span class="verdict fail" id="verdict">✕ loses it</span>
-          </div>
-          <svg class="chart" id="chart-master" viewBox="0 0 360 200"></svg>
-          <div class="presets" id="presets"></div>
-        </div>
-        <p class="mut" style="margin-top:10px">The as-built drift (L<sub>c</sub>&nbsp;=&nbsp;1.05&nbsp;m, A/V&nbsp;=&nbsp;1.91&nbsp;m⁻¹)
-          sits 3.3× too deep in the loss regime — it needs L<sub>c</sub>&nbsp;≥&nbsp;3.4&nbsp;m: a chamber, or an array.</p>
-      </div>
-    </div>
+<div class="scrim" id="scrim">
 
-    <!-- CHARTS / SCENARIOS -->
-    <div class="modal" id="m-charts" role="dialog" aria-modal="true" hidden>
-      <div class="mh"><h2><span class="k">05 · ten years, five scenarios</span>How much comes back — and how good</h2><button class="x" data-close aria-label="close">✕</button></div>
-      <div class="mb">
-        <div class="card2">
-          <h3>Recovered each winter, over ten years</h3>
-          <p class="sc">Share of stored heat drawn back. The closed array cell nears 100% by construction — only as ~25&nbsp;°C water.</p>
-          <div class="legend"><span><i style="background:var(--amber)"></i>single drift</span><span><i style="background:var(--grn-d)"></i>10-m array · retained</span></div>
-          <svg class="chart" id="chart-decade" viewBox="0 0 360 200"></svg>
-        </div>
-        <div class="card2">
-          <h3>Grade — water temperature at end of storage</h3>
-          <p class="sc">Quantity climbs with geometry; grade stays modest in 10&nbsp;°C rock.</p>
-          <svg class="chart" id="chart-grade" viewBox="0 0 360 190"></svg>
-        </div>
-        <table class="scn">
-          <thead><tr><th>Scenario</th><th>Return y1→y10</th><th>Water</th><th>Out</th></tr></thead>
-          <tbody>
-            <tr><td>As-built drift · 10 °C</td><td><span class="em">7 → 13%</span></td><td>23 °C</td><td>14 °C</td></tr>
-            <tr><td>2× radius · 10 °C</td><td>16 → 23%</td><td>34 °C</td><td>19 °C</td></tr>
-            <tr><td>As-built drift · 30 °C</td><td>38 → 42%</td><td>38 °C</td><td>19 °C</td></tr>
-            <tr><td>2× radius · 30 °C</td><td>45 → 48%</td><td>46 °C</td><td>26 °C</td></tr>
-            <tr><td>ARRAY cell · 10 °C (3D)</td><td><span class="big">27 → 98.5%</span></td><td>58 °C</td><td>25 °C</td></tr>
-          </tbody>
-        </table>
-        <p class="mut" style="margin-top:8px">Water/Out at year 10. The 30&nbsp;°C rows include geothermal heat —
-          ~57–81% of that "return" is mined ground heat, not stored solar.</p>
-        <a class="mcta" href="../?play=1">▶ Play the yearly cycle in 3-D</a>
+  <!-- ══════════ FIG 1 · the seasonal mismatch, as a design problem ══════════ -->
+  <div class="modal wide" id="m-solar" role="dialog" aria-modal="true" hidden>
+    <div class="mh"><h2><span class="k">01 · motivation</span>Summer supply, winter demand — pick the calendar</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mb">
+      <p class="lead">The printed bars are only half the story. The <b>gap between them is a storage duration</b>,
+        and the duration is what decides whether anything survives: it sets the Fourier number
+        <b>Fo&nbsp;=&nbsp;α<sub>rock</sub>&thinsp;t<sub>store</sub>&thinsp;/&thinsp;L<sub>c</sub>²</b>, and Fo sets
+        the retention read off §04. Drag the two windows and watch the whole chain move.</p>
+      <div class="card2">
+        <h3>Charge and discharge windows · Saxony 2023</h3>
+        <p class="sc">Click a month to move the near edge of the nearest window; the gap between them is the seal.
+          Gold = PV surplus (50 Hz zone), slate = heat demand (Freiberg HDD).</p>
+        <svg class="chart" id="c-solar" viewBox="0 0 520 232"></svg>
       </div>
-    </div>
-
-    <!-- SOLAR -->
-    <div class="modal" id="m-solar" role="dialog" aria-modal="true" hidden>
-      <div class="mh"><h2><span class="k">01 · motivation</span>Summer supply, winter demand</h2><button class="x" data-close aria-label="close">✕</button></div>
-      <div class="mb">
-        <p>Solar runs to <b>surplus in summer</b>, when almost nothing needs heating; the demand it could serve arrives
-          in <b>winter</b>. The two are in anti-phase — a gap only seasonal storage can bridge.</p>
-        <div class="card2">
-          <h3>Solar surplus vs heat demand · through the year</h3>
-          <p class="sc">Saxony, 2023 — share of the annual total per month.</p>
-          <div class="legend"><span><i style="background:var(--amber)"></i>solar-PV surplus</span><span><i style="background:var(--blue)"></i>building heat demand</span></div>
-          <svg class="chart" id="chart-solar" viewBox="0 0 360 180"></svg>
-        </div>
-        <p class="mut"><b>89%</b> of the PV surplus fell in May–Jul; heat demand is <b>58%</b> in Nov–Feb and
-          essentially <b>zero</b> in Jun–Aug.</p>
+      <div class="row2"><label>Opening reach&nbsp; L<sub>c</sub> = 2V/A</label><span class="v" id="s-lc">1.05 m</span></div>
+      <input type="range" class="heat" id="s-lcin" min="0.5" max="6" step="0.001" value="1.046" aria-label="opening reach">
+      <div class="ticks"><span>0.5 m</span><span>wider opening →</span><span>6 m</span></div>
+      <div class="stats">
+        <div class="st"><b id="s-cap">48%</b><span>of the year's PV surplus falls in the charge window</span></div>
+        <div class="st"><b id="s-gap">123 d</b><span>sealed storage between the windows</span></div>
+        <div class="st"><b id="s-fo">13.7</b><span>Fourier number Fo = α·t/L<sub>c</sub>²</span></div>
+        <div class="st bad" id="s-rfbox"><b id="s-rf">4.9%</b><span>retained after the seal · first cycle</span></div>
+        <div class="st"><b id="s-dem">58%</b><span>of annual heat demand sits in the discharge window</span></div>
       </div>
+      <div class="card2">
+        <h3>The trade-off you cannot dodge</h3>
+        <p class="sc">Delivered = captured × RF(Fo). Wait for the demand and the heat is gone; discharge early and
+          there is no demand. The curve is the product, swept over every seal length.</p>
+        <svg class="chart" id="c-tradeoff" viewBox="0 0 520 196"></svg>
+      </div>
+      <p class="mut" id="s-verdict"></p>
+      <p class="mut">Sources: PV surplus = hourly 50&nbsp;Hz-zone generation minus load, 2023 (50.3&nbsp;GWh over
+        61&nbsp;surplus hours); demand = Freiberg heating-degree days. RF from the same 1-D radial master curve
+        that §04 is drawn from (gneiss, κ&nbsp;=&nbsp;5, χ&nbsp;=&nbsp;0.51, first cycle).</p>
     </div>
   </div>
 
+  <!-- ══════════ FIG 4a · the screening nomogram ══════════ -->
+  <div class="modal wide" id="m-screening" role="dialog" aria-modal="true" hidden>
+    <div class="mh"><h2><span class="k">04 · when it does work</span>Read your mine before you dig</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mb">
+      <p class="lead">Retention collapses onto <b>three dimensionless groups</b>, so absolute size cancels: a mine
+        reads its own first-cycle retention off one chart, from survey data alone, before any 3-D mesh exists.
+        The only geometry that enters is the specific surface <b>a&nbsp;=&nbsp;A<sub>wetted</sub>/V<sub>water</sub></b>,
+        or equivalently the reach <b>L<sub>c</sub>&nbsp;=&nbsp;2/a</b>.</p>
+      <div class="card2">
+        <h3>Retention chart · drag the marker</h3>
+        <p class="sc">Four host rocks spanning the conductivity ratio κ. Note how little the rock matters and how
+          much the geometry does — the band is narrow, the slope is not.</p>
+        <svg class="chart" id="c-screen" viewBox="0 0 520 260"></svg>
+      </div>
+      <div class="row2"><label>Opening reach&nbsp; L<sub>c</sub></label><span class="v" id="k-lc">1.05 m</span></div>
+      <input type="range" class="heat" id="k-lcin" min="0.667" max="10" step="0.01" value="1.046" aria-label="opening reach">
+      <div class="ticks"><span>0.67 m</span><span>L<sub>c</sub> = 2/a</span><span>10 m</span></div>
+      <div class="chips" id="k-rocks"></div>
+      <div class="stats">
+        <div class="st"><b id="k-av">1.91 m⁻¹</b><span>specific surface a = 2/L<sub>c</sub></span></div>
+        <div class="st"><b id="k-fo">13.7</b><span>Fourier number over the 123-day seal</span></div>
+        <div class="st bad" id="k-rfbox"><b id="k-rf">4.9%</b><span>retained, first cycle</span></div>
+        <div class="st"><b><span class="verdict fail" id="k-verdict">✕ loses it</span></b><span>RF ≥ 50% is the viable band</span></div>
+      </div>
+      <p class="mut" id="k-say"></p>
+      <p class="mut">The as-built drift (L<sub>c</sub>&nbsp;=&nbsp;1.05&nbsp;m, a&nbsp;=&nbsp;1.91&nbsp;m⁻¹) sits
+        <b>3.3×</b> too deep in the loss regime: it needs L<sub>c</sub>&nbsp;≥&nbsp;3.4&nbsp;m — a chamber, or the array.</p>
+    </div>
+  </div>
+
+  <!-- ══════════ FIG 4b · floor vs lift ══════════ -->
+  <div class="modal wide" id="m-grade" role="dialog" aria-modal="true" hidden>
+    <div class="mh"><h2><span class="k">04b · grade</span>The ground sets the floor, the opening sets the lift</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mb">
+      <p class="lead">Quantity and grade are different questions. Retention says how much heat comes back; the
+        <b>in-situ rock temperature T₀</b> says how warm it is when it does. Site the store in warmer ground and the
+        whole curve lifts — but the lift itself, θ, never depends on T₀.</p>
+      <div class="eq">T<sub>water</sub>(end of storage) = T₀ + (T<sub>hot</sub> − T₀)·θ &nbsp;&nbsp;<em>θ = θ(Fo, κ, χ) — never θ(T₀)</em></div>
+      <div class="card2">
+        <h3>Delivered water temperature after ten cycles</h3>
+        <p class="sc">Drag T₀. Dashed = undisturbed rock (no storage at all); the green band is what a 30&nbsp;°C
+          heating circuit can use directly. Dots are the five full-3-D decades.</p>
+        <svg class="chart" id="c-grade" viewBox="0 0 520 250"></svg>
+      </div>
+      <div class="row2"><label>In-situ rock temperature&nbsp; T₀</label><span class="v" id="g-t0">10 °C</span></div>
+      <input type="range" class="heat" id="g-t0in" min="10" max="45" step="0.5" value="10" aria-label="in-situ rock temperature">
+      <div class="ticks"><span>10 °C · Freiberg</span><span>25 °C</span><span>45 °C · deep</span></div>
+      <table class="tb" id="g-tab"></table>
+      <p class="mut">Curves are the 1-D radial screening theory (cycle 10) — the same solver the nomogram is built
+        from. The dots are the independent full-3-D decades; the array cell sits above its theory curve because the
+        closed unit cell removes the far field entirely, which the radial model only approximates through the pitch.</p>
+    </div>
+  </div>
+
+  <!-- ══════════ FIG 5 · ten years, five scenarios ══════════ -->
+  <div class="modal wide" id="m-decade" role="dialog" aria-modal="true" hidden>
+    <div class="mh"><h2><span class="k">05 · ten years, five scenarios</span>How much comes back — and how good</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mb">
+      <p class="lead">Five full-3-D decades, forty cycles each of charge → seal → discharge. A wider opening and
+        warmer ground both lift the grade; only <b>removing the far-field sink</b> — the array — lifts the annual
+        return past 50%, and it needs about six cycles to get there.</p>
+      <div class="legend" id="d-leg"></div>
+      <div class="split">
+        <div class="card2" style="margin:0">
+          <h3>Return per year</h3><p class="sc">recovered ÷ injected</p>
+          <svg class="chart" id="c-dec-a" viewBox="0 0 300 210"></svg>
+        </div>
+        <div class="card2" style="margin:0">
+          <h3>Water at end of storage</h3><p class="sc">the grade you actually get</p>
+          <svg class="chart" id="c-dec-b" viewBox="0 0 300 210"></svg>
+        </div>
+      </div>
+      <div class="row2"><label>Cycle</label><span class="v" id="d-yr">year 10</span></div>
+      <input type="range" id="d-yrin" min="1" max="10" step="1" value="10" aria-label="cycle">
+      <div class="ticks"><span>y1</span><span>y5</span><span>y10</span></div>
+      <table class="tb" id="d-tab"></table>
+      <p class="mut" id="d-note"></p>
+      <a class="mcta" href="../?scene=array&amp;fig=arrayresult">▶ Open the array cell in 3-D</a>
+    </div>
+  </div>
+
+  <!-- ══════════ §07 · the numerical challenges ══════════ -->
+  <div class="modal wide" id="m-num" role="dialog" aria-modal="true" hidden>
+    <div class="mh"><h2><span class="k">07 · numerical challenges</span>Three FEniCSx lessons — rotate them, then re-solve them</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mb">
+      <div class="tabs" id="n-tabs">
+        <button class="tab on" data-t="a">A · energy through a Dirichlet inlet</button>
+        <button class="tab" data-t="b">B · sealed faces</button>
+        <button class="tab" data-t="c">C · the saddle point</button>
+      </div>
+
+      <!-- ---- A ---- -->
+      <div class="npane" data-p="a">
+        <p class="lead warm">The heat crossing a temperature-pinned inlet is <b>not</b> the nodal
+          k&thinsp;dT/dn — that quantity is mesh-dependent and simply wrong. The true flux is the
+          <b>reaction on the constrained degrees of freedom</b>: assemble the unconstrained row, then evaluate it on
+          the solved field. Below, a real P1 problem is assembled and solved in your browser, both ways.</p>
+        <div class="split">
+          <div>
+            <canvas class="mini" id="n3d-a"></canvas>
+            <p class="capt"><b>Γ<sub>in</sub> ·</b> the pinned inlet face (blue) with the advective inflow. Drag to rotate.</p>
+          </div>
+          <div>
+            <div class="card2" style="margin:0 0 9px">
+              <h3>Both fluxes, as the mesh refines</h3>
+              <p class="sc">−k T″ = f on (0,1), T(0)=T<sub>in</sub> pinned. Log–log; the reaction is a flat line.</p>
+              <svg class="chart" id="c-num-a" viewBox="0 0 300 178"></svg>
+            </div>
+          </div>
+        </div>
+        <div class="row2"><label>Elements across the inlet</label><span class="v" id="a-n">32</span></div>
+        <input type="range" id="a-nin" min="2" max="512" step="1" value="32" aria-label="element count">
+        <div class="ticks"><span>2</span><span>32</span><span>512</span></div>
+        <div class="stats">
+          <div class="st bad"><b id="a-nod">—</b><span>nodal k&thinsp;dT/dn at the inlet</span></div>
+          <div class="st hi"><b id="a-rea">—</b><span>reaction flux r<sub>h</sub>|<sub>Γ</sub></span></div>
+          <div class="st"><b id="a-exa">—</b><span>exact flux −k T′(0)</span></div>
+          <div class="st bad"><b id="a-err">—</b><span>nodal error · falls only as O(h)</span></div>
+        </div>
+        <p class="mut">Both are computed from the same solved vector: the nodal gradient from a one-sided
+          difference, the reaction as (A<sub>row</sub>·T − f)|<sub>Γ</sub> using the row that was <em>discarded</em>
+          when the Dirichlet condition was applied. The reaction is exact at every h — that is the whole point.</p>
+        <div class="card2">
+          <h3>What it buys, in the real run</h3>
+          <p class="sc">Energy balance residual per phase of the year-1 3-D decade, in kWh, against ~4.5×10⁵ kWh delivered.</p>
+          <table class="tb" id="a-clos"></table>
+        </div>
+      </div>
+
+      <!-- ---- B ---- -->
+      <div class="npane" data-p="b" hidden>
+        <p class="lead warm">A sealed face is a <b>Neumann</b> condition — it is already satisfied naturally by the
+          weak form. Pinning it with a Dirichlet value instead does not seal it: it drives heat through it, and at
+          the rock/concrete corner the shared node is <b>over-constrained</b> by two conditions at once. Toggle it
+          and read the leak.</p>
+        <div class="split">
+          <div>
+            <canvas class="mini" id="n3d-b"></canvas>
+            <p class="capt"><b>Corner ·</b> rock (grey) meets concrete (sand); the red edge is the shared node that
+              a Dirichlet pin over-constrains. Drag to rotate.</p>
+          </div>
+          <div>
+            <div class="card2" style="margin:0 0 9px">
+              <h3>Temperature through the sealed end</h3>
+              <p class="sc">Same mesh, same materials, one boundary condition apart.</p>
+              <svg class="chart" id="c-num-b" viewBox="0 0 300 178"></svg>
+            </div>
+          </div>
+        </div>
+        <div class="chips" id="b-mode">
+          <button class="chip on" data-b="weak">no-flux, imposed weakly ✓</button>
+          <button class="chip" data-b="pin">sealed face pinned at T₀ ✕</button>
+        </div>
+        <div class="row2"><label>Elements</label><span class="v" id="b-n">40</span></div>
+        <input type="range" id="b-nin" min="4" max="400" step="2" value="40" aria-label="element count">
+        <div class="stats">
+          <div class="st" id="b-leakbox"><b id="b-leak">0.0 W/m²</b><span>flux through the “sealed” face</span></div>
+          <div class="st"><b id="b-e">0 kWh</b><span>over one 123-day seal, on the drift's 441.5 m² wall</span></div>
+          <div class="st"><b id="b-share">0%</b><span>of the 88.4 MWh actually stored</span></div>
+        </div>
+        <p class="mut" id="b-say"></p>
+        <p class="mut">A 1-D idealisation of the same error: rock (k&nbsp;=&nbsp;3&nbsp;W/mK, 0.6&nbsp;m) against
+          concrete (k&nbsp;=&nbsp;1.5&nbsp;W/mK, 0.4&nbsp;m), inlet held at 80&nbsp;°C, far end nominally sealed.
+          In 3-D the same pin also collides with the material-interface condition at the shared corner node, which is
+          why the fix is a weak (penalty) statement rather than a second strong one.</p>
+      </div>
+
+      <!-- ---- C ---- -->
+      <div class="npane" data-p="c" hidden>
+        <p class="lead warm">Incompressible Stokes makes the Taylor–Hood system <b>symmetric indefinite</b>: the
+          pressure block is zero, so there is no Cholesky and no cheap CG/AMG. A direct factorisation is robust — and
+          it is what <b>caps the mesh</b>. Every number below was measured on this machine.</p>
+        <div class="split">
+          <div>
+            <canvas class="mini" id="n3d-c"></canvas>
+            <p class="capt"><b>[[A, Bᵀ], [B, 0]] ·</b> bar height = factor fill-in. The zero block is the problem.
+              Drag to rotate.</p>
+          </div>
+          <div>
+            <div class="card2" style="margin:0 0 9px">
+              <h3>What the factorisation costs</h3>
+              <p class="sc">Log–log; the dashed line is this machine's 15&nbsp;GB in-core ceiling.</p>
+              <svg class="chart" id="c-num-c" viewBox="0 0 300 178"></svg>
+            </div>
+          </div>
+        </div>
+        <div class="chips" id="c-op"></div>
+        <div class="stats">
+          <div class="st"><b id="c-dof">337 592</b><span>degrees of freedom</span></div>
+          <div class="st"><b id="c-fill">11.7×</b><span>fill: factor entries ÷ matrix nnz</span></div>
+          <div class="st"><b id="c-mem">4 095 MB</b><span>MUMPS working memory</span></div>
+          <div class="st"><b id="c-t">8.0 s</b><span>numerical factorisation</span></div>
+        </div>
+        <p class="mut" id="c-say"></p>
+        <div class="card2">
+          <h3>The price of indefiniteness</h3>
+          <p class="sc">Same mesh, same MUMPS, three operators — what the saddle point forfeits.</p>
+          <table class="tb" id="c-tab"></table>
+        </div>
+        <p class="mut">MUMPS 5.x through PETSc, METIS ordering, 4 OpenMP threads. The LDLᵀ factorisation reports
+          <b>17 110 negative pivots</b> — the inertia of the matrix, and a direct measurement that the system is
+          indefinite rather than merely non-symmetric.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-  const NS='http://www.w3.org/2000/svg';
-  const E=(n,a)=>{const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); return e;};
-  const $=id=>document.getElementById(id);
+"use strict";
+const NS='http://www.w3.org/2000/svg';
+const E=(n,a)=>{const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); return e;};
+const T=(x,y,s,a)=>{const t=E('text',Object.assign({x,y},a||{})); t.textContent=s; return t;};
+const $=id=>document.getElementById(id);
+const clear=el=>{ while(el.firstChild) el.removeChild(el.firstChild); };
+const fmt=(v,d)=>v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const grp=n=>n.toLocaleString('en-US').replace(/,/g,' ');
 
-  /* Hotspots over the REDESIGNED poster (position/size as % of the image).
-     Layout: left col = 01 motivation / 02 model / 03 why it fails ;
-             right col = 04 criterion / 05 scenarios / 06 stress ; then THE ANSWER band. */
-  const HOT=[
-    {l:29.7,t:15.2,w:20.0,h:9.9, label:'Supply vs demand', m:'solar'},                   // FIG 1
-    {l:2.7, t:39.3,w:46.9,h:11.3,label:'Explore in 3-D',  href:'../'},                   // FIG 2 · drift cutaway
-    {l:2.7, t:57.9,w:46.9,h:7.2, label:'Play the cycle',  href:'../?play=1'},            // FIG 3A · plumes
-    {l:2.7, t:67.4,w:46.9,h:8.6, label:'Watch the flow',  href:'../?mode=flow'},         // FIG 3B · flow arrows
-    {l:50.7,t:18.1,w:23.0,h:13.0,label:'Try the screening tool', m:'screening'},          // FIG 4a · screening ⭐
-    {l:74.0,t:18.1,w:24.3,h:13.0,label:'Grade vs ground T', m:'charts'},                  // FIG 4b
-    {l:50.7,t:40.4,w:23.2,h:11.4,label:'Ten-year climb',  m:'charts'},                    // FIG 5a
-    {l:74.3,t:40.4,w:24.0,h:11.4,label:'Grade over ten years', m:'charts'},               // FIG 5b
-    {l:50.7,t:54.7,w:47.6,h:7.6, label:'The five scenarios', m:'charts'},                 // scenario table
-    {l:50.7,t:68.2,w:47.6,h:8.4, label:'See the stress',  href:'../?mode=vm'},            // FIG 6 · von Mises
-    {l:60.8,t:80.0,w:21.7,h:5.8, label:'The array cell',  href:'../?scene=array'},        // ANSWER · fix + result
-    {l:86.1,t:79.7,w:12.5,h:9.9, label:'Open the 3-D lab', href:'../', primary:1},        // QR box
-  ];
-  const ICON='<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h4M4 4v4M14 14h-4M14 14v-4M4 14v-4M4 14h4M14 4h-4M14 4v4"/></svg>';
-  const poster=$('poster');
-  HOT.forEach(h=>{
-    const a=document.createElement(h.href?'a':'button');
-    a.className='hot'+(h.primary?' primary':'');
-    a.style.cssText=`left:${h.l}%;top:${h.t}%;width:${h.w}%;height:${h.h}%`;
-    if(h.href) a.href=h.href; else { a.type='button'; a.addEventListener('click',()=>openModal(h.m)); }
-    a.setAttribute('aria-label',h.label);
-    a.innerHTML=`<span class="badge">${ICON}${h.label}</span>`;
-    poster.appendChild(a);
-  });
-  setTimeout(()=>document.body.classList.remove('hinton'),5200);
+/* ═════════════════════════════════════════════════════════════════════════
+   REAL DATA — every array below is lifted from the project's own outputs.
+   ═════════════════════════════════════════════════════════════════════════ */
 
-  const scrim=$('scrim');
-  function openModal(id){ document.querySelectorAll('.modal').forEach(m=>m.hidden=(m.id!=='m-'+id));
-    scrim.classList.add('open'); document.body.style.overflow='hidden'; }
-  function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
-  scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
-  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeModal));
-  addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+/* 1-D radial master curve: first-cycle retention RF against Fourier number,
+   gneiss (κ=5, χ=0.5096). data/screening.json + theory_dimensionless.py       */
+const MASTER=[[0.05,0.89961],[0.06655,0.88402],[0.08859,0.86602],[0.11792,0.84524],[0.15697,0.82127],
+[0.20894,0.79365],[0.27811,0.7619],[0.3702,0.72548],[0.49277,0.68385],[0.65592,0.6365],[0.87309,0.58302],
+[1.16217,0.52324],[1.54695,0.45751],[2.05914,0.38718],[2.74091,0.31497],[3.64842,0.24502],[4.85639,0.18199],
+[6.46431,0.12968],[8.60461,0.08974],[11.45356,0.06143],[13.664,0.04875],[15.24577,0.04234],[20.29356,0.02967],
+[27.01265,0.02117],[35.9564,0.01531],[47.86137,0.01119],[63.70802,0.00824],[84.80142,0.00609],
+[112.87872,0.00452],[150.25227,0.00337],[200,0.00251]];
+const ALPHA=1.4064697609001406e-6;          // gneiss thermal diffusivity [m²/s]  (config.py)
+const DAY=86400, LC0=1.0458869360391374, AV0=1.9122525878123782, TSTORE0=123;
+const rfFo=fo=>{ if(fo<=MASTER[0][0])return MASTER[0][1]; const L=MASTER.length;
+  if(fo>=MASTER[L-1][0])return MASTER[L-1][1];
+  for(let i=1;i<L;i++){ if(fo<=MASTER[i][0]){ const[f0,r0]=MASTER[i-1],[f1,r1]=MASTER[i];
+    const u=(Math.log(fo)-Math.log(f0))/(Math.log(f1)-Math.log(f0)); return r0+(r1-r0)*u; } } return 0; };
+const foOf=(lc,days)=>ALPHA*days*DAY/(lc*lc);
+const rfOf=(lc,days)=>rfFo(foOf(lc,days===undefined?TSTORE0:days));
 
-  function lineY(s,W,H,L,R,T,B,ymin,ymax,grid,series,xlabels,ylabel){
-    const n=series[0].d.length, x=i=>L+(W-L-R)*i/(n-1), y=v=>T+(H-T-B)*(1-(v-ymin)/(ymax-ymin));
-    grid.forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:y(g),y2:y(g)}));
-      const tx=E('text',{x:L-6,y:y(g)+4,'text-anchor':'end'}); tx.textContent=g; s.appendChild(tx); });
-    xlabels.forEach(([i,t])=>{ const tx=E('text',{x:x(i),y:H-9,'text-anchor':'middle'}); tx.textContent=t; s.appendChild(tx); });
-    series.forEach(se=>{ const d=se.d.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
-      s.appendChild(E('path',{d,fill:'none',stroke:se.c,'stroke-width':se.w||2.4,'stroke-linejoin':'round'}));
-      if(se.end){ s.appendChild(E('circle',{cx:x(n-1),cy:y(se.d[n-1]),r:3,fill:se.c}));
-        const tx=E('text',{x:x(n-1)-4,y:y(se.d[n-1])+(se.below?15:-7),'text-anchor':'end',fill:se.c,'font-weight':'700'});
-        tx.textContent=se.end; s.appendChild(tx); } });
-    if(ylabel){ const yl=E('text',{x:-(H/2)+6,y:11,transform:'rotate(-90)','text-anchor':'middle'}); yl.textContent=ylabel; s.appendChild(yl); }
-  }
-  lineY($('chart-decade'),360,200,32,14,10,26,0,100,[0,25,50,75,100],
-    [{d:[7.3,9.3,10.4,11.1,11.6,11.9,12.2,12.5,12.7,12.8],c:'#d9791f',end:'12.8%',below:1},
-     {d:[26.9,50.1,67.2,78.6,86.1,91,94.2,96.3,97.6,98.5],c:'#096e37',w:2.6,end:'98.5%'}],
-    [[0,'y1'],[4,'y5'],[9,'y10']],'recovered %');
-  lineY($('chart-grade'),360,190,32,14,10,26,10,60,[10,25,40,55],
-    [{d:[19.2,20.9,21.6,22.1,22.4,22.7,22.9,23.1,23.2,23.3],c:'#d9791f',end:'23'},
-     {d:[35.8,46.4,51.4,54.1,55.6,56.6,57.1,57.5,57.7,57.9],c:'#096e37',w:2.6,end:'58 °C'}],
-    [[0,'y1'],[4,'y5'],[9,'y10']],'water °C');
-  (function(){
-    const pv=[6,9,13,20,29,32,26,15,7,4,3,4], hd=[16,14,11,6,2,0,0,0,3,8,13,17];
-    const s=$('chart-solar'),W=360,H=180,L=28,R=8,T=10,B=26,mo=['J','F','M','A','M','J','J','A','S','O','N','D'];
-    const bw=(W-L-R)/12, x=i=>L+bw*i, y=v=>T+(H-T-B)*(1-v/34);
-    [0,10,20,30].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:y(g),y2:y(g)}));
-      const tx=E('text',{x:L-5,y:y(g)+4,'text-anchor':'end'}); tx.textContent=g; s.appendChild(tx); });
+/* Solar: 50 Hz-zone PV surplus 2023 [GWh] · Freiberg heating-degree days      */
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MDAY=[31,28,31,30,31,30,31,31,30,31,30,31];
+const PV=[0,0,0,4.753,14.757,23.970,5.779,0,0.991,0,0,0];
+const HDD=[654.1,560.0,494.45,331.5,254.2,0,0,0,184.5,348.75,456.0,582.8];
+const PVSUM=PV.reduce((a,b)=>a+b,0), HDSUM=HDD.reduce((a,b)=>a+b,0);
+
+/* fig09 panel (a): cached radial solves, data/screening_map.npz               */
+const AGRID=[0.2,0.2345,0.275,0.3225,0.3782,0.4435,0.5201,0.61,0.7153,0.8388,0.9837,1.1535,1.3527,1.5863,1.8603,2.1815,2.5582,3.0];
+const ROCKS=[
+ {n:'shale',       k:1.5, kap:2.50, c:'#84BCDB', rf:[0.8496,0.8234,0.7927,0.7568,0.7149,0.6664,0.6106,0.5473,0.4769,0.4015,0.3250,0.2524,0.1885,0.1363,0.0965,0.0676,0.0473,0.0332]},
+ {n:'basalt',      k:1.7, kap:2.83, c:'#3989C1', rf:[0.8452,0.8182,0.7866,0.7497,0.7067,0.6570,0.5998,0.5350,0.4633,0.3868,0.3097,0.2374,0.1746,0.1243,0.0868,0.0602,0.0418,0.0293]},
+ {n:'granite / gneiss', k:3.0, kap:5.00, c:'#1C6BB0', rf:[0.8256,0.7953,0.7600,0.7188,0.6710,0.6159,0.5532,0.4827,0.4057,0.3254,0.2471,0.1772,0.1208,0.0798,0.0524,0.0349,0.0238,0.0165], host:1},
+ {n:'rock salt',   k:5.5, kap:9.17, c:'#08326E', rf:[0.8064,0.7729,0.7340,0.6888,0.6367,0.5770,0.5095,0.4346,0.3539,0.2716,0.1941,0.1286,0.0799,0.0482,0.0296,0.0191,0.0128,0.0089]}];
+
+/* fig09 panel (b): dimensionless lift θ at cycle 10, theory_dimensionless.py  */
+const THOT=80, CONFIGS=[
+ {n:'as-built drift',        s:'as-built',    th:0.11228, c:'#2A78D6'},
+ {n:'radius ×2',             s:'radius ×2',   th:0.39263, c:'#008300'},
+ {n:'array · 10 m pitch',    s:'array 10 m',  th:0.49212, c:'#E34948'},
+ {n:'radius ×2 + array',     s:'×2 + array',  th:0.91579, c:'#4A3AA7'}];
+
+/* five full-3-D decades — data/decadal_*.json                                 */
+const SCN=[
+ {id:'baseline', n:'As-built drift · 10 °C', c:'#2A78D6', T0:10, geo:0,
+  rt:[7.33,9.35,10.39,11.07,11.55,11.92,12.22,12.46,12.67,12.84],
+  Tw:[19.19,20.85,21.62,22.10,22.43,22.69,22.89,23.06,23.19,23.31],
+  To:[12.18,12.70,12.96,13.12,13.23,13.32,13.39,13.45,13.50,13.54]},
+ {id:'r2x', n:'2× radius · 10 °C', c:'#008300', T0:10, geo:0,
+  rt:[16.00,18.73,20.02,20.85,21.44,21.89,22.25,22.54,22.79,23.00],
+  Tw:[29.43,31.38,32.17,32.65,32.99,33.24,33.44,33.61,33.74,33.86],
+  To:[17.02,17.98,18.39,18.65,18.84,18.97,19.08,19.17,19.25,19.31]},
+ {id:'baseline_T30', n:'As-built drift · 30 °C', c:'#1BAF7A', T0:30, geo:1,
+  rt:[37.73,38.64,39.48,40.07,40.49,40.81,41.07,41.28,41.45,41.61],
+  Tw:[36.71,37.18,37.48,37.69,37.84,37.95,38.05,38.12,38.19,38.24],
+  To:[18.32,18.48,18.58,18.65,18.70,18.74,18.77,18.80,18.82,18.84]},
+ {id:'r2x_T30', n:'2× radius · 30 °C', c:'#4A3AA7', T0:30, geo:1,
+  rt:[44.81,44.71,45.70,46.38,46.87,47.25,47.55,47.79,48.00,48.18],
+  Tw:[44.01,44.50,44.83,45.04,45.20,45.32,45.42,45.50,45.56,45.62],
+  To:[24.90,25.16,25.33,25.44,25.53,25.59,25.64,25.68,25.72,25.75]},
+ {id:'array', n:'ARRAY cell · 10 °C (3D)', c:'#E34948', T0:10, geo:0, star:1,
+  rt:[26.92,50.10,67.16,78.57,86.07,90.99,94.20,96.28,97.63,98.49],
+  Tw:[35.81,46.40,51.42,54.10,55.64,56.57,57.15,57.51,57.74,57.89],
+  To:[17.76,21.10,22.71,23.58,24.08,24.39,24.58,24.70,24.78,24.83]}];
+
+/* year-1 energy-balance residual per phase [kWh] — data/headline_numbers.json */
+const CLOSURE=[['charge',-1.197602e-6],['store',2.288743e-7],['discharge',-5.213148e-7],['recover',1.806064e-7]];
+const DELIVERED_KWH=454532.3, STORED_KWH=88387.44553, AWET=441.52;
+
+/* MUMPS benchmark — data/mumps_bench.json (measured, 4 OMP threads, METIS)    */
+const MUMPS={
+  meshes:[
+   {id:'baseline', n:'as-built mesh',  dof:337592, nnz:28202708, fac:329579038, fill:11.686, gf:349.11, t:8.001, mem:4095, ok:1},
+   {id:'v2x',      n:'volume ×2 mesh', dof:478486, nnz:42446568, fac:770501926, fill:18.152, gf:1415.54, t:21.105, mem:8000, ok:1},
+   {id:'r2x',      n:'radius ×2 mesh', dof:845500, nnz:76905258, fac:null, fill:null, gf:null, t:null, mem:15000, ok:0}],
+  ops:[
+   {id:'lu',  n:'Stokes saddle · LU (SYM=0)',        dof:337592, nnz:28202708, fac:329579038, fill:11.686, gf:349.11, t:8.001,  mem:4095, bpd:7810, piv:'1 542 off-diagonal pivots · 13 null pivots fixed'},
+   {id:'ldl', n:'Stokes saddle · LDLᵀ (SYM=2)',      dof:337592, nnz:28202708, fac:168139527, fill:5.962,  gf:181.72, t:6.465,  mem:2201, bpd:3984, piv:'17 110 NEGATIVE pivots — the inertia says indefinite'},
+   {id:'spd', n:'velocity block · Cholesky (SYM=1)', dof:320469, nnz:23364171, fac:144945867, fill:6.204,  gf:144.02, t:4.080,  mem:1900, bpd:3618, piv:'0 negative pivots — SPD, the option the saddle point forfeits'},
+   {id:'heat',n:'conduction step · P1 (SPD)',        dof:40679,  nnz:568083,   fac:8910159,   fill:15.685, gf:1.598,  t:0.385,  mem:112,  bpd:1752, piv:'0 negative pivots — this is the cheap half of the physics'}],
+  wall:'in-core factorisation failed on 15 GB (MUMPS INFO(1) = −10); it completed only out-of-core, ICNTL(22)=1'
+};
+
+/* ═════════════════════════════════════════════════════════════════════════
+   HOTSPOTS — rectangles measured from poster_ALERT2026_selectable.pdf itself
+   (PyMuPDF image + text bboxes), not placed by eye.  % of the poster image.
+   ═════════════════════════════════════════════════════════════════════════ */
+const HOT=[
+ {l:30.38,t:16.78,w:18.07,h:6.73,  k:'FIG 1',  lab:'Match the calendar to the physics', m:'solar'},
+ {l:10.58,t:39.82,w:30.44,h:9.92,  k:'FIG 2',  lab:'Open the drift in 3-D',            href:'../?fig=cutaway'},
+ {l:7.13, t:58.41,w:37.33,h:7.49,  k:'FIG 3A', lab:'Play charge → storage in 3-D',      href:'../?fig=plume'},
+ {l:7.13, t:68.55,w:37.33,h:9.34,  k:'FIG 3B', lab:'Watch the charge flow in 3-D',      href:'../?fig=flow'},
+ {l:51.31,t:18.88,w:22.12,h:12.07, k:'FIG 4a', lab:'Read your own mine off the chart',  m:'screening'},
+ {l:75.03,t:18.88,w:22.06,h:11.52, k:'FIG 4b', lab:'Move the ground temperature',       m:'grade'},
+ {l:51.31,t:41.09,w:22.12,h:12.07, k:'FIG 5a', lab:'Scrub the ten years',               m:'decade'},
+ {l:75.03,t:41.09,w:22.06,h:12.07, k:'FIG 5b', lab:'Scrub the ten years',               m:'decade'},
+ {l:50.85,t:54.95,w:46.80,h:7.70,  k:'TABLE',  lab:'Compare the five scenarios',        m:'decade'},
+ {l:51.66,t:69.18,w:45.06,h:7.74,  k:'FIG 6',  lab:'See the stress in 3-D',             href:'../?fig=stress'},
+ {l:61.41,t:81.46,w:9.87, h:4.88,  k:'FIX',    lab:'Open the array cell in 3-D',        href:'../?scene=array&fig=arraydomain'},
+ {l:73.06,t:81.46,w:9.87, h:4.88,  k:'RESULT', lab:'Open the year-10 cell in 3-D',      href:'../?scene=array&fig=arrayresult'},
+ {l:2.38, t:90.35,w:31.15,h:7.40,  k:'A',      lab:'Re-solve it: nodal flux vs reaction', m:'num', arg:'a'},
+ {l:34.42,t:90.35,w:31.16,h:7.40,  k:'B',      lab:'Re-solve it: pin vs weak no-flux',  m:'num', arg:'b'},
+ {l:66.47,t:90.35,w:31.15,h:7.40,  k:'C',      lab:'The saddle point, measured',        m:'num', arg:'c'},
+];
+const CNR='<span class="cnr"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4h4M4 4v4M14 14h-4M14 14v-4M4 14v-4M4 14h4M14 4h-4M14 4v4"/></svg></span>';
+const poster=$('poster'), tip=$('tip');
+HOT.forEach(h=>{
+  const el=document.createElement(h.href?'a':'button');
+  el.className='hot';
+  el.style.cssText=`left:${h.l}%;top:${h.t}%;width:${h.w}%;height:${h.h}%`;
+  if(h.href) el.href=h.href; else { el.type='button'; el.addEventListener('click',()=>openModal(h.m,h.arg)); }
+  el.setAttribute('aria-label',h.k+' — '+h.lab);
+  el.innerHTML=CNR;
+  const show=()=>{ tip.innerHTML='<span>'+h.k+'</span>'+h.lab;
+    const below=h.t<10;
+    tip.classList.toggle('below',below);
+    tip.style.left=(h.l+h.w/2)+'%';
+    tip.style.top=below?(h.t+h.h)+'%':h.t+'%';
+    tip.style.transform=below?'translate(-50%,9px)':'translate(-50%,calc(-100% - 9px))';
+    tip.style.opacity='1'; };
+  const hide=()=>{ tip.style.opacity='0'; };
+  el.addEventListener('mouseenter',show); el.addEventListener('focus',show);
+  el.addEventListener('mouseleave',hide); el.addEventListener('blur',hide);
+  poster.appendChild(el);
+});
+setTimeout(()=>document.body.classList.remove('hinton'),5400);
+$('spotSw').addEventListener('change',e=>document.body.classList.toggle('spots',e.target.checked));
+
+/* QR patch — sized from the printed placeholder's own box in the PDF */
+Object.assign($('qrpatch').style,{left:'85.30%',top:'79.30%',width:'12.70%',height:'9.70%'});
+
+/* ── modal plumbing ──────────────────────────────────────────────────────── */
+const scrim=$('scrim');
+function openModal(id,arg){
+  document.querySelectorAll('.modal').forEach(m=>m.hidden=(m.id!=='m-'+id));
+  scrim.classList.add('open'); document.body.style.overflow='hidden';
+  if(id==='num'&&arg) numTab(arg);
+  if(id==='num') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); });
+}
+function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
+scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeModal));
+addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FIG 1 — the seasonal matching tool
+   ═════════════════════════════════════════════════════════════════════════ */
+(function(){
+  const s=$('c-solar'), W=520,H=232,L=34,R=14,Tp=26,B=44;
+  // opens on the poster's own duty cycle: charge May–Jul, discharge Nov–Dec → a 123-day seal
+  let ch=[4,6], di=[10,11];
+  const bw=(W-L-R)/12, x=i=>L+bw*i;
+  const pvS=PV.map(v=>100*v/PVSUM), hdS=HDD.map(v=>100*v/HDSUM);
+  const ymax=52, y=v=>Tp+(H-Tp-B)*(1-v/ymax);
+  const midDay=i=>{ let d=0; for(let k=0;k<i;k++) d+=MDAY[k]; return d+MDAY[i]/2; };
+  const gapDays=()=>{ let g=midDay(di[0])-midDay(ch[1]); if(g<=0) g+=365; return Math.max(7,Math.round(g)); };
+
+  function draw(){
+    clear(s);
+    // windows
+    s.appendChild(E('rect',{x:x(ch[0])+1,y:Tp-14,width:bw*(ch[1]-ch[0]+1)-2,height:H-Tp-B+14,fill:'#C97A10','fill-opacity':'.12',rx:4}));
+    s.appendChild(E('rect',{x:x(di[0])+1,y:Tp-14,width:bw*(di[1]-di[0]+1)-2,height:H-Tp-B+14,fill:'#3E5C76','fill-opacity':'.12',rx:4}));
+    s.appendChild(T(x(ch[0])+bw*(ch[1]-ch[0]+1)/2,Tp-18,'CHARGE',{'text-anchor':'middle',fill:'#9C6A12','font-weight':'700','font-size':'9.5'}));
+    s.appendChild(T(x(di[0])+bw*(di[1]-di[0]+1)/2,Tp-18,'DISCHARGE',{'text-anchor':'middle',fill:'#2B4257','font-weight':'700','font-size':'9.5'}));
+    [0,10,20,30,40,50].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:y(g),y2:y(g)}));
+      s.appendChild(T(L-6,y(g)+4,g,{'text-anchor':'end'})); });
     for(let i=0;i<12;i++){
-      s.appendChild(E('rect',{x:x(i)+bw*0.14,y:y(pv[i]),width:bw*0.36,height:y(0)-y(pv[i]),fill:'#d9791f',rx:1}));
-      s.appendChild(E('rect',{x:x(i)+bw*0.5,y:y(hd[i]),width:bw*0.36,height:y(0)-y(hd[i]),fill:'#3f6f9e',rx:1}));
-      const tx=E('text',{x:x(i)+bw/2,y:H-9,'text-anchor':'middle','font-size':'8.5'}); tx.textContent=mo[i]; s.appendChild(tx); }
-    const yl=E('text',{x:-(H/2)+6,y:10,transform:'rotate(-90)','text-anchor':'middle'}); yl.textContent='% of yr'; s.appendChild(yl);
-  })();
-
-  /* interactive screening tool — master curve (Fo,RF), gneiss k=5, first cycle */
-  (function(){
-    const M=[[0.05,0.89961],[0.06655,0.88402],[0.08859,0.86602],[0.11792,0.84524],[0.15697,0.82127],[0.20894,0.79365],[0.27811,0.7619],[0.3702,0.72548],[0.49277,0.68385],[0.65592,0.6365],[0.87309,0.58302],[1.16217,0.52324],[1.54695,0.45751],[2.05914,0.38718],[2.74091,0.31497],[3.64842,0.24502],[4.85639,0.18199],[6.46431,0.12968],[8.60461,0.08974],[11.45356,0.06143],[13.664,0.04875],[15.24577,0.04234],[20.29356,0.02967],[27.01265,0.02117],[35.9564,0.01531],[47.86137,0.01119],[63.70802,0.00824],[84.80142,0.00609],[112.87872,0.00452],[150.25227,0.00337],[200,0.00251]];
-    const ATP=14.946;                                   // alpha_rock * t_store [m^2] -> Fo = ATP / Lc^2
-    const rfOf=lc=>{ const fo=ATP/(lc*lc); if(fo<=M[0][0])return M[0][1]; if(fo>=M[M.length-1][0])return M[M.length-1][1];
-      for(let i=1;i<M.length;i++){ if(fo<=M[i][0]){ const[f0,r0]=M[i-1],[f1,r1]=M[i];
-        const u=(Math.log(fo)-Math.log(f0))/(Math.log(f1)-Math.log(f0)); return r0+(r1-r0)*u; } } return 0; };
-    const s=$('chart-master'),W=360,H=200,L=34,R=14,T=12,B=28,LMIN=0.5,LMAX=5;
-    const x=lc=>L+(W-L-R)*(lc-LMIN)/(LMAX-LMIN), y=rf=>T+(H-T-B)*(1-rf);
-    [0,0.25,0.5,0.75,1].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:y(g),y2:y(g)}));
-      const tx=E('text',{x:L-6,y:y(g)+4,'text-anchor':'end'}); tx.textContent=(g*100); s.appendChild(tx); });
-    [1,2,3,4,5].forEach(v=>{ const tx=E('text',{x:x(v),y:H-9,'text-anchor':'middle'}); tx.textContent=v+'m'; s.appendChild(tx); });
-    s.appendChild(E('rect',{x:L,y:y(1),width:W-L-R,height:y(0.5)-y(1),fill:'#20c267','fill-opacity':'.10'}));
-    s.appendChild(E('line',{x1:L,x2:W-R,y1:y(0.5),y2:y(0.5),stroke:'#096e37','stroke-width':'1','stroke-dasharray':'4 3'}));
-    const bl=E('text',{x:W-R,y:y(0.5)-4,'text-anchor':'end',fill:'#096e37','font-size':'9.5'}); bl.textContent='viable · 50%'; s.appendChild(bl);
-    const pts=[]; for(let i=0;i<=80;i++){ const lc=LMIN+(LMAX-LMIN)*i/80; pts.push([lc,rfOf(lc)]); }
-    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+x(p[0]).toFixed(1)+' '+y(p[1]).toFixed(1)).join(' '),fill:'none',stroke:'#8c9199','stroke-width':'2'}));
-    s.appendChild(E('line',{x1:x(3.4),x2:x(3.4),y1:T,y2:y(0),stroke:'#096e37','stroke-width':'1','stroke-dasharray':'2 3','stroke-opacity':'.6'}));
-    const mk=E('circle',{r:5.5,fill:'#fff',stroke:'#096e37','stroke-width':'3'}); s.appendChild(mk);
-    const yl=E('text',{x:-(H/2)+6,y:11,transform:'rotate(-90)','text-anchor':'middle'}); yl.textContent='recovered %'; s.appendChild(yl);
-    const lcIn=$('lc'),lcVal=$('lcval'),rfVal=$('rfval'),vd=$('verdict');
-    const upd=()=>{ const lc=+lcIn.value,rf=rfOf(lc); lcVal.textContent=lc.toFixed(2)+' m';
-      rfVal.textContent=(rf*100).toFixed(rf<0.1?1:0)+'%'; mk.setAttribute('cx',x(lc)); mk.setAttribute('cy',y(rf));
-      const pass=rf>=0.5,mar=rf>=0.25; rfVal.style.color=pass?'#096e37':(mar?'#d9791f':'#c0392b');
-      mk.setAttribute('stroke',pass?'#096e37':(mar?'#d9791f':'#c0392b'));
-      vd.className='verdict '+(pass?'pass':(mar?'marginal':'fail'));
-      vd.textContent=pass?'✓ stores it':(mar?'△ marginal':'✕ loses it'); };
-    lcIn.addEventListener('input',upd);
-    const P=[['as-built drift',1.05],['2× radius',2.06],['chamber',3.5],['flooded shaft',5.0]], box=$('presets');
-    P.forEach(([lab,lc])=>{ const b=document.createElement('button'); b.className='preset'; b.textContent=lab;
-      b.onclick=()=>{ lcIn.value=lc; upd(); }; box.appendChild(b); });
+      const inC=i>=ch[0]&&i<=ch[1], inD=i>=di[0]&&i<=di[1];
+      s.appendChild(E('rect',{x:x(i)+bw*0.13,y:y(pvS[i]),width:bw*0.36,height:y(0)-y(pvS[i]),fill:'#E39A26',
+        'fill-opacity':inC?'1':'.45',rx:1.5}));
+      s.appendChild(E('rect',{x:x(i)+bw*0.51,y:y(hdS[i]),width:bw*0.36,height:y(0)-y(hdS[i]),fill:'#3E5C76',
+        'fill-opacity':inD?'1':'.45',rx:1.5}));
+      s.appendChild(T(x(i)+bw/2,H-B+15,MON[i],{'text-anchor':'middle','font-size':'9.5',
+        fill:(inC?'#9C6A12':inD?'#2B4257':'#8C9199'),'font-weight':(inC||inD)?'700':'400'}));
+      const hit=E('rect',{x:x(i),y:Tp-16,width:bw,height:H-Tp-B+30,fill:'transparent',style:'cursor:pointer'});
+      hit.addEventListener('click',()=>pick(i)); s.appendChild(hit);
+    }
+    // the seal arrow between the windows
+    const a=x(ch[1]+1), b=x(di[0]);
+    if(b>a+6){ const yy=H-B+30;
+      s.appendChild(E('line',{x1:a,x2:b,y1:yy,y2:yy,stroke:'#0A6E38','stroke-width':'1.4','stroke-dasharray':'4 3'}));
+      s.appendChild(T((a+b)/2,yy-5,'seal '+gapDays()+' d',{'text-anchor':'middle',fill:'#0A6E38','font-size':'9.5','font-weight':'700'}));
+    }
+    s.appendChild(T(-(H/2)+8,11,'% of annual total',{transform:'rotate(-90)','text-anchor':'middle'}));
+  }
+  function pick(i){
+    const dC=Math.min(Math.abs(i-ch[0]),Math.abs(i-ch[1])), dD=Math.min(Math.abs(i-di[0]),Math.abs(i-di[1]));
+    if(dC<=dD){ if(Math.abs(i-ch[0])<=Math.abs(i-ch[1])) ch[0]=Math.min(i,ch[1]); else ch[1]=Math.max(i,ch[0]); }
+    else      { if(Math.abs(i-di[0])<=Math.abs(i-di[1])) di[0]=Math.min(i,di[1]); else di[1]=Math.max(i,di[0]); }
     upd();
-  })();
+  }
+  const lcIn=$('s-lcin');
+  function upd(){
+    const lc=+lcIn.value, gap=gapDays();
+    let cap=0; for(let i=ch[0];i<=ch[1];i++) cap+=PV[i];
+    let dem=0; for(let i=di[0];i<=di[1];i++) dem+=HDD[i];
+    const capF=cap/PVSUM, demF=dem/HDSUM, fo=foOf(lc,gap), rf=rfFo(fo), del=capF*rf;
+    $('s-lc').textContent=fmt(lc,2)+' m';
+    $('s-cap').textContent=Math.round(capF*100)+'%';
+    $('s-gap').textContent=gap+' d';
+    $('s-fo').textContent=fmt(fo,1);
+    $('s-rf').textContent=(rf*100).toFixed(rf<0.1?1:0)+'%';
+    $('s-dem').textContent=Math.round(demF*100)+'%';
+    $('s-rfbox').className='st '+(rf>=0.5?'hi':rf>=0.25?'':'bad');
+    $('s-verdict').innerHTML='With this calendar and this opening, <b>'+(del*100).toFixed(del<0.1?2:1)+'%</b> of the '+
+      'year’s PV surplus actually reaches the discharge window as heat — into months holding <b>'+
+      Math.round(demF*100)+'%</b> of the annual demand. '+
+      (rf>=0.5?'The seal is short enough (or the opening wide enough) that most of it survives.'
+       :'Almost all of it is lost in the seal: that is exactly why the as-built drift fails, and why §04 asks for Lc ≥ 3.4 m.');
+    draw(); trade(lc,capF);
+  }
+  function trade(lc,capF){
+    const s2=$('c-tradeoff'), W2=520,H2=196,L2=42,R2=16,T2=14,B2=32; clear(s2);
+    const g0=14,g1=250, xg=g=>L2+(W2-L2-R2)*(Math.log(g)-Math.log(g0))/(Math.log(g1)-Math.log(g0));
+    const pts=[]; for(let i=0;i<=120;i++){ const g=g0*Math.pow(g1/g0,i/120); pts.push([g,rfFo(foOf(lc,g))]); }
+    const ymx=Math.max(0.05,Math.max.apply(null,pts.map(p=>p[1])));
+    const yg=v=>T2+(H2-T2-B2)*(1-v/ymx);
+    [0,0.25,0.5,0.75,1].forEach(f=>{ const v=ymx*f;
+      s2.appendChild(E('line',{class:'grid',x1:L2,x2:W2-R2,y1:yg(v),y2:yg(v)}));
+      s2.appendChild(T(L2-6,yg(v)+4,(v*100).toFixed(ymx<0.12?1:0),{'text-anchor':'end'})); });
+    [14,30,60,123,180,250].forEach(g=>{ s2.appendChild(T(xg(g),H2-11,g+' d',{'text-anchor':'middle','font-size':'9.5'})); });
+    s2.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+xg(p[0]).toFixed(1)+' '+yg(p[1]).toFixed(1)).join(' '),
+      fill:'none',stroke:'#0A6E38','stroke-width':'2.4'}));
+    const gap=gapDays(), rf=rfFo(foOf(lc,gap));
+    s2.appendChild(E('line',{x1:xg(gap),x2:xg(gap),y1:T2,y2:yg(0),stroke:'#C97A10','stroke-width':'1.2','stroke-dasharray':'3 3'}));
+    s2.appendChild(E('circle',{cx:xg(gap),cy:yg(rf),r:5,fill:'#fff',stroke:'#C97A10','stroke-width':'3'}));
+    s2.appendChild(E('circle',{cx:xg(TSTORE0),cy:yg(rfFo(foOf(lc,TSTORE0))),r:3,fill:'#565D62'}));
+    s2.appendChild(T(xg(TSTORE0),yg(rfFo(foOf(lc,TSTORE0)))-9,'poster duty cycle',{'text-anchor':'middle',fill:'#565D62','font-size':'9'}));
+    s2.appendChild(T(-(H2/2)+8,11,'retained %',{transform:'rotate(-90)','text-anchor':'middle'}));
+    s2.appendChild(T((L2+W2-R2)/2,H2-1,'length of the seal between charge and discharge',{'text-anchor':'middle','font-size':'9.5'}));
+  }
+  lcIn.addEventListener('input',upd);
+  upd();
+})();
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FIG 4a — the screening nomogram
+   ═════════════════════════════════════════════════════════════════════════ */
+(function(){
+  const s=$('c-screen'), W=520,H=260,L=42,R=18,Tp=30,B=42;
+  const a0=0.2, a1=3.0;
+  const xa=a=>L+(W-L-R)*(Math.log(a)-Math.log(a0))/(Math.log(a1)-Math.log(a0));
+  const y=rf=>Tp+(H-Tp-B)*(1-rf);
+  let rock=2;
+  const rfRock=(idx,a)=>{ const g=AGRID, r=ROCKS[idx].rf;
+    if(a<=g[0])return r[0]; if(a>=g[g.length-1])return r[r.length-1];
+    for(let i=1;i<g.length;i++){ if(a<=g[i]){ const u=(Math.log(a)-Math.log(g[i-1]))/(Math.log(g[i])-Math.log(g[i-1]));
+      return r[i-1]+(r[i]-r[i-1])*u; } } return 0; };
+  // the host rock uses the fine master curve (identical physics, more points)
+  const rfHost=a=>rfOf(2/a);
+
+  function draw(lc){
+    clear(s);
+    const a=2/lc;
+    s.appendChild(E('rect',{x:L,y:y(1),width:W-L-R,height:y(0.5)-y(1),fill:'#2A78D6','fill-opacity':'.055'}));
+    [0,0.25,0.5,0.75,1].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:y(g),y2:y(g)}));
+      s.appendChild(T(L-6,y(g)+4,(g*100).toFixed(0),{'text-anchor':'end'})); });
+    [0.2,0.3,0.5,0.8,1.2,2,3].forEach(v=>{ s.appendChild(T(xa(v),H-B+15,v,{'text-anchor':'middle','font-size':'9.5'})); });
+    [8,5,3.4,2,1.2,0.8].forEach(Lc=>{ const av=2/Lc; if(av<a0||av>a1) return;
+      s.appendChild(T(xa(av),Tp-14,Lc,{'text-anchor':'middle','font-size':'9.5',fill:'#8C9199'})); });
+    s.appendChild(T((L+W-R)/2,Tp-27,'effective opening radius  Lc = 2/a   [m]',{'text-anchor':'middle','font-size':'9.5',fill:'#565D62'}));
+    s.appendChild(E('line',{x1:L,x2:W-R,y1:y(0.5),y2:y(0.5),stroke:'#0A6E38','stroke-width':'1','stroke-dasharray':'4 3'}));
+    s.appendChild(T(W-R-2,y(0.5)-5,'viable · RF ≥ 50%',{'text-anchor':'end',fill:'#0A6E38','font-size':'9.5'}));
+    // markers from the study
+    [[AV0,'as-built drift'],[2/2.058,'radius ×2'],[2/3.40,'chamber Lc = 3.4 m']].forEach(([av,lab])=>{
+      s.appendChild(E('line',{x1:xa(av),x2:xa(av),y1:Tp,y2:y(0),stroke:'#8A8F86','stroke-width':'.9','stroke-dasharray':'2 3'}));
+      s.appendChild(T(xa(av)-4,Tp+4,lab,{'text-anchor':'start',fill:'#565D62','font-size':'8.6',
+        transform:'rotate(90 '+(xa(av)-4)+' '+(Tp+4)+')'}));
+    });
+    ROCKS.forEach((rk,i)=>{
+      const pts=[];
+      if(rk.host){ for(let j=0;j<=90;j++){ const av=a0*Math.pow(a1/a0,j/90); pts.push([av,rfHost(av)]); } }
+      else AGRID.forEach((av,j)=>pts.push([av,rk.rf[j]]));
+      s.appendChild(E('path',{d:pts.map((p,j)=>(j?'L':'M')+xa(p[0]).toFixed(1)+' '+y(p[1]).toFixed(1)).join(' '),
+        fill:'none',stroke:rk.c,'stroke-width':i===rock?3:1.5,'stroke-opacity':i===rock?1:.55}));
+    });
+    const rf=rock===2?rfHost(a):rfRock(rock,a);
+    s.appendChild(E('circle',{cx:xa(Math.max(a0,Math.min(a1,a))),cy:y(rf),r:6,fill:'#fff',
+      stroke:rf>=0.5?'#0A6E38':rf>=0.25?'#C97A10':'#C0392B','stroke-width':'3'}));
+    s.appendChild(T((L+W-R)/2,H-9,'specific surface  a = A_wetted / V_water   [1/m]',{'text-anchor':'middle','font-size':'9.5'}));
+    s.appendChild(T(-(H/2)+8,11,'retention RF, first cycle  [%]',{transform:'rotate(-90)','text-anchor':'middle'}));
+    return rf;
+  }
+  const box=$('k-rocks');
+  ROCKS.forEach((rk,i)=>{ const b=document.createElement('button');
+    b.className='chip'+(i===rock?' on':''); b.innerHTML=rk.n+' <span style="opacity:.7">κ='+fmt(rk.kap,2)+'</span>'+(rk.host?' ★':'');
+    b.onclick=()=>{ rock=i; [...box.children].forEach((c,j)=>c.classList.toggle('on',j===i)); upd(); };
+    box.appendChild(b); });
+  const lcIn=$('k-lcin');
+  function upd(){
+    const lc=+lcIn.value, rf=draw(lc), fo=foOf(lc,TSTORE0);
+    $('k-lc').textContent=fmt(lc,2)+' m';
+    $('k-av').textContent=fmt(2/lc,2)+' m⁻¹';
+    $('k-fo').textContent=fmt(fo,1);
+    $('k-rf').textContent=(rf*100).toFixed(rf<0.1?1:0)+'%';
+    $('k-rfbox').className='st '+(rf>=0.5?'hi':rf>=0.25?'':'bad');
+    const v=$('k-verdict'); const pass=rf>=0.5, mar=rf>=0.25;
+    v.className='verdict '+(pass?'pass':mar?'marginal':'fail');
+    v.textContent=pass?'✓ stores it':mar?'△ marginal':'✕ loses it';
+    // where this rock actually crosses RF = 50%, found by bisection on the same curve the chart is drawn from
+    const rfAt=x=>rock===2?rfHost(2/x):rfRock(rock,2/x);
+    let lo=0.5, hi=12; for(let i=0;i<50;i++){ const mid=(lo+hi)/2; if(rfAt(mid)<0.5) lo=mid; else hi=mid; }
+    const need=(lo+hi)/2;
+    $('k-say').innerHTML='In '+ROCKS[rock].n+' (k = '+fmt(ROCKS[rock].k,1)+' W/mK), an opening of reach '+fmt(lc,2)+
+      ' m keeps <b>'+(rf*100).toFixed(rf<0.1?1:0)+'%</b> of what it stored through a 123-day seal. '+
+      (pass?'That is inside the viable band — this geometry is worth meshing.'
+           :'It crosses RF = 50% at L<sub>c</sub> ≈ <b>'+fmt(need,2)+' m</b>: a chamber, or the drift array of §06.');
+  }
+  lcIn.addEventListener('input',upd); upd();
+})();
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FIG 4b — floor vs lift
+   ═════════════════════════════════════════════════════════════════════════ */
+(function(){
+  const s=$('c-grade'), W=520,H=250,L=42,R=104,Tp=14,B=40;
+  const x0=10,x1=45,y0=8,y1=84;
+  const X=t=>L+(W-L-R)*(t-x0)/(x1-x0), Y=t=>Tp+(H-Tp-B)*(1-(t-y0)/(y1-y0));
+  const tab=$('g-tab');
+  function draw(T0){
+    clear(s);
+    s.appendChild(E('rect',{x:L,y:Y(y1),width:W-L-R,height:Y(30)-Y(y1),fill:'#1BAF7A','fill-opacity':'.06'}));
+    s.appendChild(T(L+5,Y(y1)+13,'directly usable in a 30 °C circuit',{fill:'#565D62','font-size':'9.5'}));
+    [10,25,40,55,70].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
+      s.appendChild(T(L-6,Y(g)+4,g,{'text-anchor':'end'})); });
+    [10,20,30,40].forEach(v=>{ s.appendChild(T(X(v),H-B+16,v,{'text-anchor':'middle'})); });
+    s.appendChild(E('line',{x1:X(x0),y1:Y(x0),x2:X(x1),y2:Y(x1),stroke:'#8A8F86','stroke-width':'1.4','stroke-dasharray':'5 4'}));
+    s.appendChild(T(X(41),Y(41)+13,'undisturbed rock',{fill:'#8A8F86','font-size':'9'}));
+    CONFIGS.forEach(c=>{
+      const p=[[x0,x0+(THOT-x0)*c.th],[x1,x1+(THOT-x1)*c.th]];
+      s.appendChild(E('path',{d:'M'+X(p[0][0])+' '+Y(p[0][1])+'L'+X(p[1][0])+' '+Y(p[1][1]),fill:'none',stroke:c.c,'stroke-width':'2.3'}));
+      s.appendChild(T(X(x1)+7,Y(p[1][1])+4,c.s,{fill:c.c,'font-size':'10','font-weight':'600'}));
+    });
+    SCN.forEach(sc=>{ s.appendChild(E('circle',{cx:X(sc.T0),cy:Y(sc.Tw[9]),r:4,fill:'#fff',stroke:sc.c,'stroke-width':'2.4'})); });
+    s.appendChild(E('line',{x1:X(T0),x2:X(T0),y1:Tp,y2:Y(y0),stroke:'#C97A10','stroke-width':'1.2','stroke-dasharray':'3 3'}));
+    CONFIGS.forEach(c=>{ const tw=T0+(THOT-T0)*c.th;
+      s.appendChild(E('circle',{cx:X(T0),cy:Y(tw),r:4.6,fill:c.c,stroke:'#fff','stroke-width':'1.6'})); });
+    s.appendChild(T((L+W-R)/2,H-8,'in-situ rock temperature  T₀  [°C]',{'text-anchor':'middle','font-size':'9.5'}));
+    s.appendChild(T(-(H/2)+8,11,'water at end of storage, cycle 10  [°C]',{transform:'rotate(-90)','text-anchor':'middle'}));
+  }
+  function upd(){
+    const T0=+$('g-t0in').value; $('g-t0').textContent=fmt(T0,1)+' °C'; draw(T0);
+    let h='<thead><tr><th>Configuration</th><th>lift θ</th><th>water at end of store</th><th>usable ≥30 °C</th></tr></thead><tbody>';
+    CONFIGS.forEach(c=>{ const tw=T0+(THOT-T0)*c.th;
+      h+='<tr><td><span class="sw" style="background:'+c.c+'"></span>'+c.n+'</td><td>'+fmt(c.th,3)+'</td><td><b>'+
+         fmt(tw,1)+' °C</b></td><td style="color:'+(tw>=30?'#0A6E38':'#B4501E')+'">'+(tw>=30?'✓ yes':'✕ no')+'</td></tr>'; });
+    h+='</tbody>'; tab.innerHTML=h;
+  }
+  $('g-t0in').addEventListener('input',upd); upd();
+})();
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FIG 5 — ten years, five scenarios
+   ═════════════════════════════════════════════════════════════════════════ */
+(function(){
+  const on=SCN.map(()=>true);
+  const leg=$('d-leg');
+  SCN.forEach((sc,i)=>{ const l=document.createElement('label');
+    l.innerHTML='<input type="checkbox" checked><i style="background:'+sc.c+'"></i>'+sc.n;
+    l.querySelector('input').onchange=e=>{ on[i]=e.target.checked; l.classList.toggle('off',!on[i]); upd(); };
+    leg.appendChild(l); });
+
+  function panel(svg,key,ymin,ymax,ticks,unit){
+    const W=300,H=210,L=36,R=10,Tp=12,B=30, yr=+$('d-yrin').value;
+    clear(svg);
+    const X=i=>L+(W-L-R)*i/9, Y=v=>Tp+(H-Tp-B)*(1-(v-ymin)/(ymax-ymin));
+    ticks.forEach(g=>{ svg.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
+      svg.appendChild(T(L-5,Y(g)+4,g,{'text-anchor':'end','font-size':'9.5'})); });
+    [[0,'y1'],[4,'y5'],[9,'y10']].forEach(([i,t])=>svg.appendChild(T(X(i),H-13,t,{'text-anchor':'middle','font-size':'9.5'})));
+    svg.appendChild(E('line',{x1:X(yr-1),x2:X(yr-1),y1:Tp,y2:Y(ymin),stroke:'#C97A10','stroke-width':'1.2','stroke-dasharray':'3 3'}));
+    SCN.forEach((sc,i)=>{ if(!on[i])return; const d=sc[key];
+      svg.appendChild(E('path',{d:d.map((v,j)=>(j?'L':'M')+X(j).toFixed(1)+' '+Y(v).toFixed(1)).join(' '),
+        fill:'none',stroke:sc.c,'stroke-width':sc.star?2.8:2,'stroke-linejoin':'round'}));
+      svg.appendChild(E('circle',{cx:X(yr-1),cy:Y(d[yr-1]),r:3.6,fill:'#fff',stroke:sc.c,'stroke-width':'2.2'})); });
+    svg.appendChild(T(-(H/2)+8,10,unit,{transform:'rotate(-90)','text-anchor':'middle','font-size':'9.5'}));
+  }
+  function upd(){
+    const yr=+$('d-yrin').value;
+    $('d-yr').textContent='year '+yr;
+    panel($('c-dec-a'),'rt',0,100,[0,25,50,75,100],'recovered  [%]');
+    panel($('c-dec-b'),'Tw',10,60,[10,25,40,55],'water  [°C]');
+    let h='<thead><tr><th>Scenario</th><th>return</th><th>water</th><th>out</th></tr></thead><tbody>';
+    SCN.forEach((sc,i)=>{ h+='<tr class="'+(on[i]?'':'off')+'" style="opacity:'+(on[i]?1:.4)+'">'+
+      '<td><span class="sw" style="background:'+sc.c+'"></span>'+sc.n+(sc.geo?' <span style="color:#B4501E">†</span>':'')+'</td>'+
+      '<td'+(sc.star?' style="color:#0A6E38;font-weight:800"':'')+'>'+fmt(sc.rt[yr-1],1)+'%</td>'+
+      '<td>'+fmt(sc.Tw[yr-1],1)+' °C</td><td>'+fmt(sc.To[yr-1],1)+' °C</td></tr>'; });
+    h+='</tbody>'; $('d-tab').innerHTML=h;
+    const arr=SCN[4];
+    $('d-note').innerHTML='<b>†</b> the 30&nbsp;°C rows include native geothermal heat mined by the 10&nbsp;°C '+
+      'discharge — roughly 57–81% of that “return” is ground heat, not stored solar. The array cell is a '+
+      '<b>closed unit cell</b> with adiabatic symmetry planes, so its balance is forced toward 100%: read the '+
+      '~6-cycle approach and the '+fmt(arr.To[yr-1],1)+'&nbsp;°C delivered grade, not the '+fmt(arr.rt[9],1)+'% alone.';
+  }
+  $('d-yrin').addEventListener('input',upd); upd();
+})();
+
+/* ═════════════════════════════════════════════════════════════════════════
+   A tiny painter's-algorithm 3-D canvas — the §07 figures, rotatable
+   ═════════════════════════════════════════════════════════════════════════ */
+const MINI=[];
+function mini3d(canvas,build,yaw0,pitch0){
+  const st={yaw:yaw0,pitch:pitch0,dpr:1,w:0,h:0};
+  const ctx=canvas.getContext('2d');
+  function resize(){
+    const r=canvas.getBoundingClientRect(); if(!r.width) return;
+    st.dpr=Math.min(2,window.devicePixelRatio||1);
+    st.w=r.width; st.h=r.height;
+    canvas.width=Math.round(r.width*st.dpr); canvas.height=Math.round(r.height*st.dpr);
+    ctx.setTransform(st.dpr,0,0,st.dpr,0,0); draw();
+  }
+  function proj(p){
+    const cy=Math.cos(st.yaw), sy=Math.sin(st.yaw);
+    const X=p[0]*cy-p[1]*sy, Yr=p[0]*sy+p[1]*cy, Z=p[2];
+    const cp=Math.cos(st.pitch), sp=Math.sin(st.pitch);
+    return [X, Yr*sp+Z*cp, -Yr*cp+Z*sp];            // [screen x, screen up, depth]
+  }
+  function draw(){
+    if(!st.w) return;
+    ctx.clearRect(0,0,st.w,st.h);
+    const items=build();                             // [{type,pts,fill,stroke,lw,text,font,color,size}]
+    const flat=[];
+    items.forEach(it=>{
+      const pr=(it.pts||[]).map(proj);
+      const d=pr.length?pr.reduce((a,p)=>a+p[2],0)/pr.length:0;
+      flat.push({it,pr,d});
+    });
+    // fit
+    let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;
+    flat.forEach(f=>f.pr.forEach(p=>{ mnx=Math.min(mnx,p[0]); mxx=Math.max(mxx,p[0]); mny=Math.min(mny,p[1]); mxy=Math.max(mxy,p[1]); }));
+    const pad=26, sx=(st.w-2*pad)/Math.max(1e-6,mxx-mnx), sy=(st.h-2*pad)/Math.max(1e-6,mxy-mny);
+    const sc=Math.min(sx,sy), ox=st.w/2-(mnx+mxx)/2*sc, oy=st.h/2+(mny+mxy)/2*sc;
+    const S=p=>[ox+p[0]*sc, oy-p[1]*sc];
+    flat.sort((a,b)=>a.d-b.d);
+    flat.forEach(({it,pr})=>{
+      if(it.type==='text'){ const q=S(pr[0]);
+        ctx.font=(it.font||'600 11px "IBM Plex Mono", monospace'); ctx.fillStyle=it.color||'#181C20';
+        ctx.textAlign=it.align||'center'; ctx.textBaseline='middle';
+        (it.text+'').split('\n').forEach((ln,k)=>ctx.fillText(ln,q[0],q[1]+k*13));
+        return; }
+      if(it.type==='dot'){ const q=S(pr[0]); ctx.beginPath(); ctx.arc(q[0],q[1],it.r||4,0,7); ctx.fillStyle=it.fill; ctx.fill();
+        if(it.stroke){ ctx.strokeStyle=it.stroke; ctx.lineWidth=it.lw||1.5; ctx.stroke(); } return; }
+      ctx.beginPath();
+      pr.forEach((p,i)=>{ const q=S(p); i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]); });
+      if(it.type==='poly'){ ctx.closePath(); if(it.fill){ ctx.fillStyle=it.fill; ctx.fill(); } }
+      if(it.stroke){ ctx.strokeStyle=it.stroke; ctx.lineWidth=it.lw||1; ctx.lineJoin='round'; ctx.stroke(); }
+      if(it.type==='arrow'){                          // head at the last point
+        const a=S(pr[pr.length-2]), b=S(pr[pr.length-1]);
+        const an=Math.atan2(b[1]-a[1],b[0]-a[0]), hl=it.head||7;
+        ctx.beginPath(); ctx.moveTo(b[0],b[1]);
+        ctx.lineTo(b[0]-hl*Math.cos(an-0.42),b[1]-hl*Math.sin(an-0.42));
+        ctx.lineTo(b[0]-hl*Math.cos(an+0.42),b[1]-hl*Math.sin(an+0.42));
+        ctx.closePath(); ctx.fillStyle=it.stroke; ctx.fill();
+      }
+    });
+  }
+  let drag=null;
+  const down=e=>{ drag={x:(e.touches?e.touches[0]:e).clientX,y:(e.touches?e.touches[0]:e).clientY,
+    yaw:st.yaw,pitch:st.pitch}; };
+  const move=e=>{ if(!drag)return; e.preventDefault();
+    const p=e.touches?e.touches[0]:e;
+    st.yaw=drag.yaw+(p.clientX-drag.x)*0.011;
+    st.pitch=Math.max(-1.35,Math.min(1.35,drag.pitch-(p.clientY-drag.y)*0.009));
+    draw(); };
+  const up=()=>{ drag=null; };
+  canvas.addEventListener('mousedown',down); canvas.addEventListener('touchstart',down,{passive:true});
+  window.addEventListener('mousemove',move); canvas.addEventListener('touchmove',move,{passive:false});
+  window.addEventListener('mouseup',up); window.addEventListener('touchend',up);
+  window.addEventListener('resize',resize);
+  const api={draw,resize};
+  MINI.push(api); setTimeout(resize,60); return api;
+}
+function box3(o,s,fill,stroke,lw){
+  const [x,y,z]=o,[dx,dy,dz]=s;
+  const v=[[x,y,z],[x+dx,y,z],[x+dx,y+dy,z],[x,y+dy,z],[x,y,z+dz],[x+dx,y,z+dz],[x+dx,y+dy,z+dz],[x,y+dy,z+dz]];
+  return [[0,1,2,3],[4,5,6,7],[0,1,5,4],[2,3,7,6],[1,2,6,5],[0,3,7,4]]
+    .map(f=>({type:'poly',pts:f.map(i=>v[i]),fill,stroke:stroke||'#8A8A86',lw:lw||1}));
+}
+
+/* ── §07 tabs ────────────────────────────────────────────────────────────── */
+function numTab(t){
+  document.querySelectorAll('#n-tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  document.querySelectorAll('.npane').forEach(p=>p.hidden=(p.dataset.p!==t));
+  requestAnimationFrame(()=>MINI.forEach(m=>m.resize()));
+}
+document.querySelectorAll('#n-tabs .tab').forEach(b=>b.onclick=()=>numTab(b.dataset.t));
+
+/* ═════════════════════════════════════════════════════════════════════════
+   §07 A — a real P1 solve, both fluxes
+   Model: -k T'' = f on (0,1), T(0)=Tin (pinned), T(1)=Tout.  k=1, f=1.
+   Exact:  T = -x²/2 + Cx + Tin,  C = Tout - Tin + 1/2,  q_exact = -k T'(0) = -C.
+   ═════════════════════════════════════════════════════════════════════════ */
+const FEM_A=(function(){
+  const k=1, f=1, Tin=1, Tout=0, C=Tout-Tin+0.5, qExact=-k*C;
+  function solve(n){
+    const h=1/n, N=n+1;
+    // unconstrained tridiagonal stiffness + load
+    const a=new Float64Array(N), b=new Float64Array(N), c=new Float64Array(N), r=new Float64Array(N);
+    for(let i=0;i<N;i++){ b[i]=(i===0||i===N-1)?k/h:2*k/h; if(i>0)a[i]=-k/h; if(i<N-1)c[i]=-k/h;
+      r[i]=f*h*((i===0||i===N-1)?0.5:1); }
+    const A0=[b[0],c[0]], f0=r[0];                       // the row Dirichlet is about to discard
+    // strong Dirichlet at both ends
+    b[0]=1; c[0]=0; r[0]=Tin;
+    b[N-1]=1; a[N-1]=0; r[N-1]=Tout;
+    // Thomas
+    const cp=new Float64Array(N), dp=new Float64Array(N);
+    cp[0]=c[0]/b[0]; dp[0]=r[0]/b[0];
+    for(let i=1;i<N;i++){ const m=b[i]-a[i]*cp[i-1]; cp[i]=c[i]/m; dp[i]=(r[i]-a[i]*dp[i-1])/m; }
+    const T=new Float64Array(N); T[N-1]=dp[N-1];
+    for(let i=N-2;i>=0;i--) T[i]=dp[i]-cp[i]*T[i+1];
+    const qNodal=-k*(T[1]-T[0])/h;                       // the tempting, wrong one
+    const qReact=A0[0]*T[0]+A0[1]*T[1]-f0;               // the consistent reaction
+    return {h,T,qNodal,qReact};
+  }
+  return {solve,qExact,k,Tin,Tout};
+})();
+(function(){
+  const nIn=$('a-nin');
+  function upd(){
+    const n=+nIn.value, r=FEM_A.solve(n);
+    $('a-n').textContent=n;
+    $('a-nod').textContent=fmt(r.qNodal,5);
+    $('a-rea').textContent=fmt(r.qReact,5);
+    $('a-exa').textContent=fmt(FEM_A.qExact,5);
+    $('a-err').textContent=(Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)*100).toFixed(2)+'%';
+    // convergence chart
+    const s=$('c-num-a'), W=300,H=178,L=40,R=12,Tp=12,B=32; clear(s);
+    const ns=[]; for(let m=2;m<=512;m*=1.5) ns.push(Math.round(m)); ns.push(512);
+    const pts=ns.map(m=>{ const q=FEM_A.solve(m); return [m,
+      Math.max(1e-16,Math.abs(q.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)),
+      Math.max(1e-16,Math.abs(q.qReact-FEM_A.qExact)/Math.abs(FEM_A.qExact))]; });
+    const e0=1e-16,e1=1;
+    const X=m=>L+(W-L-R)*(Math.log(m)-Math.log(2))/(Math.log(512)-Math.log(2));
+    const Y=e=>Tp+(H-Tp-B)*(1-(Math.log10(e)-Math.log10(e0))/(Math.log10(e1)-Math.log10(e0)));
+    [0,-4,-8,-12,-16].forEach(p=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(Math.pow(10,p)),y2:Y(Math.pow(10,p))}));
+      s.appendChild(T(L-5,Y(Math.pow(10,p))+4,'1e'+p,{'text-anchor':'end','font-size':'9'})); });
+    [2,8,32,128,512].forEach(m=>s.appendChild(T(X(m),H-13,m,{'text-anchor':'middle','font-size':'9'})));
+    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' '),
+      fill:'none',stroke:'#B4501E','stroke-width':'2.4'}));
+    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[2]).toFixed(1)).join(' '),
+      fill:'none',stroke:'#0A6E38','stroke-width':'2.4'}));
+    s.appendChild(T(W-R-2,Y(pts[pts.length-1][1])-7,'nodal k dT/dn',{'text-anchor':'end',fill:'#B4501E','font-size':'9','font-weight':'700'}));
+    s.appendChild(T(W-R-2,Y(1e-15)-7,'reaction',{'text-anchor':'end',fill:'#0A6E38','font-size':'9','font-weight':'700'}));
+    const cur=Math.max(1e-16,Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact));
+    s.appendChild(E('circle',{cx:X(n),cy:Y(cur),r:4,fill:'#fff',stroke:'#C97A10','stroke-width':'2.6'}));
+    s.appendChild(T((L+W-R)/2,H-2,'elements',{'text-anchor':'middle','font-size':'9'}));
+    s.appendChild(T(-(H/2)+8,10,'relative flux error',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
+  }
+  nIn.addEventListener('input',upd); upd();
+  // closure table
+  let h='<thead><tr><th>Phase</th><th>residual [kWh]</th><th>relative to 4.5×10⁵ kWh</th></tr></thead><tbody>';
+  CLOSURE.forEach(([p,v])=>{ h+='<tr><td>'+p+'</td><td>'+v.toExponential(3)+'</td><td>'+
+    (Math.abs(v)/DELIVERED_KWH).toExponential(1)+'</td></tr>'; });
+  h+='</tbody>'; $('a-clos').innerHTML=h;
+  // the 3-D panel
+  mini3d($('n3d-a'),()=>{
+    const it=[];
+    box3([0.18,0.05,0.05],[0.72,0.80,0.62],'rgba(223,231,238,.42)','#9AA3AB',1).forEach(b=>it.push(b));
+    it.push({type:'poly',pts:[[0.18,0.05,0.05],[0.18,0.85,0.05],[0.18,0.85,0.67],[0.18,0.05,0.67]],
+      fill:'rgba(42,111,176,.55)',stroke:'#2A6FB0',lw:1.6});
+    [[0.25,0.22],[0.45,0.22],[0.65,0.22],[0.25,0.48],[0.45,0.48],[0.65,0.48]].forEach(([y,z])=>{
+      it.push({type:'arrow',pts:[[-0.12,y,z],[0.30,y,z]],stroke:'#E39A26',lw:2.6,head:7}); });
+    it.push({type:'dot',pts:[[0.55,0.45,0.36]],r:4,fill:'#181C20'});
+    it.push({type:'text',pts:[[0.62,0.45,0.36]],text:'node',color:'#181C20',align:'left',font:'500 11px "IBM Plex Mono",monospace'});
+    it.push({type:'text',pts:[[0.18,0.45,0.86]],text:'Γin :  T = Tin',color:'#2A6FB0',font:'700 11px "IBM Plex Mono",monospace'});
+    it.push({type:'text',pts:[[0.55,0.05,-0.10]],text:'qn = rh|Γ',color:'#0A6E38',font:'700 12px "IBM Plex Mono",monospace'});
+    return it;
+  },-58*Math.PI/180,20*Math.PI/180);
+})();
+
+/* ═════════════════════════════════════════════════════════════════════════
+   §07 B — pinning a sealed face is not sealing it
+   Two-material bar: rock (k=3, 0.6 m) | concrete (k=1.5, 0.4 m).
+   x = 1 m is the inlet at 80 °C; x = 0 is the face that must be sealed.
+   ═════════════════════════════════════════════════════════════════════════ */
+const FEM_B=(function(){
+  const kR=3.0,kC=1.5,LR=0.6,LC=0.4,Ltot=LR+LC,Tin=80,T0=10;
+  function solve(n,pin){
+    const h=Ltot/n, N=n+1;
+    const a=new Float64Array(N), b=new Float64Array(N), c=new Float64Array(N), r=new Float64Array(N);
+    for(let e=0;e<n;e++){ const xm=(e+0.5)*h, ke=xm<LR?kR:kC, s=ke/h;
+      b[e]+=s; b[e+1]+=s; c[e]-=s; a[e+1]-=s; }
+    const A0=[b[0],c[0]];                                  // the row we are about to overwrite
+    b[N-1]=1; a[N-1]=0; c[N-1]=0; r[N-1]=Tin;              // inlet, always strong
+    if(pin){ b[0]=1; c[0]=0; r[0]=T0; }                    // the mistake: pin the sealed face
+    const cp=new Float64Array(N), dp=new Float64Array(N);
+    cp[0]=c[0]/b[0]; dp[0]=r[0]/b[0];
+    for(let i=1;i<N;i++){ const m=b[i]-a[i]*cp[i-1]; cp[i]=c[i]/m; dp[i]=(r[i]-a[i]*dp[i-1])/m; }
+    const T=new Float64Array(N); T[N-1]=dp[N-1];
+    for(let i=N-2;i>=0;i--) T[i]=dp[i]-cp[i]*T[i+1];
+    const q=pin?(A0[0]*T[0]+A0[1]*T[1]):0;                 // reaction at the sealed face = the leak
+    return {h,T,q:Math.abs(q),Ltot};
+  }
+  return {solve,Ltot,Tin,T0};
+})();
+(function(){
+  let pin=false;
+  const nIn=$('b-nin');
+  document.querySelectorAll('#b-mode .chip').forEach(b=>b.onclick=()=>{
+    pin=b.dataset.b==='pin';
+    document.querySelectorAll('#b-mode .chip').forEach(c=>c.classList.toggle('on',c===b)); upd(); });
+  function upd(){
+    const n=+nIn.value, r=FEM_B.solve(n,pin), rw=FEM_B.solve(n,false);
+    $('b-n').textContent=n;
+    const kWh=r.q*AWET*TSTORE0*DAY/3.6e6;
+    $('b-leak').textContent=fmt(r.q,1)+' W/m²';
+    $('b-e').textContent=(kWh>=1000?fmt(kWh/1000,1)+' MWh':fmt(kWh,0)+' kWh');
+    $('b-share').textContent=(100*kWh/STORED_KWH).toFixed(kWh/STORED_KWH<0.1?2:0)+'%';
+    $('b-leakbox').className='st '+(pin?'bad':'hi');
+    $('b-say').innerHTML=pin
+      ? 'The face is <b>not</b> sealed: it is a 10&nbsp;°C sink. In steady state it drains '+fmt(r.q,1)+
+        '&nbsp;W/m² — and refining the mesh does not help, because the error is in the model, not the discretisation. '+
+        'In 3-D the same pin also fights the material-continuity condition on the shared rock/concrete corner node.'
+      : 'Zero flux, exactly, at every mesh size — the no-flux condition is the <b>natural</b> one, already satisfied '+
+        'by the weak form. Nothing has to be imposed strongly, so no corner node is ever asked to satisfy two '+
+        'conditions at once.';
+    const s=$('c-num-b'), W=300,H=178,L=38,R=12,Tp=12,B=30; clear(s);
+    const X=x=>L+(W-L-R)*x/FEM_B.Ltot, Y=t=>Tp+(H-Tp-B)*(1-(t-0)/90);
+    s.appendChild(E('rect',{x:X(0),y:Tp,width:X(0.6)-X(0),height:H-Tp-B,fill:'#D0D0CD','fill-opacity':'.35'}));
+    s.appendChild(E('rect',{x:X(0.6),y:Tp,width:X(1.0)-X(0.6),height:H-Tp-B,fill:'#E6E0D2','fill-opacity':'.6'}));
+    s.appendChild(T(X(0.3),Tp+12,'rock',{'text-anchor':'middle',fill:'#6B7278','font-size':'9'}));
+    s.appendChild(T(X(0.8),Tp+12,'concrete',{'text-anchor':'middle',fill:'#6B7278','font-size':'9'}));
+    [0,30,60,90].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
+      s.appendChild(T(L-5,Y(g)+4,g,{'text-anchor':'end','font-size':'9'})); });
+    const path=t=>{ let d=''; for(let i=0;i<t.length;i++){ const x=i*FEM_B.Ltot/(t.length-1);
+      d+=(i?'L':'M')+X(x).toFixed(1)+' '+Y(t[i]).toFixed(1); } return d; };
+    s.appendChild(E('path',{d:path(rw.T),fill:'none',stroke:'#0A6E38','stroke-width':pin?1.4:2.6,'stroke-dasharray':pin?'4 3':''}));
+    if(pin) s.appendChild(E('path',{d:path(r.T),fill:'none',stroke:'#C0392B','stroke-width':'2.6'}));
+    s.appendChild(T(L,H-13,'sealed face',{'text-anchor':'start','font-size':'9',fill:pin?'#C0392B':'#0A6E38','font-weight':'700'}));
+    s.appendChild(T(W-R,H-13,'inlet 80 °C',{'text-anchor':'end','font-size':'9'}));
+    s.appendChild(T(-(H/2)+8,10,'temperature [°C]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
+    MB.draw();
+  }
+  const MB=mini3d($('n3d-b'),()=>{
+    const it=[];
+    box3([0.05,0.05,0.05],[0.52,0.72,0.55],'rgba(208,208,205,.72)','#9AA3AB',1).forEach(b=>it.push(b));
+    box3([0.57,0.05,0.05],[0.22,0.72,0.55],'rgba(230,224,210,.9)','#B6AF9C',1).forEach(b=>it.push(b));
+    it.push({type:'line',pts:[[0.57,0.05,0.05],[0.57,0.05,0.60]],stroke:'#C0392B',lw:3.4});
+    it.push({type:'dot',pts:[[0.57,0.05,0.60]],r:5,fill:'#C0392B'});
+    it.push({type:'text',pts:[[0.90,0.05,0.76]],text:'shared corner node\n(over-constrained)',color:'#C0392B',
+      align:'left',font:'600 10px "IBM Plex Mono",monospace'});
+    it.push({type:'text',pts:[[0.30,0.40,-0.02]],text:'rock',color:'#6B7278',font:'500 11px "IBM Plex Mono",monospace'});
+    it.push({type:'text',pts:[[0.68,0.40,-0.02]],text:'concrete',color:'#6B7278',font:'500 10px "IBM Plex Mono",monospace'});
+    [0.22,0.55].forEach(y=>it.push({type:'arrow',pts:[[0.05,y,0.32],[-0.13,y,0.32]],
+      stroke:pin?'#C0392B':'#00824A',lw:2.4,head:7}));
+    it.push({type:'text',pts:[[-0.34,0.38,0.20]],text:pin?'T pinned → leak':'k∇T·n = 0',
+      color:pin?'#C0392B':'#00824A',font:'700 11px "IBM Plex Mono",monospace'});
+    return it;
+  },-52*Math.PI/180,22*Math.PI/180);
+  nIn.addEventListener('input',upd); upd();
+})();
+
+/* ═════════════════════════════════════════════════════════════════════════
+   §07 C — the saddle point, measured
+   ═════════════════════════════════════════════════════════════════════════ */
+(function(){
+  let sel=0;
+  const box=$('c-op');
+  MUMPS.ops.forEach((o,i)=>{ const b=document.createElement('button');
+    b.className='chip'+(i===0?' on':''); b.textContent=o.n;
+    b.onclick=()=>{ sel=i; [...box.children].forEach((c,j)=>c.classList.toggle('on',j===i)); upd(); };
+    box.appendChild(b); });
+  function upd(){
+    const o=MUMPS.ops[sel];
+    $('c-dof').textContent=grp(o.dof);
+    $('c-fill').textContent=fmt(o.fill,1)+'×';
+    $('c-mem').textContent=grp(o.mem)+' MB';
+    $('c-t').textContent=fmt(o.t,2)+' s';
+    $('c-say').innerHTML=o.piv+'. Factor entries: <b>'+grp(o.fac)+'</b> from '+grp(o.nnz)+
+      ' matrix non-zeros — '+fmt(o.gf,1)+'&nbsp;GFLOP of elimination.'+
+      (sel===0?' Compare it with the LDLᵀ and Cholesky rows: the saddle point pays roughly <b>2×</b> the memory of '+
+        'the SPD problem it would otherwise be.':'');
+    // scaling chart
+    const s=$('c-num-c'), W=300,H=178,L=42,R=14,Tp=12,B=32; clear(s);
+    const M=MUMPS.meshes;
+    const X=d=>L+(W-L-R)*(Math.log(d)-Math.log(3e5))/(Math.log(9e5)-Math.log(3e5));
+    const Y=m=>Tp+(H-Tp-B)*(1-(Math.log10(m)-Math.log10(500))/(Math.log10(30000)-Math.log10(500)));
+    [1000,3000,10000,30000].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
+      s.appendChild(T(L-5,Y(g)+4,(g/1000)+' GB',{'text-anchor':'end','font-size':'8.5'})); });
+    [3e5,5e5,8e5].forEach(d=>s.appendChild(T(X(d),H-13,(d/1e3)+'k',{'text-anchor':'middle','font-size':'9'})));
+    s.appendChild(E('line',{x1:L,x2:W-R,y1:Y(15000),y2:Y(15000),stroke:'#C0392B','stroke-width':'1.3','stroke-dasharray':'5 4'}));
+    s.appendChild(T(W-R-2,Y(15000)-5,'15 GB in-core ceiling',{'text-anchor':'end',fill:'#C0392B','font-size':'8.5','font-weight':'700'}));
+    const ok=M.filter(m=>m.ok);
+    s.appendChild(E('path',{d:ok.map((m,i)=>(i?'L':'M')+X(m.dof).toFixed(1)+' '+Y(m.mem).toFixed(1)).join(' '),
+      fill:'none',stroke:'#2A6FB0','stroke-width':'2.4'}));
+    // measured trend extended to the mesh that did not fit
+    const g=Math.log(M[1].mem/M[0].mem)/Math.log(M[1].dof/M[0].dof);
+    const pred=M[1].mem*Math.pow(M[2].dof/M[1].dof,g);
+    s.appendChild(E('path',{d:'M'+X(M[1].dof)+' '+Y(M[1].mem)+'L'+X(M[2].dof)+' '+Y(pred),
+      fill:'none',stroke:'#2A6FB0','stroke-width':'1.6','stroke-dasharray':'4 3','stroke-opacity':'.7'}));
+    M.forEach(m=>{ const yy=m.ok?m.mem:pred;
+      s.appendChild(E('circle',{cx:X(m.dof),cy:Y(yy),r:m.ok?4.5:5.5,fill:m.ok?'#2A6FB0':'#fff',
+        stroke:m.ok?'#fff':'#C0392B','stroke-width':m.ok?1.6:2.8}));
+      s.appendChild(T(X(m.dof),Y(yy)-11,m.ok?fmt(m.mem/1000,1)+' GB':'✕',
+        {'text-anchor':'middle','font-size':'9','font-weight':'700',fill:m.ok?'#2A6FB0':'#C0392B'})); });
+    s.appendChild(T(X(M[2].dof)-4,Y(pred)+16,'did not fit',{'text-anchor':'end',fill:'#C0392B','font-size':'8.5'}));
+    s.appendChild(T((L+W-R)/2,H-2,'degrees of freedom',{'text-anchor':'middle','font-size':'9'}));
+    s.appendChild(T(-(H/2)+8,10,'factorisation memory',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
+    // the operator table
+    let h='<thead><tr><th>Operator</th><th>fill</th><th>GFLOP</th><th>memory</th><th>factor</th></tr></thead><tbody>';
+    MUMPS.ops.forEach((op,i)=>{ h+='<tr class="clk'+(i===sel?' sel':'')+'" data-i="'+i+'"><td>'+op.n+'</td><td>'+
+      fmt(op.fill,1)+'×</td><td>'+fmt(op.gf,1)+'</td><td>'+grp(op.mem)+' MB</td><td>'+fmt(op.t,2)+' s</td></tr>'; });
+    h+='</tbody>'; const tb=$('c-tab'); tb.innerHTML=h;
+    tb.querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>{ sel=+tr.dataset.i;
+      [...box.children].forEach((c,j)=>c.classList.toggle('on',j===sel)); upd(); });
+  }
+  mini3d($('n3d-c'),()=>{
+    const it=[];
+    const blocks=[[[0.10,0.55],0.62,'rgba(42,111,176,.92)','A'],
+                  [[0.55,0.55],0.34,'rgba(139,184,221,.92)','Bᵀ'],
+                  [[0.10,0.10],0.34,'rgba(139,184,221,.92)','B'],
+                  [[0.55,0.10],0.015,'rgba(201,201,201,.95)','0']];
+    blocks.forEach(([[x,y],hh,col,lab])=>{
+      box3([x,y,0],[0.36,0.36,hh],col,'#FFFFFF',1.2).forEach(b=>it.push(b));
+      it.push({type:'text',pts:[[x+0.18,y+0.18,hh+0.10]],text:lab,color:'#181C20',font:'700 13px "IBM Plex Mono",monospace'});
+    });
+    it.push({type:'text',pts:[[0.73,0.28,-0.22]],text:'indefinite',color:'#C0392B',font:'700 12px "IBM Plex Mono",monospace'});
+    it.push({type:'text',pts:[[0.73,0.28,-0.36]],text:'no Cholesky, no cheap CG',color:'#8A8F86',font:'500 9.5px "IBM Plex Mono",monospace'});
+    return it;
+  },-60*Math.PI/180,26*Math.PI/180);
+  upd();
+})();
+
+console.log('%c● GEOBATTERY poster build 2026-07-23a · badges removed · QR→button · ?fig= 3-D matches · live FIG1/4a/4b/5 tools · §07 re-solvable','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
