@@ -1549,14 +1549,15 @@ const DIS={tS:1000,TS:500,ES:1,n:186,s:[
     let y=PB;
     for(let n=0;n<10;n++){
       const h=PH*s.st[n]/TOT[i], own=Math.max(0,s.rc[n]-s.geo[n])/s.st[n], gn=s.geo[n]/s.st[n];
-      const top=y-h, live=(n+1)<=c, op=live?1:0.12;
-      g(el('rect',{x:X0,y:top,width:Wd,height:h-0.7,fill:'#E7DFCE','fill-opacity':op}));
+      const top=y-h, live=(n+1)<=c, op=live?1:0.26;   // dim, but plainly still there to be tapped
+      g(el('rect',{x:X0,y:top,width:Wd,height:h-0.7,fill:'#E7DFCE','fill-opacity':op,
+        stroke:live?'none':'#C9C4B8','stroke-width':.5,'stroke-dasharray':'2 2'}));
       g(el('rect',{x:X0,y:top,width:Math.max(0.8,Wd*own),height:h-0.7,fill:s.c,'fill-opacity':op}));
       if(!G.gate&&gn>1e-6){ const gw=Math.max(0.8,Wd*gn);
         g(el('rect',{x:X0-gw,y:top,width:gw,height:h-0.7,fill:'url(#gnd)','fill-opacity':op,
           stroke:'#C97A10','stroke-width':.7,'stroke-opacity':op}));
         if(live) hit.push({x:X0-gw,y:top,w:gw,h:h-0.7,kind:'gate'}); }
-      if(live) hit.push({x:X0,y:top,w:Wd,h:h-0.7,kind:'cyc',i:n+1});
+      hit.push({x:X0,y:top,w:Wd,h:h-0.7,kind:'cyc',i:n+1});   // every stratum stays clickable, lit or not
       if(n+1===c){ const gw=G.gate?0:Wd*gn;
         g(el('rect',{x:X0-gw,y:top,width:Wd+gw,height:h-0.7,fill:'none',stroke:'#0C1015','stroke-width':1.5}));
         g(T(X0+Wd+6,top+h/2+3,'cycle '+c,{'font-size':'7','font-weight':'700',fill:'#0C1015'})); }
