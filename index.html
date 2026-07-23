@@ -458,7 +458,7 @@
   #figLab{ position:absolute; inset:0; z-index:5; pointer-events:none; display:none; }
   body.figlabels #figLab{ display:block; }
   #figLab svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
-  #figLab b{ position:absolute; transform:translate(-50%,-50%); white-space:nowrap;
+  #figLab b{ position:absolute; white-space:nowrap;
     font:600 12.5px/1.15 -apple-system,"Segoe UI",Roboto,sans-serif; color:#111;
     background:rgba(255,255,255,.9); padding:3px 7px; border-radius:4px; letter-spacing:-.01em; }
   #figLab b.sm{ font-size:11.5px; font-weight:500; color:#2a2a2a; }
@@ -1658,23 +1658,37 @@ function main() {
       const wa = objs.water && objs.water.actor.getBounds(); if (!wa) return;
       const ext = [wa[1]-wa[0], wa[3]-wa[2], wa[5]-wa[4]];
       const ax = ext.indexOf(Math.max.apply(null, ext));          // the drift axis (the poster: "≈ +y")
-      const mid = (wa[2*ax] + wa[2*ax+1]) / 2;
+      const mid = (wa[2*ax] + wa[2*ax+1]) / 2, len = ext[ax];
       const lo = p => p[ax] < mid, hi = p => p[ax] >= mid;
+      // ONE shared offset direction, exactly as the tour does it: a label sits at a 3-D point
+      // offset along U, so every leader is the SAME diagonal whatever the camera. `along`
+      // slides a label up the drift to stagger the rows so they cannot collide.
+      const aXv = [0,0,0]; aXv[ax] = 1;
+      const perp = [0,0,0]; perp[(ax+1)%3] = 1;                   // horizontal, across the drift
+      const U = [perp[0], perp[1], 0.95];                          // across AND up → the diagonal
+      const un = Math.hypot(U[0],U[1],U[2]); U[0]/=un; U[1]/=un; U[2]/=un;
+      const D = len * 0.085;                                       // one unit of leader length
       const L = [];
-      const push = (p, t, dx, dy, cls) => { if (p) L.push({ p, t, d: [dx, dy], cls: cls || '' }); };
-      push(figCentroid('water'), 'water body', 10, -74);
-      push(figCentroid('concrete', lo), 'concrete plug', -54, -66, 'sm');
-      push(figCentroid('concrete', hi), 'concrete plug', 62, -78, 'sm');
-      push(figCentroid('air', lo), 'air-filled drift', -74, -34, 'sm');
-      push(figCentroid('air', hi), 'air-filled drift', 78, -40, 'sm');
+      const push = (p, t, side, dist, along, cls) => { if (!p) return;
+        L.push({ p, t, cls: cls || '', side,
+          w: [p[0] + U[0]*side*dist*D + aXv[0]*along*D,
+              p[1] + U[1]*side*dist*D + aXv[1]*along*D,
+              p[2] + U[2]*side*dist*D + aXv[2]*along*D] }); };
+      //        anchor                       text                side  dist  along
+      push(figCentroid('air', lo),      'air-filled drift', +1,  4.2, -1.6, 'sm');
+      push(figCentroid('concrete', lo), 'concrete plug',    +1,  2.7, -0.7, 'sm');
+      push(figCentroid('water'),        'water body',       +1,  3.4,  0.2);
+      push(figCentroid('concrete', hi), 'concrete plug',    +1,  2.7,  0.9, 'sm');
+      push(figCentroid('air', hi),      'air-filled drift', +1,  4.2,  1.8, 'sm');
+      if (flowMeta && flowMeta.inlet)  push(flowMeta.inlet,  'inlet · invert',  -1, 2.4, -0.9, 'port');
+      if (flowMeta && flowMeta.outlet) push(flowMeta.outlet, 'outlet · crown',  +1, 1.7,  0.5, 'port');
       const rb = figSlab ? figSlab.getBounds() : (objs.rock && objs.rock.actor.getBounds());
-      if (rb) push([rb[0] + (rb[1]-rb[0])*0.22, (rb[2]+rb[3])/2, rb[4]], 'rock (gneiss)', -34, 66);
-      if (flowMeta && flowMeta.inlet)  push(flowMeta.inlet,  'inlet · invert', -60, 54, 'port');
-      if (flowMeta && flowMeta.outlet) push(flowMeta.outlet, 'outlet · crown', 40, -54, 'port');
+      if (rb) push([rb[0] + (rb[1]-rb[0])*0.30, (rb[2]+rb[3])/2, rb[4]], 'rock (gneiss)', -1, 3.0, -0.2);
       figLabels = L;
       const box = document.getElementById('figLab');
-      [...box.querySelectorAll('b')].forEach(b => b.remove());
-      L.forEach(l => { const b = document.createElement('b'); b.className = l.cls; b.textContent = l.t; box.appendChild(b); l.el = b; });
+      [...box.querySelectorAll('b')].forEach(x => x.remove());
+      L.forEach(l => { const el = document.createElement('b'); el.className = l.cls; el.textContent = l.t;
+        box.appendChild(el); l.el = el; });
       updateFigLabels();
     }
     function figProject(pt) {                                     // world → CSS pixels
@@ -1689,19 +1703,23 @@ function main() {
     }
     function updateFigLabels() {
       if (!figLabels || !document.body.classList.contains('figlabels')) return;
-      const svgEl = document.getElementById('figLead');
+      const svgEl = document.getElementById('figLead'), HLEN = 18;
       while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
       figLabels.forEach(l => {
-        const s = figProject(l.p);
-        if (!s) { l.el.style.display = 'none'; return; }
-        const lx = s[0] + l.d[0], ly = s[1] + l.d[1];
-        l.el.style.display = ''; l.el.style.left = lx + 'px'; l.el.style.top = ly + 'px';
-        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        ln.setAttribute('d', `M${s[0].toFixed(1)} ${s[1].toFixed(1)}L${lx.toFixed(1)} ${ly.toFixed(1)}`);
-        ln.setAttribute('stroke', '#111'); ln.setAttribute('stroke-width', '1'); ln.setAttribute('fill', 'none');
+        const A = figProject(l.p), B = figProject(l.w);
+        if (!A || !B) { l.el.style.display = 'none'; return; }
+        const dir = B[0] >= A[0] ? 1 : -1, tx = B[0] + dir * HLEN;
+        l.el.style.display = '';
+        l.el.style.left = (tx + dir * 4) + 'px';
+        l.el.style.top = B[1] + 'px';
+        l.el.style.transform = dir > 0 ? 'translate(0,-50%)' : 'translate(-100%,-50%)';
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        ln.setAttribute('points', `${A[0].toFixed(1)},${A[1].toFixed(1)} ${B[0].toFixed(1)},${B[1].toFixed(1)} ${tx.toFixed(1)},${B[1].toFixed(1)}`);
+        ln.setAttribute('fill', 'none'); ln.setAttribute('stroke', '#111');
+        ln.setAttribute('stroke-width', '1'); ln.setAttribute('stroke-linejoin', 'round');
         svgEl.appendChild(ln);
         const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        dot.setAttribute('cx', s[0].toFixed(1)); dot.setAttribute('cy', s[1].toFixed(1));
+        dot.setAttribute('cx', A[0].toFixed(1)); dot.setAttribute('cy', A[1].toFixed(1));
         dot.setAttribute('r', l.cls === 'port' ? 4 : 2.2);
         dot.setAttribute('fill', l.cls === 'port' ? 'none' : '#111');
         dot.setAttribute('stroke', '#111'); dot.setAttribute('stroke-width', l.cls === 'port' ? 1.6 : 0);
@@ -2390,7 +2408,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-23i · FIG 2: water base solved from the panel, not guessed');
+console.log('%c● GEOBATTERY build 2026-07-23j · FIG 2: leaders are 3-D parallel diagonals, like the tour');
 main();
 </script>
 
