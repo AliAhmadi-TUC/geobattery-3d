@@ -453,6 +453,27 @@
   #figchip .fx:hover{ background:#0a6e38; }
   @media (max-width:900px){ #figchip{ bottom:150px; } #figchip .ft{ font-size:11px; } }
   @media (max-width:640px){ #figchip{ bottom:auto; top:calc(10px + env(safe-area-inset-top)); } }
+
+  /* ---- FIG 2 part labels: the printed figure names every region ---- */
+  #figLab{ position:absolute; inset:0; z-index:5; pointer-events:none; display:none; }
+  body.figlabels #figLab{ display:block; }
+  #figLab svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+  #figLab b{ position:absolute; transform:translate(-50%,-50%); white-space:nowrap;
+    font:600 12.5px/1.15 -apple-system,"Segoe UI",Roboto,sans-serif; color:#111;
+    background:rgba(255,255,255,.9); padding:3px 7px; border-radius:4px; letter-spacing:-.01em; }
+  #figLab b.sm{ font-size:11.5px; font-weight:500; color:#2a2a2a; }
+  #figLab b.port{ font-weight:700; background:rgba(255,255,255,.94); }
+  @media (max-width:760px){ #figLab b{ font-size:10.5px; padding:2px 5px; } #figLab b.sm{ font-size:10px; } }
+
+  #figKey{ position:absolute; right:14px; bottom:150px; z-index:6; display:none;
+    background:#fff; border:1px solid #d8d4ca; border-radius:8px; padding:9px 11px;
+    box-shadow:0 8px 24px rgba(30,34,40,.16); min-width:212px; }
+  body.figkey #figKey{ display:block; }
+  #figKey h4{ margin:0 0 6px; font:700 9.5px/1 var(--mono); letter-spacing:.13em; color:#0a6e38; text-transform:uppercase; }
+  #figKey .grp2{ font:700 8.5px/1 var(--mono); letter-spacing:.1em; color:#8a8f86; margin:7px 0 3px; text-transform:uppercase; }
+  #figKey div.r{ display:flex; justify-content:space-between; gap:12px; font:400 11px/1.5 -apple-system,"Segoe UI",sans-serif; color:#3a4149; }
+  #figKey div.r b{ font:600 11px var(--mono); color:#1c2128; }
+  @media (max-width:900px){ #figKey{ display:none !important; } }
 </style>
 <script src="https://unpkg.com/vtk.js@36.4.1/vtk.js"></script>
 </head>
@@ -548,6 +569,20 @@
 <div id="hint" aria-hidden="true"><span class="coarse">drag to rotate · pinch to zoom</span><span class="fine">drag to rotate · scroll to zoom</span></div>
 <div id="tourTitle" aria-live="polite"></div>
 <div id="axLabels" aria-hidden="true"><span data-ax="x">X</span><span data-ax="y">Y</span><span data-ax="z">Z</span></div>
+
+<div id="figLab" aria-hidden="true"><svg id="figLead"></svg></div>
+
+<aside id="figKey" aria-label="key quantities">
+  <h4>Key quantities</h4>
+  <div class="grp2">Water body</div>
+  <div class="r"><span>volume <i>V</i></span><b>230.89 m³</b></div>
+  <div class="r"><span>wetted area <i>A</i></span><b>441.5 m²</b></div>
+  <div class="r"><span>eff. radius <i>L</i><sub>c</sub> = 2V/A</span><b>1.046 m</b></div>
+  <div class="grp2">Rock (gneiss)</div>
+  <div class="r"><span>conductivity <i>k</i></span><b>3.0 W/mK</b></div>
+  <div class="r"><span>in-situ <i>T</i>₀</span><b>10 °C</b></div>
+  <div class="r"><span>far-field buffer</span><b>≈ 100 m</b></div>
+</aside>
 
 <div id="figchip" role="status">
   <span class="fk" id="figKick">FIG</span>
@@ -1460,9 +1495,14 @@ function main() {
     //  restates the same field / layers / cut. Everything stays draggable — that is the point.
     // =================================================================================
     const FIGS = {
-      cutaway: { kick:'FIG 2', txt:'The surveyed drift, cut open — the poster panel, live. Same four materials, same cut.',
-                 mode:'material', layers:{ rock:[1,0.28], water:[1,0.95], concrete:[1,1.0], air:[1,0.55] },
-                 clip:{ axis:1, pos:0.5, flip:false }, repr:'2', cam:{ dir:[0.62,0.78,-0.55], zoom:1.20 } },
+      // FIG 2 is NOT a clipped cutaway: the printed panel shows a translucent rock slab you see
+      // THROUGH, with the water body inside it, every region named, and a parallel projection.
+      cutaway: { kick:'FIG 2', txt:'The surveyed drift — the printed panel, live: translucent rock, the water body inside it, every part named.',
+                 mode:'material', repr:'2', parallel:1, labels:1, key:1, wells:1,
+                 layers:{ rock:[1,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.28] },
+                 pal:{ rock:[0.541,0.490,0.427], water:[0.122,0.478,0.722],       // config.PV_MATERIALS, exactly
+                       concrete:[0.788,0.761,0.706], air:[0.843,0.902,0.949] },
+                 cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
       plume:   { kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
                  mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', play:1, cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
@@ -1519,7 +1559,14 @@ function main() {
       const o = cm.querySelector('option[value="' + F.mode + '"]');
       if (o) { cm.value = F.mode; cm.dispatchEvent(new Event('change')); }
       if (F.layers && F.mode !== 'flow') Object.keys(F.layers).forEach(nm => figLayer(nm, F.layers[nm][0], F.layers[nm][1]));
+      if (F.pal) Object.keys(F.pal).forEach(nm => { const o = objs[nm], c = F.pal[nm];   // the printed panel's own material colours
+        if (o) { o.mapper.setScalarVisibility(false); o.actor.getProperty().setColor(c[0], c[1], c[2]); } });
+      if (F.parallel) renderer.getActiveCamera().setParallelProjection(true);            // the panel is a parallel projection
       if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom);
+      if (F.wells) wellActors.forEach(a => a.setVisibility(true));
+      document.body.classList.toggle('figkey', !!F.key);
+      if (F.labels) { buildFigLabels(); document.body.classList.add('figlabels'); }
+      else document.body.classList.remove('figlabels');
       const chip = document.getElementById('figchip');
       document.getElementById('figKick').textContent = F.kick;
       document.getElementById('figTxt').innerHTML = F.txt + ' <b>Drag to rotate.</b>';
@@ -1530,17 +1577,97 @@ function main() {
       figApplied = true;
       renderWindow.render();
     }
+    /* ---- FIG 2 part labels ------------------------------------------------
+       The printed panel names every region. The anchors are computed from the
+       geometry actually loaded (centroid of each body, split into the two ends
+       along the drift axis), then projected to the screen on every camera move
+       and drawn as an HTML overlay with leader lines. */
+    let figLabels = null;
+    function figCentroid(name, pick) {
+      const o = objs[name]; if (!o) return null;
+      const pd = o.mapper.getInputData(); if (!pd || !pd.getPoints) return null;
+      const a = pd.getPoints().getData(), stride = Math.max(1, Math.floor(a.length / 3 / 3000)) * 3;
+      let n = 0, c = [0, 0, 0];
+      for (let i = 0; i + 2 < a.length; i += stride) {
+        const p = [a[i], a[i+1], a[i+2]];
+        if (pick && !pick(p)) continue;
+        c[0] += p[0]; c[1] += p[1]; c[2] += p[2]; n++;
+      }
+      return n ? [c[0]/n, c[1]/n, c[2]/n] : null;
+    }
+    function buildFigLabels() {
+      const wa = objs.water && objs.water.actor.getBounds(); if (!wa) return;
+      const ext = [wa[1]-wa[0], wa[3]-wa[2], wa[5]-wa[4]];
+      const ax = ext.indexOf(Math.max.apply(null, ext));          // the drift axis (the poster: "≈ +y")
+      const mid = (wa[2*ax] + wa[2*ax+1]) / 2;
+      const lo = p => p[ax] < mid, hi = p => p[ax] >= mid;
+      const L = [];
+      const push = (p, t, dx, dy, cls) => { if (p) L.push({ p, t, d: [dx, dy], cls: cls || '' }); };
+      push(figCentroid('water'), 'water body', 25, -86);
+      push(figCentroid('concrete', lo), 'concrete plug', -40, -96, 'sm');
+      push(figCentroid('concrete', hi), 'concrete plug', 70, -120, 'sm');
+      push(figCentroid('air', lo), 'air-filled drift', -108, -58, 'sm');
+      push(figCentroid('air', hi), 'air-filled drift', 46, -146, 'sm');
+      const rb = objs.rock && objs.rock.actor.getBounds();
+      if (rb) push([(rb[0]+rb[1])/2, (rb[2]+rb[3])/2, rb[4] + (rb[5]-rb[4])*0.06], 'rock (gneiss)', -30, 74);
+      if (flowMeta && flowMeta.inlet)  push(flowMeta.inlet,  'inlet · invert', -76, 62, 'port');
+      if (flowMeta && flowMeta.outlet) push(flowMeta.outlet, 'outlet · crown', 4, -66, 'port');
+      figLabels = L;
+      const box = document.getElementById('figLab');
+      [...box.querySelectorAll('b')].forEach(b => b.remove());
+      L.forEach(l => { const b = document.createElement('b'); b.className = l.cls; b.textContent = l.t; box.appendChild(b); l.el = b; });
+      updateFigLabels();
+    }
+    function figProject(pt) {                                     // world → CSS pixels
+      try {
+        const glrw = view.getApiSpecificRenderWindow ? view.getApiSpecificRenderWindow()
+                   : (view.getOpenGLRenderWindow && view.getOpenGLRenderWindow());
+        if (!glrw) return null;
+        const d = glrw.worldToDisplay(pt[0], pt[1], pt[2], renderer), sz = glrw.getSize();
+        const cv = document.querySelector('#view canvas'); if (!cv || !sz[0]) return null;
+        return [d[0] * cv.clientWidth / sz[0], (sz[1] - d[1]) * cv.clientHeight / sz[1]];
+      } catch (e) { return null; }
+    }
+    function updateFigLabels() {
+      if (!figLabels || !document.body.classList.contains('figlabels')) return;
+      const svgEl = document.getElementById('figLead');
+      while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+      figLabels.forEach(l => {
+        const s = figProject(l.p);
+        if (!s) { l.el.style.display = 'none'; return; }
+        const lx = s[0] + l.d[0], ly = s[1] + l.d[1];
+        l.el.style.display = ''; l.el.style.left = lx + 'px'; l.el.style.top = ly + 'px';
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        ln.setAttribute('d', `M${s[0].toFixed(1)} ${s[1].toFixed(1)}L${lx.toFixed(1)} ${ly.toFixed(1)}`);
+        ln.setAttribute('stroke', '#111'); ln.setAttribute('stroke-width', '1'); ln.setAttribute('fill', 'none');
+        svgEl.appendChild(ln);
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', s[0].toFixed(1)); dot.setAttribute('cy', s[1].toFixed(1));
+        dot.setAttribute('r', l.cls === 'port' ? 4 : 2.2);
+        dot.setAttribute('fill', l.cls === 'port' ? 'none' : '#111');
+        dot.setAttribute('stroke', '#111'); dot.setAttribute('stroke-width', l.cls === 'port' ? 1.6 : 0);
+        svgEl.appendChild(dot);
+      });
+    }
+    try { renderer.getActiveCamera().onModified(updateFigLabels); } catch (e) {}
+    window.addEventListener('resize', updateFigLabels);
+    window._figLabels = updateFigLabels;
+
     document.getElementById('figFree').onclick = () => {          // back to the lab's own dark void, controls untouched
       window._figLock = false;
-      document.body.classList.remove('figmode');
+      document.body.classList.remove('figmode', 'figlabels', 'figkey');
+      renderer.getActiveCamera().setParallelProjection(false);
       renderer.setBackground(voidRGB[0], voidRGB[1], voidRGB[2]);
+      setColorMode(document.getElementById('colMode').value);     // restores the lab's own material colours
+      renderer.resetCameraClippingRange();
       renderWindow.render();
     };
 
     { const qp = new URLSearchParams(location.search);
       const m = qp.get('mode'); if (m) { const cm = document.getElementById('colMode'), o = cm.querySelector('option[value="' + m + '"]'); if (o && !o.disabled) { cm.value = m; setColorMode(m); } }
       const fg = qp.get('fig');
-      if (fg && FIGS[fg]) { applyFig(fg); setTimeout(() => applyFig(fg, true), 1500); }   // re-apply once the lazy fields (stress · flow · phases) have landed
+      if (fg && FIGS[fg]) { applyFig(fg); setTimeout(() => applyFig(fg, true), 1500);
+        setTimeout(() => { if (window._figLabels) window._figLabels(); }, 1800); }   // re-apply once the lazy fields (stress · flow · phases) have landed
       if (qp.get('play') === '1') setTimeout(() => { const hp = document.getElementById('heatPlayOn'); if (hp && !hp.checked) { hp.checked = true; hp.dispatchEvent(new Event('change')); } const pb = document.getElementById('timePlay'); if (pb && colMode === 'temperature') pb.click(); }, 900); }
     // ---- 3-D mesh wireframe (drift): real tet lattice, field-coloured, lazy + device-gated ----
     let wireLoading = false;
@@ -2203,7 +2330,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-23a · ?fig= figure-match presets (white void + printed field/cut/camera) for /poster/', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-23b · FIG 2 match: PV_MATERIALS palette, parallel projection, named parts, key panel', 'color:#e8871e;font-weight:bold');
 main();
 </script>
 
