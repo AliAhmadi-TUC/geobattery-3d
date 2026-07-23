@@ -1515,7 +1515,7 @@ function main() {
                  layers:{ rock:[0,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.28] },
                  pal:{ rock:[0.541,0.490,0.427], water:[0.122,0.478,0.722],       // config.PV_MATERIALS, exactly
                        concrete:[0.788,0.761,0.706], air:[0.843,0.902,0.949] },
-                 cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
+                 cam:{ dir:[-0.62,0.78,-0.55], zoom:1.10 } },
       plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
                  mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', play:1, cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
@@ -1602,7 +1602,14 @@ function main() {
     function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; } }
     function buildFigSlab(margin) {
       removeFigSlab();
-      const wb = objs.water && objs.water.actor.getBounds(); if (!wb) return;
+      // the union of every region inside the rock — water, the plugs and the air-filled ends,
+      // which reach well past the water body and were poking out of the first slab
+      let wb = null;
+      ['water','concrete','air'].forEach(nm => { const o = objs[nm]; if (!o) return;
+        const g = o.actor.getBounds(); if (!g || !isFinite(g[0]) || g[1] < g[0]) return;
+        wb = wb ? [Math.min(wb[0],g[0]), Math.max(wb[1],g[1]), Math.min(wb[2],g[2]),
+                   Math.max(wb[3],g[3]), Math.min(wb[4],g[4]), Math.max(wb[5],g[5])] : g.slice(); });
+      if (!wb) return;
       try {
         const src = vtk.Filters.Sources.vtkCubeSource.newInstance({
           xLength: (wb[1]-wb[0]) + 2*margin, yLength: (wb[3]-wb[2]) + 2*margin, zLength: (wb[5]-wb[4]) + 2*margin,
@@ -1642,15 +1649,15 @@ function main() {
       const lo = p => p[ax] < mid, hi = p => p[ax] >= mid;
       const L = [];
       const push = (p, t, dx, dy, cls) => { if (p) L.push({ p, t, d: [dx, dy], cls: cls || '' }); };
-      push(figCentroid('water'), 'water body', 25, -86);
-      push(figCentroid('concrete', lo), 'concrete plug', -40, -96, 'sm');
-      push(figCentroid('concrete', hi), 'concrete plug', 70, -120, 'sm');
-      push(figCentroid('air', lo), 'air-filled drift', -108, -58, 'sm');
-      push(figCentroid('air', hi), 'air-filled drift', 46, -146, 'sm');
+      push(figCentroid('water'), 'water body', 10, -74);
+      push(figCentroid('concrete', lo), 'concrete plug', -54, -66, 'sm');
+      push(figCentroid('concrete', hi), 'concrete plug', 62, -78, 'sm');
+      push(figCentroid('air', lo), 'air-filled drift', -74, -34, 'sm');
+      push(figCentroid('air', hi), 'air-filled drift', 78, -40, 'sm');
       const rb = figSlab ? figSlab.getBounds() : (objs.rock && objs.rock.actor.getBounds());
       if (rb) push([rb[0] + (rb[1]-rb[0])*0.22, (rb[2]+rb[3])/2, rb[4]], 'rock (gneiss)', -34, 66);
-      if (flowMeta && flowMeta.inlet)  push(flowMeta.inlet,  'inlet · invert', -76, 62, 'port');
-      if (flowMeta && flowMeta.outlet) push(flowMeta.outlet, 'outlet · crown', 4, -66, 'port');
+      if (flowMeta && flowMeta.inlet)  push(flowMeta.inlet,  'inlet · invert', -60, 54, 'port');
+      if (flowMeta && flowMeta.outlet) push(flowMeta.outlet, 'outlet · crown', 40, -54, 'port');
       figLabels = L;
       const box = document.getElementById('figLab');
       [...box.querySelectorAll('b')].forEach(b => b.remove());
@@ -2370,7 +2377,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-23c · FIG 2: rock slab, bare chrome, back button');
+console.log('%c● GEOBATTERY build 2026-07-23d · FIG 2: slab contains the air ends, camera un-mirrored');
 main();
 </script>
 
