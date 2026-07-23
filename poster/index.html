@@ -376,27 +376,44 @@
     </div>
   </div>
 
-  <!-- ══════════ FIG 4b · floor vs lift ══════════ -->
+  <!-- ══════════ FIG 4b · floor and lift ══════════ -->
   <div class="modal wide" id="m-grade" role="dialog" aria-modal="true" hidden>
     <div class="mh"><h2><span class="k">04b · grade</span>The ground sets the floor, the opening sets the lift</h2><button class="x" data-close aria-label="close">✕</button></div>
     <div class="mb">
-      <p class="lead">Quantity and grade are different questions. Retention says how much heat comes back; the
-        <b>in-situ rock temperature T₀</b> says how warm it is when it does. Site the store in warmer ground and the
-        whole curve lifts — but the lift itself, θ, never depends on T₀.</p>
-      <div class="eq">T<sub>water</sub>(end of storage) = T₀ + (T<sub>hot</sub> − T₀)·θ &nbsp;&nbsp;<em>θ = θ(Fo, κ, χ) — never θ(T₀)</em></div>
-      <div class="card2">
-        <h3>Delivered water temperature after ten cycles</h3>
-        <p class="sc">Drag T₀. Dashed = undisturbed rock (no storage at all); the green band is what a 30&nbsp;°C
-          heating circuit can use directly. Dots are the five full-3-D decades.</p>
-        <svg class="chart" id="c-grade" viewBox="0 0 520 250"></svg>
+      <p class="lead">Quantity and grade are different questions, and they are <b>exactly orthogonal</b>: retention
+        does not depend on the in-situ temperature at all — change T₀ by 30&nbsp;K and it moves by 2×10⁻¹⁴ — while the
+        delivered temperature depends on nothing else. The hinge is θ, and θ <b>is</b> the cumulative retention of the
+        panel next door, identical to nine decimals.</p>
+      <div class="eq">T<sub>water</sub> = T₀ + (T<sub>hot</sub> − T₀)·θ &nbsp;&nbsp;<em>θ = θ(Fo, κ, χ) — never θ(T₀)</em></div>
+      <p class="capt" style="margin:2px 3px 9px">With the charge fixed at 80&nbsp;°C, the <b>lift</b> (T<sub>hot</sub>−T₀)·θ
+        <b>shrinks</b> as you site the store warmer. The picture turns green while the very thing that made it green
+        thins away — that is the shaded wedge, and it is the entire product of building the store.</p>
+      <div class="howto">
+        <span>drag anywhere on the plot to move the ground temperature</span>
+        <span>drag the green tab to change the circuit you must feed</span>
       </div>
-      <div class="row2"><label>In-situ rock temperature&nbsp; T₀</label><span class="v" id="g-t0">10 °C</span></div>
-      <input type="range" class="heat" id="g-t0in" min="10" max="45" step="0.5" value="10" aria-label="in-situ rock temperature">
-      <div class="ticks"><span>10 °C · Freiberg</span><span>25 °C</span><span>45 °C · deep</span></div>
+      <div class="figwrap" id="g-fig">
+        <svg id="c-grade" viewBox="0 0 560 344" aria-label="delivered water temperature against in-situ rock temperature"></svg>
+        <div class="ftip" id="g-tip"></div>
+      </div>
+      <div class="chips" id="g-cf"></div>
+      <div class="stats">
+        <div class="st"><b id="g-t0">—</b><span>in-situ rock temperature T₀</span></div>
+        <div class="st"><b id="g-th">—</b><span>lift θ — the same number as retention</span></div>
+        <div class="st"><b id="g-tw">—</b><span>water at end of storage, cycle 10</span></div>
+        <div class="st bad" id="g-liftbox"><b id="g-lift">—</b><span>what the store actually added</span></div>
+        <div class="st bad" id="g-usebox"><b id="g-use">—</b><span>against your circuit</span></div>
+        <div class="st"><b id="g-cross">—</b><span>ground needed to feed that circuit</span></div>
+      </div>
+      <p class="mut" id="g-say"></p>
       <table class="tb" id="g-tab"></table>
-      <p class="mut">Curves are the 1-D radial screening theory (cycle 10) — the same solver the nomogram is built
-        from. The dots are the independent full-3-D decades; the array cell sits above its theory curve because the
-        closed unit cell removes the far field entirely, which the radial model only approximates through the pitch.</p>
+      <p class="mut">Lines are the 1-D radial screening theory at cycle 10 — the same solver as §04, so θ is read from
+        the same field. Dots are the five full-3-D decades: <b>filled = bulk water</b> at end of storage,
+        <b>hollow = the outlet actually delivered</b>, joined by a hairline. The gap between them is the honest one:
+        the as-built drift stores water at 23.3&nbsp;°C but delivers a mean outlet of <b>13.5&nbsp;°C</b>, and the
+        array cell stores 57.9&nbsp;°C but delivers <b>24.8&nbsp;°C</b>. The 3-D dots sit above their theory lines
+        because the closed unit cell removes the far field entirely, which the radial model only approximates through
+        the pitch. The two 30&nbsp;°C rows include native geothermal heat mined by the 10&nbsp;°C discharge.</p>
     </div>
   </div>
 
@@ -681,7 +698,7 @@ const HOT=[
  {l:7.13, t:58.41,w:37.33,h:7.49,  k:'FIG 3A', lab:'Play charge → storage in 3-D',      href:'../?fig=plume'},
  {l:7.13, t:68.55,w:37.33,h:9.34,  k:'FIG 3B', lab:'Watch the charge flow in 3-D',      href:'../?fig=flow'},
  {l:51.31,t:18.88,w:22.12,h:12.07, k:'FIG 4a', lab:'Put your own mine on the plane',  m:'screening'},
- {l:75.03,t:18.88,w:22.06,h:11.52, k:'FIG 4b', lab:'Move the ground temperature',       m:'grade'},
+ {l:75.03,t:18.88,w:22.06,h:11.52, k:'FIG 4b', lab:'Floor, lift, and what it is worth',       m:'grade'},
  {l:51.31,t:41.09,w:22.12,h:12.07, k:'FIG 5a', lab:'Scrub the ten years',               m:'decade'},
  {l:75.03,t:41.09,w:22.06,h:12.07, k:'FIG 5b', lab:'Scrub the ten years',               m:'decade'},
  {l:50.85,t:54.95,w:46.80,h:7.70,  k:'TABLE',  lab:'Compare the five scenarios',        m:'decade'},
@@ -729,6 +746,7 @@ function openModal(id,arg){
   // canvases can only size themselves once their modal is actually laid out
   if(id==='solar') requestAnimationFrame(()=>{ if(window.figSolarRedraw) window.figSolarRedraw(); });
   if(id==='screening') requestAnimationFrame(()=>{ if(window.fig4Redraw) window.fig4Redraw(); });
+  if(id==='grade') requestAnimationFrame(()=>{ if(window.fig4bRedraw) window.fig4bRedraw(); });
 }
 function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
 scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
@@ -1065,31 +1083,38 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
    Panel 2 adds what the printed criterion cannot show: the cycle staircase,
    where the array changes the SHAPE of the climb, not its height.
    ═════════════════════════════════════════════════════════════════════════ */
-(function(){
-  const _A=unpack16(RFA.b64), _B=unpack16(RFB.b64), NK=RFA.kap.length,
-        NR=RFB.rrl.length, NC=RFB.nc;
-  const li=(a,x)=>{ let i=0; const n=a.length;
-    if(x<=a[0]) return [0,0]; if(x>=a[n-1]) return [n-2,1];
-    while(i<n-2 && a[i+1]<x) i++;
-    return [i,(Math.log(x)-Math.log(a[i]))/(Math.log(a[i+1])-Math.log(a[i]))]; };
-  const rf1=(fo,kap)=>{ const[i,u]=li(RFA.fo,fo),[j,v]=li(RFA.kap,kap), g=(p,q)=>_A[p*NK+q]/RFA.s;
-    return (1-u)*(1-v)*g(i,j)+u*(1-v)*g(i+1,j)+(1-u)*v*g(i,j+1)+u*v*g(i+1,j+1); };
-  const thB=(fo,rr,c)=>{ const[i,u]=li(RFB.fo,fo),[m,w]=li(RFB.rrl,rr), k=c-1,
-    g=(p,q)=>_B[(p*NR+q)*NC+k]/RFB.s;
-    return (1-u)*(1-w)*g(i,m)+u*(1-w)*g(i+1,m)+(1-u)*w*g(i,m+1)+u*w*g(i+1,m+1); };
-  const margB=(fo,rr,c)=>c<=1?thB(fo,rr,1):thB(fo,rr,c)/Math.max(1e-9,1-thB(fo,rr,c-1));
-  // Fo at which first-cycle retention equals a target, for this rock
-  const foStar=(t,kap)=>{ let lo=RFA.fo[0], hi=RFA.fo[RFA.fo.length-1];
-    if(rf1(lo,kap)<t) return lo; if(rf1(hi,kap)>t) return hi;
-    for(let n=0;n<60;n++){ const m=Math.sqrt(lo*hi); if(rf1(m,kap)>t) lo=m; else hi=m; }
-    return Math.sqrt(lo*hi); };
+/* shared retention lookup — FIG 4a and FIG 4b are the same field.
+   The dimensionless water temperature theta = (Tw-T0)/(Thot-T0) is IDENTICAL to
+   cumulative retention RF_abs (verified to 9 decimals against solve_cycle), so the
+   grade panel reads the very same table as the criterion panel. */
+const _A=unpack16(RFA.b64), _B=unpack16(RFB.b64), NK=RFA.kap.length,
+      NR=RFB.rrl.length, NC=RFB.nc;
+const li=(a,x)=>{ let i=0; const n=a.length;
+  if(x<=a[0]) return [0,0]; if(x>=a[n-1]) return [n-2,1];
+  while(i<n-2 && a[i+1]<x) i++;
+  return [i,(Math.log(x)-Math.log(a[i]))/(Math.log(a[i+1])-Math.log(a[i]))]; };
+const rf1=(fo,kap)=>{ const[i,u]=li(RFA.fo,fo),[j,v]=li(RFA.kap,kap), g=(p,q)=>_A[p*NK+q]/RFA.s;
+  return (1-u)*(1-v)*g(i,j)+u*(1-v)*g(i+1,j)+(1-u)*v*g(i,j+1)+u*v*g(i+1,j+1); };
+const thB=(fo,rr,c)=>{ const[i,u]=li(RFB.fo,fo),[m,w]=li(RFB.rrl,rr), k=c-1,
+  g=(p,q)=>_B[(p*NR+q)*NC+k]/RFB.s;
+  return (1-u)*(1-w)*g(i,m)+u*(1-w)*g(i+1,m)+(1-u)*w*g(i,m+1)+u*w*g(i+1,m+1); };
+const margB=(fo,rr,c)=>c<=1?thB(fo,rr,1):thB(fo,rr,c)/Math.max(1e-9,1-thB(fo,rr,c-1));
+// Fo at which first-cycle retention equals a target, for this rock
+const foStar=(t,kap)=>{ let lo=RFA.fo[0], hi=RFA.fo[RFA.fo.length-1];
+  if(rf1(lo,kap)<t) return lo; if(rf1(hi,kap)>t) return hi;
+  for(let n=0;n<60;n++){ const m=Math.sqrt(lo*hi); if(rf1(m,kap)>t) lo=m; else hi=m; }
+  return Math.sqrt(lo*hi); };
 
+
+const DAYS=86400;
+const FoOf=(a,t,k)=>ALPHA0*k*t*DAYS*a*a/4;
+const MINE={a:AV0,t:TSTORE0,k:5.0,rrl:54,tgt:0.5};
+
+(function(){
   const ROCK=[{n:'shale',k:2.50,c:'#84BCDB'},{n:'basalt',k:2.83,c:'#3989C1'},
               {n:'granite / gneiss',k:5.00,c:'#1C6BB0',host:1},{n:'rock salt',k:9.17,c:'#08326E'}];
   const ST={a:AV0, t:TSTORE0, rock:2, tgt:0.5, rrl:54, cyc:10};
-  const DAYS=86400;
   const kap=()=>ROCK[ST.rock].k;
-  const FoOf=(a,t,k)=>ALPHA0*k*t*DAYS*a*a/4;
   const LcOf=a=>2/a;
 
   /* ---- plane geometry ---- */
@@ -1289,6 +1314,8 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
        :`Yours is <b>${fmt(ST.a/aMax,2)}×</b> too exposed — and note the shape of the boundary: `+
         `a<sub>max</sub> ∝ t<sub>store</sub><sup>−1/2</sup>, so halving the seal buys only a factor <b>1.41</b> in admissible surface. `+
         `That is why the escape is geometry, not scheduling.`);
+    MINE.a=ST.a; MINE.t=ST.t; MINE.k=k; MINE.rrl=ST.rrl; MINE.tgt=ST.tgt;
+    if(window.fig4bRedraw) window.fig4bRedraw();
     draw(); stair();
   }
   window.fig4Redraw=()=>{ draw(); stair(); };
@@ -1296,43 +1323,143 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
-   FIG 4b — floor vs lift
+   FIG 4b — floor and lift.
+   T_water = T0 + (T_hot - T0)·theta, and theta is the SAME cumulative
+   retention the criterion panel plots (identical to 9 decimals). So the two
+   panels are one instrument: 4a decides how much comes back, 4b decides how
+   warm it is, and theta is the hinge.
+   The catch the printed panel cannot show: with T_hot fixed at 80 °C the lift
+   (T_hot - T0)·theta SHRINKS as you site the store warmer. The picture turns
+   green while the thing that made it green thins away.
    ═════════════════════════════════════════════════════════════════════════ */
 (function(){
-  const s=$('c-grade'), W=520,H=250,L=42,R=104,Tp=14,B=40;
-  const x0=10,x1=45,y0=8,y1=84;
-  const X=t=>L+(W-L-R)*(t-x0)/(x1-x0), Y=t=>Tp+(H-Tp-B)*(1-(t-y0)/(y1-y0));
-  const tab=$('g-tab');
-  function draw(T0){
-    clear(s);
-    s.appendChild(E('rect',{x:L,y:Y(y1),width:W-L-R,height:Y(30)-Y(y1),fill:'#1BAF7A','fill-opacity':'.06'}));
-    s.appendChild(T(L+5,Y(y1)+13,'directly usable in a 30 °C circuit',{fill:'#565D62','font-size':'9.5'}));
-    [10,25,40,55,70].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
-      s.appendChild(T(L-6,Y(g)+4,g,{'text-anchor':'end'})); });
-    [10,20,30,40].forEach(v=>{ s.appendChild(T(X(v),H-B+16,v,{'text-anchor':'middle'})); });
-    s.appendChild(E('line',{x1:X(x0),y1:Y(x0),x2:X(x1),y2:Y(x1),stroke:'#8A8F86','stroke-width':'1.4','stroke-dasharray':'5 4'}));
-    s.appendChild(T(X(41),Y(41)+13,'undisturbed rock',{fill:'#8A8F86','font-size':'9'}));
-    CONFIGS.forEach(c=>{
-      const p=[[x0,x0+(THOT-x0)*c.th],[x1,x1+(THOT-x1)*c.th]];
-      s.appendChild(E('path',{d:'M'+X(p[0][0])+' '+Y(p[0][1])+'L'+X(p[1][0])+' '+Y(p[1][1]),fill:'none',stroke:c.c,'stroke-width':'2.3'}));
-      s.appendChild(T(X(x1)+7,Y(p[1][1])+4,c.s,{fill:c.c,'font-size':'10','font-weight':'600'}));
+  const THOT=80, X0=8, X1=46, Y0=5, Y1=85;
+  const W=560,H=344,L=52,R=104,MT=20,MB=80, PW=W-L-R, PH=H-MT-MB, YB=MT+PH;
+  const px=t=>L+(t-X0)/(X1-X0)*PW, py=v=>YB-(v-Y0)/(Y1-Y0)*PH;
+  const xt=x=>X0+(x-L)/PW*(X1-X0), yv=y=>Y0+(YB-y)/PH*(Y1-Y0);
+  const GS={T0:10, thr:30, sel:0};
+  /* the four configurations of the printed panel, theta from theory_dimensionless */
+  const CF=[{n:'as-built drift',s:'as-built',th:0.11228,c:'#2A78D6'},
+            {n:'radius ×2',s:'radius ×2',th:0.39263,c:'#008300'},
+            {n:'array · 10 m pitch',s:'array 10 m',th:0.49212,c:'#E34948'},
+            {n:'radius ×2 + array',s:'×2 + array',th:0.91579,c:'#4A3AA7'}];
+  /* the five full-3-D decades: bulk water at end of storage AND the outlet actually delivered */
+  const AN=[{n:'as-built drift',T0:10,tw:23.31,to:13.54,c:'#2A78D6'},
+            {n:'2× radius',T0:10,tw:33.86,to:19.31,c:'#008300'},
+            {n:'as-built · 30 °C rock',T0:30,tw:38.24,to:18.84,c:'#1BAF7A'},
+            {n:'2× radius · 30 °C rock',T0:30,tw:45.62,to:25.75,c:'#4A3AA7'},
+            {n:'array cell',T0:10,tw:57.89,to:24.83,c:'#E34948'}];
+  const Tw=(T0,th)=>T0+(THOT-T0)*th;
+  const cross=(thr,th)=>th>=0.999?-1:(thr-THOT*th)/(1-th);   // the ground you need for a circuit
+  const mineTh=()=>thB(FoOf(MINE.a,MINE.t,5.0),MINE.rrl,10);  // panel 2's host-rock decade
+
+  const svg=$('c-grade'), tip=$('g-tip'), wrap=$('g-fig');
+  let drag=null;
+
+  function draw(){
+    clear(svg);
+    const g=e=>{ svg.appendChild(e); return e; };
+    const mth=mineTh();
+    /* the usable band */
+    g(E('rect',{x:L,y:py(Y1),width:PW,height:py(GS.thr)-py(Y1),fill:'#1BAF7A','fill-opacity':'.07'}));
+    g(E('line',{x1:L,x2:L+PW,y1:py(GS.thr),y2:py(GS.thr),stroke:'#0A6E38','stroke-width':'1.6','stroke-dasharray':'6 4'}));
+    [10,25,40,55,70,85].forEach(v=>{ if(v<Y0||v>Y1)return;
+      g(E('line',{class:'grid',x1:L,x2:L+PW,y1:py(v),y2:py(v)}));
+      g(T(L-6,py(v)+4,v,{'text-anchor':'end','font-size':'10'})); });
+    [10,20,30,40].forEach(v=>g(T(px(v),YB+16,v,{'text-anchor':'middle','font-size':'10'})));
+    /* do nothing: the undisturbed rock */
+    g(E('line',{x1:px(X0),y1:py(X0),x2:px(X1),y2:py(X1),stroke:'#8A8F86','stroke-width':'1.6','stroke-dasharray':'5 4'}));
+    g(T(px(X1)+5,py(X1)+4,'no store',{fill:'#8A8F86','font-size':'9.5'}));
+    /* the product of the store = the gap to that line, shaded for the selected config */
+    const sel=CF[GS.sel];
+    g(E('path',{d:`M${px(X0)} ${py(X0)}L${px(X1)} ${py(X1)}L${px(X1)} ${py(Tw(X1,sel.th))}L${px(X0)} ${py(Tw(X0,sel.th))}Z`,
+      fill:sel.c,'fill-opacity':'.13'}));
+    CF.forEach((c,i)=>{
+      g(E('line',{x1:px(X0),y1:py(Tw(X0,c.th)),x2:px(X1),y2:py(Tw(X1,c.th)),
+        stroke:c.c,'stroke-width':i===GS.sel?3:1.6,'stroke-opacity':i===GS.sel?1:.5}));
+      g(T(px(X1)+5,py(Tw(X1,c.th))+4,c.s,{fill:c.c,'font-size':'9.5','font-weight':i===GS.sel?'700':'400'}));
     });
-    SCN.forEach(sc=>{ s.appendChild(E('circle',{cx:X(sc.T0),cy:Y(sc.Tw[9]),r:4,fill:'#fff',stroke:sc.c,'stroke-width':'2.4'})); });
-    s.appendChild(E('line',{x1:X(T0),x2:X(T0),y1:Tp,y2:Y(y0),stroke:'#C97A10','stroke-width':'1.2','stroke-dasharray':'3 3'}));
-    CONFIGS.forEach(c=>{ const tw=T0+(THOT-T0)*c.th;
-      s.appendChild(E('circle',{cx:X(T0),cy:Y(tw),r:4.6,fill:c.c,stroke:'#fff','stroke-width':'1.6'})); });
-    s.appendChild(T((L+W-R)/2,H-8,'in-situ rock temperature  T₀  [°C]',{'text-anchor':'middle','font-size':'9.5'}));
-    s.appendChild(T(-(H/2)+8,11,'water at end of storage, cycle 10  [°C]',{transform:'rotate(-90)','text-anchor':'middle'}));
+    /* your mine, straight from the criterion panel */
+    g(E('line',{x1:px(X0),y1:py(Tw(X0,mth)),x2:px(X1),y2:py(Tw(X1,mth)),
+      stroke:'#C97A10','stroke-width':'2.4','stroke-dasharray':'7 3'}));
+    g(T(px(X1)+5,py(Tw(X1,mth))+4,'your mine',{fill:'#C97A10','font-size':'9.5','font-weight':'700'}));
+    /* the measured decades: filled = bulk water, hollow = the outlet actually delivered */
+    AN.forEach(a=>{ g(E('line',{x1:px(a.T0),y1:py(a.tw),x2:px(a.T0),y2:py(a.to),stroke:a.c,'stroke-width':'1','stroke-opacity':'.55'}));
+      g(E('circle',{cx:px(a.T0),cy:py(a.tw),r:4,fill:a.c,stroke:'#fff','stroke-width':'1.4'}));
+      g(E('circle',{cx:px(a.T0),cy:py(a.to),r:4,fill:'#fff',stroke:a.c,'stroke-width':'2'})); });
+    /* the ground you have chosen */
+    g(E('line',{x1:px(GS.T0),x2:px(GS.T0),y1:MT,y2:YB,stroke:'#0C1015','stroke-width':'1.4'}));
+    g(E('rect',{x:px(GS.T0)-21,y:YB+22,width:42,height:17,rx:5,fill:'#0C1015'}));
+    g(T(px(GS.T0),YB+34,fmt(GS.T0,1)+'°C',{'text-anchor':'middle',fill:'#fff','font-size':'10','font-weight':'700'}));
+    CF.forEach((c,i)=>g(E('circle',{cx:px(GS.T0),cy:py(Tw(GS.T0,c.th)),r:i===GS.sel?5:3.4,
+      fill:c.c,stroke:'#fff','stroke-width':'1.6'})));
+    g(E('circle',{cx:px(GS.T0),cy:py(Tw(GS.T0,mth)),r:4.4,fill:'#C97A10',stroke:'#fff','stroke-width':'1.6'}));
+    /* the lift, drawn as the thing it is: the distance from doing nothing */
+    const ly=py(Tw(GS.T0,sel.th)), l0=py(GS.T0);
+    g(E('line',{x1:px(GS.T0)+9,x2:px(GS.T0)+9,y1:ly,y2:l0,stroke:sel.c,'stroke-width':'2'}));
+    [ly,l0].forEach(y=>g(E('line',{x1:px(GS.T0)+5,x2:px(GS.T0)+13,y1:y,y2:y,stroke:sel.c,'stroke-width':'2'})));
+    g(T(px(GS.T0)+16,(ly+l0)/2+4,'+'+fmt((THOT-GS.T0)*sel.th,1)+' K',{fill:sel.c,'font-size':'9.5','font-weight':'700'}));
+    /* the circuit tab */
+    g(E('rect',{x:L+PW+2,y:py(GS.thr)-9,width:34,height:18,rx:5,fill:'#0A6E38'}));
+    g(T(L+PW+19,py(GS.thr)+4,fmt(GS.thr,0)+'°C',{'text-anchor':'middle',fill:'#fff','font-size':'10','font-weight':'700'}));
+    g(T(-(MT+YB)/2,L+PW+62,'circuit you must feed',{transform:'rotate(-90)','text-anchor':'middle','font-size':'8.5',fill:'#0A6E38'}));
+    g(T(L+PW/2,H-10,'in-situ rock temperature  T₀  [°C]   — drag anywhere on the plot',{'text-anchor':'middle','font-size':'10'}));
+    g(T(-(MT+YB)/2,13,'water at end of storage, cycle 10  [°C]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'10'}));
   }
+
+  const toS=e=>{ const r=svg.getBoundingClientRect(); return {x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)}; };
+  svg.addEventListener('pointerdown',e=>{ const p=toS(e);
+    if(p.x>L+PW && Math.abs(p.y-py(GS.thr))<16) drag='thr';
+    else if(p.x>=L&&p.x<=L+PW&&p.y>=MT&&p.y<=YB+40){ drag='T0'; GS.T0=Math.max(X0,Math.min(X1,xt(p.x))); upd(); }
+    else return;
+    svg.setPointerCapture(e.pointerId); e.preventDefault(); });
+  svg.addEventListener('pointermove',e=>{ const p=toS(e);
+    if(drag==='thr'){ GS.thr=Math.max(Y0+5,Math.min(70,yv(p.y))); upd(); return; }
+    if(drag==='T0'){ GS.T0=Math.max(X0,Math.min(X1,xt(p.x))); upd(); return; }
+    if(p.x<L||p.x>L+PW||p.y<MT||p.y>YB){ tip.style.opacity='0'; return; }
+    const t0=xt(p.x), r=wrap.getBoundingClientRect(), sel=CF[GS.sel];
+    tip.innerHTML=`ground ${fmt(t0,1)} °C\n${sel.n}\nwater ${fmt(Tw(t0,sel.th),1)} °C   lift +${fmt((THOT-t0)*sel.th,1)} K`;
+    tip.style.left=Math.max(70,Math.min(r.width-70,e.clientX-r.left))+'px';
+    tip.style.top=(e.clientY-r.top-8)+'px'; tip.style.opacity='1'; });
+  const end=()=>{ drag=null; };
+  svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',end);
+  svg.addEventListener('pointerleave',()=>{ if(!drag) tip.style.opacity='0'; });
+
+  const box=$('g-cf');
+  CF.forEach((c,i)=>{ const b=document.createElement('button');
+    b.className='chip'+(i===0?' on':''); b.innerHTML=`<span class="sw" style="background:${c.c}"></span>${c.n}`;
+    b.onclick=()=>{ GS.sel=i; [...box.children].forEach((x,j)=>x.classList.toggle('on',j===i)); upd(); };
+    box.appendChild(b); });
+
   function upd(){
-    const T0=+$('g-t0in').value; $('g-t0').textContent=fmt(T0,1)+' °C'; draw(T0);
-    let h='<thead><tr><th>Configuration</th><th>lift θ</th><th>water at end of store</th><th>usable ≥30 °C</th></tr></thead><tbody>';
-    CONFIGS.forEach(c=>{ const tw=T0+(THOT-T0)*c.th;
-      h+='<tr><td><span class="sw" style="background:'+c.c+'"></span>'+c.n+'</td><td>'+fmt(c.th,3)+'</td><td><b>'+
-         fmt(tw,1)+' °C</b></td><td style="color:'+(tw>=30?'#0A6E38':'#B4501E')+'">'+(tw>=30?'✓ yes':'✕ no')+'</td></tr>'; });
-    h+='</tbody>'; tab.innerHTML=h;
+    const sel=CF[GS.sel], mth=mineTh(), tw=Tw(GS.T0,sel.th), lift=(THOT-GS.T0)*sel.th;
+    $('g-t0').textContent=fmt(GS.T0,1)+' °C';
+    $('g-th').textContent=fmt(sel.th,3);
+    $('g-tw').textContent=fmt(tw,1)+' °C';
+    $('g-lift').textContent='+'+fmt(lift,1)+' K';
+    $('g-liftbox').className='st '+(lift>=10?'hi':lift>=4?'':'bad');
+    const c=cross(GS.thr,sel.th);
+    $('g-cross').textContent=c<0?'any ground':(c>X1?'out of range':fmt(c,1)+' °C');
+    $('g-usebox').className='st '+(tw>=GS.thr?'hi':'bad');
+    $('g-use').textContent=tw>=GS.thr?'✓ feeds it':'✕ too cold';
+    let h='<thead><tr><th>Configuration</th><th>θ</th><th>water</th><th>lift</th><th>ground needed</th></tr></thead><tbody>';
+    CF.concat([{n:'your mine (from 4a)',th:mth,c:'#C97A10'}]).forEach(x=>{
+      const w=Tw(GS.T0,x.th), cc=cross(GS.thr,x.th);
+      h+=`<tr><td><span class="sw" style="background:${x.c}"></span>${x.n}</td><td>${fmt(x.th,3)}</td>`+
+         `<td><b>${fmt(w,1)} °C</b></td><td>+${fmt((THOT-GS.T0)*x.th,1)} K</td>`+
+         `<td style="color:${w>=GS.thr?'#0A6E38':'#B4501E'}">${cc<0?'any':(cc>X1?'unreachable':fmt(cc,1)+' °C')}</td></tr>`; });
+    $('g-tab').innerHTML=h+'</tbody>';
+    const l10=(THOT-10)*sel.th, l40=(THOT-40)*sel.th;
+    $('g-say').innerHTML=`Siting warmer raises the floor but <b>shrinks the lift</b>: with the charge fixed at 80&nbsp;°C, `+
+      `${sel.n} adds <b>${fmt(l10,1)} K</b> in 10&nbsp;°C ground and only <b>${fmt(l40,1)} K</b> in 40&nbsp;°C ground — `+
+      `the water gets warmer, but less and less of that warmth is yours. `+
+      (c<0?`It clears a ${fmt(GS.thr,0)}&nbsp;°C circuit from any ground temperature.`
+          :c>X1?`It cannot reach a ${fmt(GS.thr,0)}&nbsp;°C circuit at any plausible siting.`
+               :`To feed a ${fmt(GS.thr,0)}&nbsp;°C circuit it needs ground warmer than <b>${fmt(c,1)}&nbsp;°C</b> — Reiche Zeche is 10&nbsp;°C.`);
+    draw();
   }
-  $('g-t0in').addEventListener('input',upd); upd();
+  window.fig4bRedraw=()=>upd();
+  upd();
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
