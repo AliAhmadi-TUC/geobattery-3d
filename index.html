@@ -1664,8 +1664,10 @@ function main() {
       // offset along U, so every leader is the SAME diagonal whatever the camera. `along`
       // slides a label up the drift to stagger the rows so they cannot collide.
       const aXv = [0,0,0]; aXv[ax] = 1;
-      const perp = [0,0,0]; perp[(ax+1)%3] = 1;                   // horizontal, across the drift
-      const U = [perp[0], perp[1], 0.95];                          // across AND up → the diagonal
+      // (ax+1)%3 picks Z for a y-running drift, which collapsed U to straight up.
+      // Take the horizontal axis that is NOT the drift axis, and offset purely along it.
+      const perp = [0,0,0]; perp[ax === 0 ? 1 : 0] = 1;            // x for a y-drift, y for an x-drift
+      const U = [perp[0], perp[1], 0];                             // parallel in x, no vertical lift
       const un = Math.hypot(U[0],U[1],U[2]); U[0]/=un; U[1]/=un; U[2]/=un;
       const D = len * 0.085;                                       // one unit of leader length
       const L = [];
@@ -2408,7 +2410,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-23j · FIG 2: leaders are 3-D parallel diagonals, like the tour');
+console.log('%c● GEOBATTERY build 2026-07-23k · FIG 2: leaders parallel in x, not z');
 main();
 </script>
 
