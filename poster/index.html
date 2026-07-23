@@ -1605,9 +1605,10 @@ const DIS={tS:1000,TS:500,ES:1,n:186,s:[
           `<b>${fmt(s.to[9],1)}&nbsp;°C out of ${s.T0}&nbsp;°C rock</b>: colder than the ground it was cut into.`
         : `No gold here — in ${s.T0}&nbsp;°C rock every kilowatt-hour that returns is one you put in. The pale bulk of `+
           `each stratum is what stayed in the rock: <b>${(100*(1-rep10)).toFixed(0)}%</b> of cycle 10's injection never came back.`;
+    draw();                      // the prose and the drawing must never disagree — redraw from the same state
   }
-  window.fig5Redraw=()=>{ draw(); upd(); };
-  draw(); upd();
+  window.fig5Redraw=()=>upd();
+  upd();
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
