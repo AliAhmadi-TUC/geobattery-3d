@@ -1963,7 +1963,7 @@ const tent=(x,w,hgt,col,op)=>({type:'poly',
     'Integrate the strong form by parts and a boundary term appears on its own. Every boundary condition in a finite-element method is a statement about <em>that</em> term.',
     'A no-flux wall makes the integrand zero, so the term vanishes from the equation. A <b>natural</b> condition is satisfied by writing nothing at all — the wall is sealed because you left it alone.',
     'Impose it as a value instead and you have not sealed it, you have replaced it. The wall now drives a flux set purely by the material stack — and refining the mesh will never reduce it, because the error is in the model, not the discretisation.',
-    'Worse at a corner. A node on two boundary patches belongs to both. Two strong conditions arrive at one unknown, and the system is over-determined — the flux there is whatever the solver''s tie-break happens to be.',
+    'Worse at a corner. A node on two boundary patches belongs to both. Two strong conditions arrive at one unknown, and the system is over-determined — the flux there is whatever the solver’s tie-break happens to be.',
     'So impose it <em>weakly</em>: add the condition to the bilinear form with a penalty rather than deleting a row. The corner keeps one equation, both conditions are satisfied in the weak sense, and the leak is <span class="num">exactly zero</span> at every mesh.'];
   B_ST=story(5,()=>{ if(B_MX) B_MX.draw(); },[520,560,640,700,620]);
   B_MX=mini3d($('n3d-b'),()=>{
