@@ -289,7 +289,9 @@
       <div class="card2">
         <h3>The trade-off you cannot dodge</h3>
         <p class="sc">Delivered = captured × RF(Fo). Wait for the demand and the heat is gone; discharge early and
-          there is no demand. The curve sweeps every seal length at the opening you have chosen.</p>
+          there is no demand. The curve sweeps every seal length at the opening you have chosen. The
+          <b style="color:#C97A10">amber</b> marker is the seal <em>your</em> two windows currently make; the
+          <b style="color:#565D62">grey</b> one is the 123-day seal this study actually ran.</p>
         <svg class="chart" id="c-tradeoff" viewBox="0 0 520 196"></svg>
       </div>
 
@@ -961,10 +963,15 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
       s2.appendChild(T(W2-R2,yg(0.5)-5,'viable · 50%',{'text-anchor':'end',fill:'#0A6E38','font-size':'9.5'})); }
     s2.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+xg(p[0]).toFixed(1)+' '+yg(p[1]).toFixed(1)).join(' '),
       fill:'none',stroke:'#0A6E38','stroke-width':'2.4'}));
-    const gp=sealDays(), rf=rfFo(foOf(ST.lc,gp));
+    // fixed reference: the duty cycle the poster itself ran (123-day seal)
+    const rf0=rfFo(foOf(ST.lc,TSTORE0)), cx0=Math.max(L2+52,Math.min(W2-R2-52,xg(TSTORE0)));
+    s2.appendChild(E('circle',{cx:xg(TSTORE0),cy:yg(rf0),r:3.5,fill:'#565D62'}));
+    s2.appendChild(T(cx0,yg(rf0)+15,'poster duty cycle · 123 d',{'text-anchor':'middle',fill:'#565D62','font-size':'9'}));
+    // moving marker: the seal the READER has just set by dragging the two windows
+    const gp=sealDays(), rf=rfFo(foOf(ST.lc,gp)), cx=Math.max(L2+46,Math.min(W2-R2-46,xg(gp)));
     s2.appendChild(E('line',{x1:xg(gp),x2:xg(gp),y1:T2,y2:yg(0),stroke:'#C97A10','stroke-width':'1.2','stroke-dasharray':'3 3'}));
     s2.appendChild(E('circle',{cx:xg(gp),cy:yg(rf),r:5,fill:'#fff',stroke:'#C97A10','stroke-width':'3'}));
-    s2.appendChild(T(xg(gp),yg(rf)-11,'your seal',{'text-anchor':'middle',fill:'#C97A10','font-size':'9','font-weight':'700'}));
+    s2.appendChild(T(cx,yg(rf)-11,'your windows · '+gp+' d',{'text-anchor':'middle',fill:'#C97A10','font-size':'9','font-weight':'700'}));
     s2.appendChild(T(-(H2/2)+8,11,'retained %',{transform:'rotate(-90)','text-anchor':'middle'}));
     s2.appendChild(T((L2+W2-R2)/2,H2-1,'length of the seal between charge and discharge  [days]',{'text-anchor':'middle','font-size':'9.5'}));
   }
