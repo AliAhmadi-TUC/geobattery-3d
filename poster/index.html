@@ -376,43 +376,35 @@
     </div>
   </div>
 
-  <!-- ══════════ FIG 4b · what the heat is worth ══════════ -->
+  <!-- ══════════ FIG 4b · the pipe and the bill ══════════ -->
   <div class="modal wide" id="m-grade" role="dialog" aria-modal="true" hidden>
-    <div class="mh"><h2><span class="k">04b · grade</span>What is the heat actually worth?</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mh"><h2><span class="k">04b · grade</span>The pipe and the bill</h2><button class="x" data-close aria-label="close">✕</button></div>
     <div class="mb">
-      <p class="lead">The printed panel gives each scenario <b>one</b> delivered temperature. There is no one
-        temperature. The discharge is a <b>61-day decaying transient</b>, measured 186 times per run, and what you can
-        use depends entirely on where you cut it. Below is the real curve — and the question the poster never asks:
-        <b>how much compressor work does building the store save against not building it?</b></p>
+      <p class="lead">The discharge as a <b>pipe leaving the mine</b>: across is the heat <b>delivered so far</b>, up is
+        the temperature it comes out at — so the pipe's <b>length is quantity</b> and its <b>height is grade</b>, in one
+        object. Beside it runs the <b>free pipe</b>: the undisturbed rock, which was always there and cost nothing.
+        The compressor bill is the <b>area between them</b>, clipped at the building's header — green where your pipe
+        runs warmer than the ground, <b>red where it runs colder</b>.</p>
       <div class="howto">
-        <span>drag the green line — the temperature your building circuit needs</span>
-        <span>hover the curve for any day</span>
+        <span>drag anywhere on the field to set the circuit you must feed</span>
+        <span>tap a scenario</span>
+        <span>hover the pipe for any day</span>
       </div>
+      <p class="mut" id="w-say" style="min-height:34px;margin:0 0 8px"></p>
       <div class="figwrap" id="w-fig">
-        <svg id="c-worth" viewBox="0 0 560 310" aria-label="measured discharge outlet temperature over 61 days"></svg>
+        <svg id="c-worth" viewBox="0 0 560 364" aria-label="the discharge as a pipe, and the compressor bill as area"></svg>
         <div class="ftip" id="w-tip"></div>
       </div>
-      <div class="chips" id="w-sc"></div>
-      <div class="stats">
-        <div class="st"><b id="w-circ">—</b><span>circuit you must feed</span></div>
-        <div class="st bad" id="w-daysbox"><b id="w-days">—</b><span>of 61 days usable as it comes</span></div>
-        <div class="st"><b id="w-edir">—</b><span>of the recovered heat, above that line</span></div>
-        <div class="st"><b id="w-q">—</b><span>recovered over the discharge</span></div>
-        <div class="st"><b id="w-wbase">—</b><span>compressor work with <em>no</em> store</span></div>
-        <div class="st"><b id="w-wstore">—</b><span>compressor work with the store</span></div>
-        <div class="st bad" id="w-savebox"><b id="w-save">—</b><span>work saved per year</span></div>
-        <div class="st bad" id="w-pctbox"><b id="w-pct">—</b><span>of the heat you injected to get it</span></div>
-      </div>
-      <div class="bal" id="w-bar"></div>
-      <p class="mut" id="w-say"></p>
-      <p class="mut">Curves are measured: <b>run_decade_*/yNN_p2_discharge/metrics.csv</b>, 186 steps of outlet
-        temperature and cumulative delivered energy, embedded to 0.001&nbsp;K. The heat pump is the same model
-        <b>screening.json</b> uses — half-Carnot, COP&nbsp;=&nbsp;0.5·T<sub>sink</sub>/(T<sub>sink</sub>−T<sub>source</sub>)
-        in kelvin — integrated step by step against the curve rather than against its mean. The comparison is against
-        an <b>idealised</b> ground-source heat pump drawing the undisturbed rock at T₀ with no approach temperature,
-        which flatters the no-store case by a few kelvin; the sign of the 30&nbsp;°C result survives that. Only these
-        five runs exist — there is no continuous sweep of discharge over geometry, so unlike §04a this panel cannot
-        follow your puck. Pumping and drilling energy are not counted on either side.</p>
+      <p class="mut">Curves are measured — <b>run_decade_&lt;scenario&gt;/yNN_p2_discharge/metrics.csv</b>, 186 steps.
+        The x-axis is the <b>net</b> heat delivered, outflow minus the enthalpy the 10&nbsp;°C injection carries back
+        in; its endpoints equal <b>recovered_kWh</b> in the decade files exactly, so this panel and §05 agree.
+        The heat pump is the model <b>screening.json</b> uses — half-Carnot,
+        COP&nbsp;=&nbsp;0.5·T<sub>sink</sub>/(T<sub>sink</sub>−T<sub>source</sub>) in kelvin — integrated step by step
+        along the curve, which is exactly why the area is the bill: 1&nbsp;px² is 27.17&nbsp;kWh·K. The comparison is
+        an <b>idealised</b> ground-source heat pump on the undisturbed rock with no approach temperature, which
+        flatters the do-nothing case by a few kelvin; the sign of the 30&nbsp;°C result survives that comfortably.
+        Only these five runs exist — there is no continuous sweep over geometry, so unlike §04a this panel cannot
+        follow your puck. Pumping and drilling energy are counted on neither side.</p>
     </div>
   </div>
 
@@ -1092,9 +1084,18 @@ const FoOf=(a,t,k)=>ALPHA0*k*t*DAYS*a*a/4;
 const MINE={a:AV0,t:TSTORE0,k:5.0,rrl:54,tgt:0.5};
 
 /* ── FIG 4b payload: the measured discharge, 186 steps per scenario ─────────
-   From run_decade_<scenario>/yNN_p2_discharge/metrics.csv (t_days, T_out_C, Eout_kWh).
-   The poster collapses each of these curves to a single mean; they are not
-   means, they are decaying transients. uint16, scales below. */
+   From run_decade_<scenario>/yNN_p2_discharge/metrics.csv. E is the NET heat
+   delivered, -(Ein + Eout): the outflow minus the enthalpy the 10 C injection
+   carries back in. Gross outflow overstates the warm-rock run by 53 %. The net
+   endpoints equal recovered_kWh in the decade files exactly. uint16, scales below. */
+const DIS={tS:1000,TS:500,ES:1,n:186,s:[
+  {lab:'as-built drift · yr 1',T0:10,inj:88387.4,tw:19.19,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'1h3XHd4dDR7MHsQgZSO5IzgkKyXbJZAmBSfsJkEmGSWhIyIi2CDUHwEfUR65HTYdwhxdHAMcsxtsGy0b9BrBGpMaaBpCGh8a/hngGcQZqhmRGXsZZRlRGT4ZLBkaGQoZ+hjsGN0Y0BjDGLYYqhieGJMYiBh+GHQYahhgGFcYThhGGD0YNRgtGCUYHhgWGA8YCBj4F+YX1hfJF7wXrxejF5cXjBeCF3gXbhdlF1wXUxdKF0IXOhczFysXJBcdFxYXDxcIFwIX+xb1Fu8W6RbjFt0W2BbSFs0WxxbCFr0WuBazFq4WqRakFp8WmxaWFpIWjRaJFoQWgBZ8FngWdBZwFmwWaBZkFmAWXBZZFlUWURZOFkoWRxZDFkAWPBY5FjYWMhYvFiwWKRYmFiIWHxYcFhkWFhYTFhAWDhYLFggWBRYCFv8V/RX6FfcV9RXyFe8V7RXqFegV5RXjFeAV3hXbFdkV1xXUFdIV0BXNFcsVyRXGFcQV',E:'AAAAAAAAAwANACUAWwCuAA4BcwHeAUwCvgIwA58DBwRmBLsEBwVLBYsFxgX9BTEGYgaRBr4G6QYSBzoHYQeHB6sHzwfyBxQINQhWCHYIlQi0CNMI8QgPCSwJSQllCYEJnQm5CdQJ7wkJCiQKPgpYCnIKiwqkCr0K1grvCgcLIAs4C1ALZwt/C5YLrgvFC9wL8wsbDEgMdAyfDMoM9AwdDUcNbw2YDb8N5w0ODjUOWw6BDqcOzA7xDhYPOg9fD4MPpg/KD+0PDxAyEFQQdxCYELoQ2xD9EB4RPhFfEX8RnxG/Ed8R/xEeEj0SXBJ7EpoSuBLWEvQSEhMwE04TaxOIE6YTwhPfE/wTGBQ1FFEUbRSJFKUUwBTcFPcUExUuFUkVYxV+FZkVsxXOFegVAhYcFjYWTxZpFoIWnBa1Fs4W5xYAFxkXMhdKF2MXexeUF6wXxBfcF/QXCxgjGDsYUhhqGIEYmBivGMYY3Rj0GAsZIRk4GU4Z'},
+  {lab:'as-built drift · yr 10',T0:10,inj:81289.8,tw:23.31,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'TSROJFYkjSRgJXonTSrvKs0rDS31Lc0uUy81L2Iu4SzjKs8oACeSJWokdSOiIuohSSG7ID0gzh9rHxIfwh57Hjoe/x3KHZgdax1BHRod9hzUHLQclhx6HF8cRhwvHBgcAhzuG9obxxu1G6QbkxuEG3QbZRtXG0kbPBsvGyMbFhsLG/8a9BrpGt8a1BrKGsAatxqhGocacRpfGk0aPBorGhsaDBr+GfAZ4xnXGcsZvxm0GakZnhmUGYoZgBl3GW4ZZRlcGVMZSxlDGTsZMxkrGSQZHBkVGQ4ZBxkAGfkY8hjsGOYY3xjZGNMYzRjHGMEYuxi2GLAYqhilGKAYmhiVGJAYixiGGIEYfBh3GHMYbhhpGGUYYBhcGFcYUxhOGEoYRhhCGD4YORg1GDEYLRgpGCYYIhgeGBoYFhgTGA8YCxgIGAQYARj9F/oX9hfzF+8X7BfpF+UX4hffF9wX2RfVF9IXzxfMF8kXxhfDF8AXvRe6F7cX',E:'AAAAAAAABAAUADgAhwD9AIgBGgKzAlED8gOUBDIFxwVQBssGOQedB/oHUQiiCO8IOAl+CcEJAgpACnwKtgrvCiYLXAuRC8UL+AsqDFsMiwy7DOoMGA1GDXMNnw3LDfcNIg5NDncOoQ7LDvQOHQ9GD24Plg+9D+UPDBAzEFkQfxCmEMsQ8RAWETwRYBGFEaoRzhEPElYSnBLiEiYTahOtE+8TMRRyFLMU8xQzFXIVsRXvFS0WahanFuQWIBdbF5cX0hcNGEcYgRi7GPQYLRlmGZ4Z1hkOGkYafRq0GusaIRtXG40bwxv4Gy0cYhyXHMwcAB00HWgdmx3PHQIeNR5oHpoezB7+HjAfYh+UH8Uf9h8nIFggiSC5IOkgGSFJIXkhqSHYIQciNiJlIpQiwyLxIh8jTiN8I6kj1yMFJDIkXySMJLkk5iQTJUAlbCWYJcQl8CUcJkgmdCafJssm9iYhJ0wndyeiJ8wn9ychKEsodiigKMoo'},
+  {lab:'2× radius · yr 10',T0:10,inj:129043.1,tw:33.86,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'GTMcMz4z8DOaNeM39Dp1PnRBLEPDQ49D/EJvQilCQ0K0QltDCkSYRPFEHEU0RVlFn0UGRoBG+0ZoR8RHEkhSSH5IjUh0SDNI0kdjR/RGj0Y1Rt1Fd0XxRDxETEMhQsVAST/EPUg85TqhOX84eTeLNrA15DQjNHAzyTIsMpQxAjFzMOcvXC/SLkcuvS00LawsJiw4KzsqTylyKKcn8SZMJrclLiWxJD4k0yNvIxIjuyJqIh4i1yGUIVQhGSHgIKogeCBHIBkg7R/EH5wfdh9RHy4fDR/tHs4esR6VHnkeXx5GHi0eFR7/Hegd0x2+Haodlh2DHXAdXh1MHTsdKh0aHQod+hzrHNwczRy/HLEcoxyVHIgcexxuHGIcVRxJHD4cMhwmHBscEBwFHPob8BvlG9sb0RvHG70btBuqG6EbmBuPG4YbfRt0G2sbYxtaG1IbShtCGzobMhsqGyIbGxsTGwwbBBv9GvYa7xroGuEa2hrTGswa',E:'AAAAAAEACAAnAGoA9ADHAc8C5AP+BBgGLwdCCFIJYQpzC4gMog2/Dt8PAREjEkUTaRSPFbgW4xcRGUIadBuoHN0dEx9IIHwhriLeIwolMyZbJ4AooynCKt4r9CwELgsvCjD/MOoxzTKnM3o0RzUONs82izdDOPc4pjlSOvo6nztAPN48eT0RPqY+Nz/FP1FA2UDGQcNCtEObRHlFTkYcR+NHpEhfSRRKxUpySxpMv0xgTf1NmE4vT8RPVlDlUHNR/lGHUg1Tk1MWVJdUF1WVVRJWjlYIV4BX+FduWONYV1nKWTtarFocW4tb+VtmXNJcPV2oXRJee17jXkpfsV8XYH1g4WBFYalhDGJuYtBiMWORY/FjUGSvZA5la2XJZSZmgmbeZjlnlGfuZ0hoomj7aFNprGkDaltqsmoIa19rtGsKbF9stGwIbVxtr20DblZuqG76bkxvnm/vb0BwkHDgcDBxgHHPcR5ybXK7cgpzV3Olc/Jz'},
+  {lab:'array cell · yr 10',T0:10,inj:45919.0,tw:57.89,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'7W3tbfBtBm5RbuJuoW8kcGRwlHDJcNZwim9MaidgqVTzS8FG1kMOQs1AzT/xPjE+iT3vPGE83TtiO+46gjocOrw5YjkMObo4bDghONo3ljdVNxY32TafNmY2Lzb6Ncc1lTVlNTY1CDXcNLE0hzReNDY0DzTpM8QzoDN9M1ozOTMYM/gy2TK6MpwyfjJiMkUyKjLiMYoxMjHoMK0wezBNMCAw9i/NL6Uvfi9YLzQvEC/uLswuqy6LLmwuTS4wLhIu9i3aLb8tpS2LLXEtWC1ALSgtEC35LOIszCy2LKEsiyx3LGIsTiw6LCcsFCwBLO4r3CvKK7grpiuVK4QrcytiK1ErQSsxKyErESsBK/Iq4irTKsQqtSqmKpgqiSp7Km0qXypRKkMqNSooKhoqDSr/KfIp5SnYKcspvimyKaUpmCmMKYApcylnKVspTylDKTcpKykfKRMpCCn8KPEo5SjaKM4owyi4KKwooSiWKIsogCh1KGoo',E:'AAAAAAMAGwB0AB4BYgI2BFQGdAiUCrUM0g7YEKgSMBR5FZsWpxemGJ0ZjRp4G18cQh0hHv0e1h+sIH8hUCIfI+wjtiR/JUYmCyfOJ5AoUSkPKs0qiStELP4sti1uLiQv2S+NMEAx8jGjMlMzAzSxNF81Cza3NmI3DDi2OF85BzquOlU7+zugPEU96T2MPi8/0T/0QDRCcEOpRN5FEUdDSHJJn0rLS/VMHU5ET2lQjVGvUs9T71QNVilXRVhfWXhaj1umXLtdz17iX/RgBWIVYyRkMmU+ZkpnVWhgaWlqcWt4bH9thW6Kb45wkXGTcpVzlnSWdZV2lHeSeI95jHqHe4N8fX13fnB/aIBggVeCTYNDhDiFLYYhhxSIB4n5ieuK24vMjLyNq46Zj4eQdZFikk6TOpQmlRCW+5bkl82YtpmemoabbZxUnTqeH58EoOmgzaGxopSjdqRYpTqmG6f8p9yovKmbqnqrWKw2rRSu8a7Nr6mw'},
+  {lab:'as-built · 30 °C rock',T0:30,inj:61748.5,tw:38.24,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'vUS9RMNE50R2RexG30g1SbBJeUoLS5hL7Eu+S8FKk0gtRT1Blj2WOjk4RzahNDQz8zHZMN8vAi89Lo0t8CxiLOIrbisDK6IqSCr1KagpYCkdKd4ooyhsKDcoBijXJ6sngCdYJzInDSfqJskmqSaKJmwmUCY0JhkmACbnJc8luCWhJYsldiVhJU0lOiUnJRQlAiXaJKckfSRZJDckFiT2I9gjuyOgI4YjbSNWI0AjKiMWIwIj7yLcIsoiuSKoIpgiiCJ4ImkiWiJMIj4iMCIjIhYiCSL9IfAh5CHZIc0hwiG3IawhoSGXIY0hgyF5IW8hZSFcIVMhSiFBITghLyEnIR4hFiEOIQYh/iD2IO4g5yDfINgg0CDJIMIguyC0IK0gpiCgIJkgkyCMIIYggCB5IHMgbSBnIGEgWyBWIFAgSiBFID8gOSA0IC8gKSAkIB8gGiAVIA8gCiAFIAEg/B/3H/If7R/pH+Qf3x/bH9Yf0h/NH8kf',E:'AAAAAAEADAA5AJgAUAFbApADyQQGBkYHiAjLCQgLOgxYDV0OSQ8gEOgQohFTEvoSmhMzFMcUVhXgFWYW6BZoF+QXXhjWGEwZvxkxGqEaEBt9G+kbVBy9HCYdjR30HVkevh4iH4Uf5x9IIKkgCSFpIcghJiKEIuEiPiOaI/UjUSSrJAYlYCW5JRImaybDJhsncycPKLsoZSkOKrUqWyv/K6IsRC3lLYUuJC/BL14w+jCWMTAyyTJiM/ozkjQpNb81VDbpNn03ETikODc5yTlaOus6ezsLPJs8Kj24PUY+1D5hP+0/ekAGQZFBHEKnQjFDu0NERM1EVkXfRWdG7kZ2R/1HhEgKSZBJFkqbSiBLpUsqTK5MMk22TTlOvE4/T8FPRFDGUEhRyVFKUstSTFPNU01UzVRNVcxVTFbLVklXyFdHWMVYQ1nAWT5au1o4W7VbMlyvXCtdp10jXp9eGl+WXxFgjGAHYYFh/GF2YvBiamPjY11k'},
+]};
+
 /* ── FIG 5 payload: five measured decades, with the exact geothermal split ──
    decadal_*.json + scenario_comparison.json 'decomposition'. The 30 °C runs'
    recovered heat is part stored solar, part native ground heat mined by the
@@ -1107,13 +1108,6 @@ const DEC=[
   {k:'array',n:'ARRAY cell · 10 °C',c:'#E34948',T0:10,st:[88740.5, 67898.9, 57904.9, 52816.4, 49969.0, 48276.9, 47237.0, 46587.3, 46177.8, 45919.0],rc:[23889.7, 34019.5, 38887.0, 41496.9, 43009.2, 43926.9, 44497.0, 44855.3, 45081.8, 45225.2],geo:[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],tw:[35.81, 46.4, 51.42, 54.1, 55.64, 56.57, 57.15, 57.51, 57.74, 57.89],to:[17.76, 21.1, 22.71, 23.58, 24.08, 24.39, 24.58, 24.7, 24.78, 24.83]},
 ];
 
-const DIS={tS:1000,TS:500,ES:1,n:186,s:[
-  {lab:'as-built drift · yr 1',T0:10,inj:88387.4,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'1h3XHd4dDR7MHsQgZSO5IzgkKyXbJZAmBSfsJkEmGSWhIyIi2CDUHwEfUR65HTYdwhxdHAMcsxtsGy0b9BrBGpMaaBpCGh8a/hngGcQZqhmRGXsZZRlRGT4ZLBkaGQoZ+hjsGN0Y0BjDGLYYqhieGJMYiBh+GHQYahhgGFcYThhGGD0YNRgtGCUYHhgWGA8YCBj4F+YX1hfJF7wXrxejF5cXjBeCF3gXbhdlF1wXUxdKF0IXOhczFysXJBcdFxYXDxcIFwIX+xb1Fu8W6RbjFt0W2BbSFs0WxxbCFr0WuBazFq4WqRakFp8WmxaWFpIWjRaJFoQWgBZ8FngWdBZwFmwWaBZkFmAWXBZZFlUWURZOFkoWRxZDFkAWPBY5FjYWMhYvFiwWKRYmFiIWHxYcFhkWFhYTFhAWDhYLFggWBRYCFv8V/RX6FfcV9RXyFe8V7RXqFegV5RXjFeAV3hXbFdkV1xXUFdIV0BXNFcsVyRXGFcQV',E:'AAAAAAEABAAOACcAXQCwAA8BdQHfAU4CwAIyA6EDCgRoBL0ECQVOBY4FyQUABjQGZQaUBsEG7AYWBz4HZQeLB68H0wf2BxgIOQhaCHoImgi5CNcI9ggTCTEJTglqCYYJogm+CdkJ9AkPCikKRApeCncKkQqqCsMK3Ar1Cg4LJgs+C1YLbguGC50LtAvMC+ML+gsiDE8MewymDNEM+wwlDU4Ndw2fDccN7g0VDjwOYw6JDq4O1A75Dh4PQg9mD4oPrg/SD/UPGBA6EF0QfxChEMIQ5BAFESYRRxFnEYgRqBHIEegRBxInEkYSZRKEEqISwRLfEv0SGxM5E1cTdBOSE68TzBPpEwUUIhQ+FFoUdhSSFK4UyhTlFAEVHBU3FVIVbRWIFaMVvRXXFfIVDBYmFkAWWRZzFo0Wpha/FtgW8RYKFyMXPBdVF20XhheeF7YXzhfmF/4XFhguGEUYXRh0GIwYoxi6GNEY6Bj/GBYZLBlDGVkZ'},
-  {lab:'as-built drift · yr 10',T0:10,inj:81289.8,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'TSROJFYkjSRgJXonTSrvKs0rDS31Lc0uUy81L2Iu4SzjKs8oACeSJWokdSOiIuohSSG7ID0gzh9rHxIfwh57Hjoe/x3KHZgdax1BHRod9hzUHLQclhx6HF8cRhwvHBgcAhzuG9obxxu1G6QbkxuEG3QbZRtXG0kbPBsvGyMbFhsLG/8a9BrpGt8a1BrKGsAatxqhGocacRpfGk0aPBorGhsaDBr+GfAZ4xnXGcsZvxm0GakZnhmUGYoZgBl3GW4ZZRlcGVMZSxlDGTsZMxkrGSQZHBkVGQ4ZBxkAGfkY8hjsGOYY3xjZGNMYzRjHGMEYuxi2GLAYqhilGKAYmhiVGJAYixiGGIEYfBh3GHMYbhhpGGUYYBhcGFcYUxhOGEoYRhhCGD4YORg1GDEYLRgpGCYYIhgeGBoYFhgTGA8YCxgIGAQYARj9F/oX9hfzF+8X7BfpF+UX4hffF9wX2RfVF9IXzxfMF8kXxhfDF8AXvRe6F7cX',E:'AAAAAAEABgAXADwAigAAAYoBHQK2AlQD9QOYBDUFywVTBs4GPQeiB/8HVQinCPQIPQmDCcYJBwpFCoEKvAr1CiwLYwuYC8wL/gsxDGIMkgzCDPEMHw1NDXoNpw3TDf8NKg5VDoAOqg7TDv0OJg9OD3cPnw/HD+4PFRA8EGMQiRCwENUQ+xAhEUYRaxGQEbUR2REaEmESpxLtEjETdRO4E/sTPRR+FL8U/xQ/FX4VvRX7FTkWdhazFvAWLBdoF6MX3xcZGFQYjhjIGAEZOhlzGasZ5BkbGlMaihrBGvgaLxtlG5sb0RsGHDwccRylHNocDh1CHXYdqh3dHRAeQx52Hqke2x4NHz8fcR+jH9QfBiA3IGcgmCDJIPkgKSFZIYkhuSHoIRciRiJ1IqQi0yIBIzAjXiOMI7oj6CMVJEMkcCSdJMok9yQkJVElfSWpJdYlAiYuJlkmhSaxJtwmByczJ14niCezJ94nCSgzKF0oiCiyKNwo'},
-  {lab:'2× radius · yr 10',T0:10,inj:129043.1,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'GTMcMz4z8DOaNeM39Dp1PnRBLEPDQ49D/EJvQilCQ0K0QltDCkSYRPFEHEU0RVlFn0UGRoBG+0ZoR8RHEkhSSH5IjUh0SDNI0kdjR/RGj0Y1Rt1Fd0XxRDxETEMhQsVAST/EPUg85TqhOX84eTeLNrA15DQjNHAzyTIsMpQxAjFzMOcvXC/SLkcuvS00LawsJiw4KzsqTylyKKcn8SZMJrclLiWxJD4k0yNvIxIjuyJqIh4i1yGUIVQhGSHgIKogeCBHIBkg7R/EH5wfdh9RHy4fDR/tHs4esR6VHnkeXx5GHi0eFR7/Hegd0x2+Haodlh2DHXAdXh1MHTsdKh0aHQod+hzrHNwczRy/HLEcoxyVHIgcexxuHGIcVRxJHD4cMhwmHBscEBwFHPob8BvlG9sb0RvHG70btBuqG6EbmBuPG4YbfRt0G2sbYxtaG1IbShtCGzobMhsqGyIbGxsTGwwbBBv9GvYa7xroGuEa2hrTGswa',E:'AAAAAAIACwArAHAA+ADKAdAC4wP8BBUGKwc9CEwJWwpsC4AMmQ22DtYP9xAYEjoTXhSDFawW1xcEGTQaZhuaHM8dBB85IG0hnyLNI/kkIyZKJ24okSmwKssr4izxLfgu9i/rMNYxuDKSM2U0MTX4Nbk2dTcsON84jzk6OuI6hjsnPMU8YD34PYw+HT+rPzZAvkCrQaZCl0N+RFtFL0b8RsNHg0g9SfJJo0pOS/ZLmkw6TddNcU4IT5xPLlC9UElR1FFcUuJSZ1PqU2tU6lRoVeRVX1bYVlBXx1c9WLFYJVmXWQhaeVroWlZbxFswXJxcB11xXdpdQ16qXhFfeF/dX0JgpmAKYW1hz2ExYpJi82JTY7JjEWRwZM5kK2WIZeRlQGabZvZmUWerZwRoXWi2aA5pZmm9aRRqa2rBahdrbGvBaxZsamy+bBFtZW23bQpuXG6ubv9uUG+hb/JvQnCScOFwMHF/cc5xHHJqcrhyBXNTc59z'},
-  {lab:'array cell · yr 10',T0:10,inj:45919.0,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'7W3tbfBtBm5RbuJuoW8kcGRwlHDJcNZwim9MaidgqVTzS8FG1kMOQs1AzT/xPjE+iT3vPGE83TtiO+46gjocOrw5YjkMObo4bDghONo3ljdVNxY32TafNmY2Lzb6Ncc1lTVlNTY1CDXcNLE0hzReNDY0DzTpM8QzoDN9M1ozOTMYM/gy2TK6MpwyfjJiMkUyKjLiMYoxMjHoMK0wezBNMCAw9i/NL6Uvfi9YLzQvEC/uLswuqy6LLmwuTS4wLhIu9i3aLb8tpS2LLXEtWC1ALSgtEC35LOIszCy2LKEsiyx3LGIsTiw6LCcsFCwBLO4r3CvKK7grpiuVK4QrcytiK1ErQSsxKyErESsBK/Iq4irTKsQqtSqmKpgqiSp7Km0qXypRKkMqNSooKhoqDSr/KfIp5SnYKcspvimyKaUpmCmMKYApcylnKVspTylDKTcpKykfKRMpCCn8KPEo5SjaKM4owyi4KKwooSiWKIsogCh1KGoo',E:'AAAAAAUAHwB3ACgBbwJCBF4GfAibCroM1g7bEKoSMRR5FZoWpRejGJgZiBpyG1gcOh0YHvMeyx+gIHMhQyIRI90jpyRuJTQm+Sa7J3woPCn6KbcqcissLOUsnS1TLgkvvS9wMCMx1DGEMjQz4jOQNDw16DWTNj435zeQODg53zmGOiw70Tt1PBk9vT1fPgE/oz/EQAFCOkNvRKJF0kYASC1JV0qAS6dMzU3xThNQNFFUUnJTjlSpVcNW3FfzWApaH1syXEVdV15nX3dghWGSYp9jqmS0Zb5mxmfOaNRp2mrfa+Ns5m3pbupv63Drcepy6XPmdON14Hbbd9Z40HnJesJ7unyxfah+nn+TgIiBfIJwg2KEVYVGhjeHKIgXiQeK9Yrji9GMvo2qjpaPgZBskVaSP5MolBGV+ZXglseXrpiUmXmaXptCnCadCp7sns+fsaCSoXOiU6MzpBOl8qXQpq6njKhpqUaqIqv+q9mstK2Ormiv'},
-  {lab:'as-built · 30 °C rock · yr 10',T0:30,inj:61748.5,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'vUS9RMNE50R2RexG30g1SbBJeUoLS5hL7Eu+S8FKk0gtRT1Blj2WOjk4RzahNDQz8zHZMN8vAi89Lo0t8CxiLOIrbisDK6IqSCr1KagpYCkdKd4ooyhsKDcoBijXJ6sngCdYJzInDSfqJskmqSaKJmwmUCY0JhkmACbnJc8luCWhJYsldiVhJU0lOiUnJRQlAiXaJKckfSRZJDckFiT2I9gjuyOgI4YjbSNWI0AjKiMWIwIj7yLcIsoiuSKoIpgiiCJ4ImkiWiJMIj4iMCIjIhYiCSL9IfAh5CHZIc0hwiG3IawhoSGXIY0hgyF5IW8hZSFcIVMhSiFBITghLyEnIR4hFiEOIQYh/iD2IO4g5yDfINgg0CDJIMIguyC0IK0gpiCgIJkgkyCMIIYggCB5IHMgbSBnIGEgWyBWIFAgSiBFID8gOSA0IC8gKSAkIB8gGiAVIA8gCiAFIAEg/B/3H/If7R/pH+Qf3x/bH9Yf0h/NH8kf',E:'AAAAAAEAAwAOACUAVgCgAPYAUQGwARMCeALdAj0DkgPSA/oDCAQCBOwDygOdA2cDKQPlApsCTQL5AaIBRwHpAIgAJQBBAKkAEgF+AesBWgLKAjwDrgMiBJcEDQWEBfwFdQbvBmkH5AdgCN0IWgnYCVcK1gpWC9YLVwzYDFoN3A1fDuIOZQ/pD24Q8xB4Ef0RgxJ1E4UUlhWpFr0X0xjqGQIbGxw2HVEebh+MIKohyiLqIwslLCZPJ3Iolim7KuArBi0sLlQvezCkMc0y9jMgNUo2dTehOM05+TomPFM9gT6wP95ADUI9Q21EnUXORv9HMUliSpVLx0z6TS5PYVCVUcpS/lMzVWlWnlfUWAtaQVt4XK9d514eYFZhj2LHYwBlOWZyZ6xo5mkga1pslW3QbgtwRnGCcr5z+nQ2dnN3sHjteSp7Z3ylfeN+IYBfgZ6C3IMbhVqGmYfZiBmKWIuZjNmNGY9akJuR3JIdlF6VoJbhlyOZ'},
-]};
 
 
 (function(){
@@ -1329,127 +1323,185 @@ const DIS={tS:1000,TS:500,ES:1,n:186,s:[
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
-   FIG 4b — what is the heat actually worth?
-   The printed panel plots ONE temperature per scenario. There is no one
-   temperature: the discharge is a 61-day decaying transient, measured 186
-   times, and what you can use depends entirely on where you cut it.
-   So the panel asks the question the poster never does — how much compressor
-   work does building the store save against not building it — and answers it
-   by integrating the measured curve against a heat-pump model.
+   FIG 4b — the pipe and the bill.
+   The discharge drawn as a pipe leaving the mine: x is the heat DELIVERED so
+   far, y is the temperature it comes out at. So the pipe's LENGTH is quantity
+   and its HEIGHT is grade, in one object.
+   Beside it runs the free pipe — the undisturbed rock, which was always there.
+   The compressor bill is the area between the two, clipped at the building's
+   header: green where your pipe runs warmer than the ground (work you saved),
+   red where it runs COLDER (work you added by building the store).
+       save = ∫(min(T,Tc) − min(T0,Tc)) dQ / (0.5·Tc_K)
+   so 1 px² = 27.17 kWh·K, and at a 30 °C header that is 0.179 kWh of
+   compressor work. Area is the bill.
    ═════════════════════════════════════════════════════════════════════════ */
 (function(){
-  const S=DIS.s.map(o=>({lab:o.lab,T0:o.T0,inj:o.inj,
+  const S=DIS.s.map(o=>({lab:o.lab,T0:o.T0,inj:o.inj,tw:o.tw,
     t:Array.from(unpack16(o.t)).map(v=>v/DIS.tS),
     T:Array.from(unpack16(o.T)).map(v=>v/DIS.TS),
     E:Array.from(unpack16(o.E)).map(v=>v/DIS.ES)}));
-  const ETA=0.5;                       // half Carnot — the same "realistic COP" screening.json uses
-  const K=273.15;
-  const WS={sel:1, circ:30};
+  const COL=['#7FAEE0','#2A78D6','#008300','#E34948','#C97A10'];
+  const K=273.15, ETA=0.5;
+  const P={sc:1, Tc:30};
+  let hitS=[];                              // shelf targets, rebuilt on every draw
 
-  const W=560,H=310,L=52,R=62,MT=18,MB=64, PW=W-L-R, PH=H-MT-MB, YB=MT+PH;
-  const X1=61.01, Y0=8, Y1=60;
-  const px=d=>L+d/X1*PW, py=v=>YB-(v-Y0)/(Y1-Y0)*PH;
-  const xd=x=>Math.max(0,Math.min(X1,(x-L)/PW*X1)), yv=y=>Y0+(YB-y)/PH*(Y1-Y0);
-  const cop=(src,snk)=>{ const d=(snk+K)-(src+K); return d>0.5?ETA*(snk+K)/d:200; };
-
-  /* integrate the measured curve: work with the store, work without it */
-  function eval_(i){
-    const s=S[i], c=WS.circ; let W1=0, Edir=0, Dd=0, Q=s.E[s.E.length-1];
-    for(let n=1;n<s.T.length;n++){
-      const dQ=s.E[n]-s.E[n-1]; if(dQ<=0) continue;
-      const Tm=0.5*(s.T[n]+s.T[n-1]), dt=s.t[n]-s.t[n-1];
-      if(Tm>=c){ Edir+=dQ; Dd+=dt; } else W1+=dQ/cop(Tm,c);
-    }
-    // not building it: the same heat, lifted from undisturbed rock at T0
-    const W0=s.T0>=c?0:Q/cop(s.T0,c);
-    return {Q,W1,W0,Edir,Dd,save:W0-W1,pct:(W0-W1)/s.inj*100};
-  }
-
+  const W=560,H=364, FX=120,FW=424, PT=100,PB=330;
+  const PM=9.2;                                   // px per MWh  → length is quantity
+  const Qx=e=>FX+PM*e/1000, Ty=t=>PB-4*(t-4);     // 4 px per K → 1 px² = 27.17 kWh·K
+  const yT=y=>4+(PB-y)/4;
   const svg=$('c-worth'), tip=$('w-tip'), wrap=$('w-fig');
   let drag=null;
 
-  function draw(){
-    clear(svg); const s=S[WS.sel], g=e=>{ svg.appendChild(e); return e; };
-    /* the two regimes */
-    g(E('rect',{x:L,y:py(Y1),width:PW,height:py(WS.circ)-py(Y1),fill:'#1BAF7A','fill-opacity':'.10'}));
-    g(E('rect',{x:L,y:py(WS.circ),width:PW,height:YB-py(WS.circ),fill:'#C97A10','fill-opacity':'.07'}));
-    [10,20,30,40,50,60].forEach(v=>{ if(v<Y0||v>Y1)return;
-      g(E('line',{class:'grid',x1:L,x2:L+PW,y1:py(v),y2:py(v)}));
-      g(T(L-6,py(v)+4,v,{'text-anchor':'end','font-size':'10'})); });
-    [0,10,20,30,40,50,60].forEach(d=>g(T(px(d),YB+15,d,{'text-anchor':'middle','font-size':'10'})));
-    /* undisturbed rock — the thing you already had for free */
-    g(E('line',{x1:L,x2:L+PW,y1:py(s.T0),y2:py(s.T0),stroke:'#8A8F86','stroke-width':'1.4','stroke-dasharray':'5 4'}));
-    g(T(L+4,py(s.T0)-5,`undisturbed rock ${fmt(s.T0,0)} °C — free, no store`,{fill:'#6B7278','font-size':'9'}));
-    /* the measured discharge */
-    const d=s.T.map((v,n)=>(n?'L':'M')+px(s.t[n]).toFixed(1)+' '+py(v).toFixed(1)).join(' ');
-    g(E('path',{d:d+`L${px(X1).toFixed(1)} ${YB}L${px(0).toFixed(1)} ${YB}Z`,fill:'#2A78D6','fill-opacity':'.10'}));
-    g(E('path',{d,fill:'none',stroke:'#2A78D6','stroke-width':'2.6','stroke-linejoin':'round'}));
-    /* the circuit you must feed */
-    g(E('line',{x1:L,x2:L+PW,y1:py(WS.circ),y2:py(WS.circ),stroke:'#0A6E38','stroke-width':'2','stroke-dasharray':'7 4'}));
-    g(E('rect',{x:L+PW+2,y:py(WS.circ)-9,width:36,height:18,rx:5,fill:'#0A6E38'}));
-    g(T(L+PW+20,py(WS.circ)+4,fmt(WS.circ,0)+'°C',{'text-anchor':'middle',fill:'#fff','font-size':'10','font-weight':'700'}));
-    g(T(-(MT+YB)/2,L+PW+56,'circuit you must feed — drag',{transform:'rotate(-90)','text-anchor':'middle','font-size':'8.5',fill:'#0A6E38'}));
-    /* where the curve is above it, the heat is usable as it comes */
-    const r=eval_(WS.sel);
-    if(r.Dd>0.02){ let seg=null;
-      for(let n=1;n<s.T.length;n++){
-        const above=0.5*(s.T[n]+s.T[n-1])>=WS.circ;
-        if(above&&!seg) seg=px(s.t[n-1]);
-        if((!above||n===s.T.length-1)&&seg!=null){
-          g(E('rect',{x:seg,y:py(Y1),width:Math.max(1,px(s.t[n])-seg),height:py(WS.circ)-py(Y1),
-            fill:'#0A6E38','fill-opacity':'.16'})); seg=null; } } }
-    g(T(L+PW/2,H-8,'days into the 61-day discharge',{'text-anchor':'middle','font-size':'10'}));
-    g(T(-(MT+YB)/2,13,'outlet temperature delivered  [°C]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'10'}));
-    g(T(L+PW,MT+11,s.lab,{'text-anchor':'end','font-size':'10','font-weight':'700',fill:'#2A78D6'}));
+  function evalr(i,Tc){
+    const s=S[i], A0=Math.min(s.T0,Tc); let Ws=0,Ed=0,Dd=0;
+    for(let n=1;n<s.E.length;n++){
+      const dQ=s.E[n]-s.E[n-1]; if(dQ<=0) continue;
+      const Tm=0.5*(s.T[n]+s.T[n-1]), Pt=Math.min(Tm,Tc);
+      Ws+=dQ*(Tc-Pt)/(ETA*(Tc+K));
+      if(Tm>=Tc){ Ed+=dQ; Dd+=s.t[n]-s.t[n-1]; }
+    }
+    const Q=s.E[s.E.length-1], Wn=Q*(Tc-A0)/(ETA*(Tc+K));
+    return {Q,Ws,Wn,Ed,Dd,save:Wn-Ws,pct:(Wn-Ws)/s.inj*100};
   }
+
+  function draw(){
+    clear(svg); const s=S[P.sc], i=P.sc, Tc=P.Tc, A0=Math.min(s.T0,Tc), r=evalr(i,Tc);
+    const g=e=>{ svg.appendChild(e); return e; };
+    const defs=g(E('defs',{}));
+    const hp=E('pattern',{id:'dmg',width:5,height:5,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'});
+    hp.appendChild(E('rect',{width:5,height:5,fill:'#F6D9D4'}));
+    hp.appendChild(E('line',{x1:0,y1:0,x2:0,y2:5,stroke:'#C0392B','stroke-width':2,'stroke-opacity':'.8'}));
+    defs.appendChild(hp);
+
+    /* ── shelf ── */
+    S.forEach((sc,k)=>{
+      const x=2+111.5*k, on=k===i, rr=evalr(k,Tc);
+      g(E('rect',{x,y:2,width:108,height:60,rx:7,fill:on?COL[k]:'#FBFAF7','fill-opacity':on?.13:1,
+        stroke:on?COL[k]:'#E3E0D6','stroke-width':on?2.6:1}));
+      if(on){ g(E('rect',{x:x+2,y:4,width:104,height:3,rx:1.5,fill:COL[k]}));
+              g(E('path',{d:`M${x+54} 69l-6 -7h12Z`,fill:COL[k]})); }
+      const ink=on?'#1C2128':'#7A8088';
+      g(T(x+7,16,sc.lab.split(' · ')[0],{'font-size':'7','font-weight':'700',fill:ink}));
+      g(T(x+7,25,sc.lab.split(' · ')[1]||(sc.T0+' °C rock'),{'font-size':'6',fill:'#9AA0A6'}));
+      const zy=48, bh=Math.min(20,Math.abs(rr.pct)*2.0), neg=rr.pct<0;
+      g(E('line',{x1:x+6,x2:x+40,y1:zy,y2:zy,stroke:'#0C1015','stroke-width':1}));
+      g(E('rect',{x:x+8,y:neg?zy:zy-bh,width:14,height:Math.max(1,bh),fill:neg?'#C0392B':COL[k],'fill-opacity':on?1:.5}));
+      g(T(x+100,zy+3,(rr.pct>=0?'+':'−')+fmt(Math.abs(rr.pct),2)+'%',
+        {'text-anchor':'end','font-size':'8.5','font-weight':'800',fill:neg?'#C0392B':(on?COL[k]:'#9AA0A6')}));
+      g(T(x+100,zy+12,'of heat injected',{'text-anchor':'end','font-size':'5.6',fill:'#9AA0A6'}));
+      hitS.push({x,y:2,w:108,h:60,k});
+    });
+
+    /* ── live line ── */
+    const verdict=r.pct<=0?['WORSE THAN NOTHING','#C0392B']:r.pct<1?['ROUNDING ERROR','#B4501E']
+      :r.pct<5?['MARGINAL','#C97A10']:['WORTH IT','#0A6E38'];
+    g(E('rect',{x:2,y:74,width:556,height:26,rx:6,fill:COL[i],'fill-opacity':'.08',stroke:COL[i],'stroke-opacity':'.3'}));
+    g(T(11,91,`${s.lab} · feeding a ${fmt(Tc,0)} °C circuit · ${fmt(r.Q/1000,1)} MWh delivered · `+
+      `${r.Dd<0.02?'no day':fmt(r.Dd,1)+' days'} usable as it comes`,{'font-size':'8.5',fill:'#3E444A'}));
+    g(E('rect',{x:428,y:78,width:126,height:18,rx:9,fill:verdict[1]}));
+    g(T(491,90,verdict[0],{'text-anchor':'middle','font-size':'8.5','font-weight':'800',fill:'#fff'}));
+
+    /* ── the ground ── */
+    g(E('rect',{x:4,y:PT,width:112,height:PB-PT,fill:'#F4F2EA',stroke:'#C9C4B8',rx:3}));
+    g(E('rect',{x:4,y:Ty(s.T0),width:112,height:PB-Ty(s.T0),fill:'#B9C3CC'}));
+    g(T(60,Ty(s.T0)+11,'rock '+s.T0+' °C',{'text-anchor':'middle','font-size':'7',fill:'#3E444A'}));
+    g(E('rect',{x:30,y:Ty(s.tw),width:62,height:Ty(s.T0)-Ty(s.tw),fill:COL[i],'fill-opacity':'.85'}));
+    g(T(61,Ty(s.tw)-4,'water '+fmt(s.tw,1)+' °C',{'text-anchor':'middle','font-size':'7','font-weight':'700',fill:'#1C2128'}));
+    g(E('rect',{x:92,y:Ty(s.T[0])-4,width:28,height:8,fill:'#3A3F45'}));
+    [10,30,50].forEach(t=>{ if(t<4||t>61)return; g(E('line',{x1:0,x2:4,y1:Ty(t),y2:Ty(t),stroke:'#B4B8B0'}));
+      g(T(2,Ty(t)-3,t+'°',{'font-size':'6.5',fill:'#8A8F86'})); });
+
+    /* ── beyond what this store has ── */
+    const qe=Qx(r.Q);
+    if(qe<FX+FW-4){ g(E('rect',{x:qe,y:PT,width:FX+FW-qe,height:PB-PT,fill:'#EFECE4','fill-opacity':'.85'}));
+      g(E('line',{x1:qe,x2:qe,y1:PT,y2:PB,stroke:'#C9C4B8','stroke-width':1,'stroke-dasharray':'3 3'}));
+      g(T(qe+5,PT+11,'this store stops here — '+fmt(r.Q/1000,1)+' MWh',{'font-size':'7',fill:'#9AA0A6'})); }
+
+    /* ── the bill: the ghost box is the work without the store ── */
+    if(A0<Tc) g(E('rect',{x:FX,y:Ty(Tc),width:qe-FX,height:Ty(A0)-Ty(Tc),fill:'#7E8B96','fill-opacity':'.20',
+      stroke:'#7E8B96','stroke-width':1.2,'stroke-dasharray':'4 2'}));
+    g(T(FX+4,Ty(Tc)+9,'WITHOUT THE STORE — what the bill would be',{'font-size':'6.5',fill:'#5C6670','font-weight':'700'}));
+    /* signed area between your pipe (clipped at the header) and the free line */
+    const yA0=Ty(A0), segs=[]; let cur=null;
+    for(let n=0;n<s.E.length;n++){
+      const p=Math.min(s.T[n],Tc), sg=p>=A0?1:-1, x=Qx(s.E[n]);
+      if(!cur||cur.s!==sg){ if(cur){ cur.pts.push([x,yA0]); segs.push(cur); } cur={s:sg,pts:[[x,yA0],[x,Ty(p)]]}; }
+      else cur.pts.push([x,Ty(p)]);
+    }
+    if(cur){ cur.pts.push([Qx(s.E[s.E.length-1]),yA0]); segs.push(cur); }
+    segs.forEach(sg=>{ if(sg.pts.length<3) return;
+      g(E('path',{d:sg.pts.map((p,j)=>(j?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ')+'Z',
+        fill:sg.s>0?'#0A6E38':'url(#dmg)','fill-opacity':sg.s>0?'.34':'.9'})); });
+
+    /* ── the free pipe ── */
+    g(E('line',{x1:FX,x2:FX+FW,y1:yA0,y2:yA0,stroke:'#7E8B96','stroke-width':3,'stroke-dasharray':'8 4'}));
+    g(T(FX+FW,yA0+11,'the ground you already have — free',{'text-anchor':'end','font-size':'7',fill:'#5C6670'}));
+
+    /* ── your pipe ── */
+    const d=s.E.map((e,n)=>(n?'L':'M')+Qx(e).toFixed(1)+' '+Ty(s.T[n]).toFixed(1)).join(' ');
+    g(E('path',{d,fill:'none',stroke:'#3A3F45','stroke-width':6,'stroke-linecap':'round','stroke-linejoin':'round'}));
+    g(E('path',{d,fill:'none',stroke:'#EDE7DC','stroke-width':2.6,'stroke-linecap':'round','stroke-linejoin':'round'}));
+    for(let n=1;n<s.E.length;n++){                       // where it dives under the free line
+      if((s.T[n-1]-s.T0)*(s.T[n]-s.T0)<0 && s.T0>=A0){
+        g(E('circle',{cx:Qx(s.E[n]),cy:yA0,r:4,fill:'#C0392B',stroke:'#fff','stroke-width':1.4}));
+        g(T(Qx(s.E[n])+7,yA0-7,'day '+fmt(s.t[n],1)+' — colder than the rock from here',
+          {'font-size':'7','font-weight':'700',fill:'#C0392B'})); break; } }
+    [1,5,20,61].forEach(dd=>{ let n=0; while(n<s.t.length-1&&s.t[n+1]<dd) n++;
+      if(s.t[n]<dd*0.6) return;
+      g(E('circle',{cx:Qx(s.E[n]),cy:Ty(s.T[n]),r:2,fill:'#3A3F45'}));
+      g(T(Qx(s.E[n]),Ty(s.T[n])-7,'d'+dd,{'text-anchor':'middle','font-size':'6',fill:'#6B7278'})); });
+
+    /* ── the header: the building circuit, dragged ── */
+    g(E('rect',{x:FX,y:Ty(Tc)-3,width:FW,height:6,rx:3,fill:'#0A6E38'}));
+    g(E('rect',{x:FX+FW+2,y:Ty(Tc)-9,width:14,height:18,rx:4,fill:'#0A6E38'}));
+    g(T(FX+FW+9,Ty(Tc)+4,'≡',{'text-anchor':'middle','font-size':'9',fill:'#fff','font-weight':'700'}));
+    g(T(FX+FW,Ty(Tc)-7,'the circuit you must feed — '+fmt(Tc,0)+' °C · drag',
+      {'text-anchor':'end','font-size':'7','font-weight':'700',fill:'#0A6E38'}));
+
+    /* ── axis ── */
+    g(E('line',{x1:FX,x2:FX+FW,y1:PB+14,y2:PB+14,stroke:'#C9C4B8'}));
+    for(let e=0;e<=45;e+=5){ const x=Qx(e*1000); if(x>FX+FW)break;
+      g(E('line',{x1:x,x2:x,y1:PB+14,y2:PB+18,stroke:'#C9C4B8'}));
+      g(T(x,PB+27,e,{'text-anchor':'middle','font-size':'7'})); }
+    g(T(FX+FW,PB+27,'heat delivered  [MWh] →',{'text-anchor':'end','font-size':'7.5',fill:'#565D62'}));
+    g(T(FX,PB+37,'area between the pipes = the compressor bill · 1 px² = '+fmt(2*27.174/(Tc+K)*1000,2)+' Wh',
+      {'font-size':'6.5',fill:'#9AA0A6'}));
+  }
+
 
   const toS=e=>{ const b=svg.getBoundingClientRect(); return {x:(e.clientX-b.left)*(W/b.width),y:(e.clientY-b.top)*(H/b.height)}; };
   svg.addEventListener('pointerdown',e=>{ const p=toS(e);
-    if(p.y>MT-14&&p.y<YB+14){ drag=1; WS.circ=Math.max(10,Math.min(55,yv(p.y))); upd();
+    for(const h of hitS) if(p.x>=h.x&&p.x<=h.x+h.w&&p.y>=h.y&&p.y<=h.y+h.h){ P.sc=h.k; upd(); e.preventDefault(); return; }
+    if(p.y>PT-10&&p.y<PB+10&&p.x>FX-10){ drag=1; P.Tc=Math.max(12,Math.min(58,yT(p.y))); upd();
       svg.setPointerCapture(e.pointerId); e.preventDefault(); } });
   svg.addEventListener('pointermove',e=>{ const p=toS(e);
-    if(drag){ WS.circ=Math.max(10,Math.min(55,yv(p.y))); upd(); return; }
-    const s=S[WS.sel];
-    if(p.x<L||p.x>L+PW||p.y<MT||p.y>YB){ tip.style.opacity='0'; return; }
-    const dd=xd(p.x); let n=0; while(n<s.t.length-1&&s.t[n+1]<dd) n++;
+    if(drag){ P.Tc=Math.max(12,Math.min(58,yT(p.y))); upd(); return; }
+    const s=S[P.sc];
+    if(p.x<FX||p.x>FX+FW||p.y<PT||p.y>PB){ tip.style.opacity='0'; return; }
+    const e0=(p.x-FX)/PM*1000; let n=0; while(n<s.E.length-1&&s.E[n+1]<e0) n++;
+    if(s.E[n]>s.E[s.E.length-1]){ tip.style.opacity='0'; return; }
     const b=wrap.getBoundingClientRect();
-    tip.innerHTML=`day ${fmt(s.t[n],2)}\noutlet ${fmt(s.T[n],2)} °C\ndelivered so far ${fmt(s.E[n],0)} kWh`;
-    tip.style.left=Math.max(70,Math.min(b.width-70,e.clientX-b.left))+'px';
+    tip.innerHTML=`day ${fmt(s.t[n],1)}\n${fmt(s.E[n]/1000,2)} MWh delivered\noutlet ${fmt(s.T[n],1)} °C`+
+      (s.T[n]<s.T0?`\ncolder than the ${s.T0} °C rock`:'');
+    tip.style.left=Math.max(80,Math.min(b.width-80,e.clientX-b.left))+'px';
     tip.style.top=(e.clientY-b.top-8)+'px'; tip.style.opacity='1'; });
   const end=()=>{ drag=null; };
   svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',end);
   svg.addEventListener('pointerleave',()=>{ if(!drag) tip.style.opacity='0'; });
 
-  const box=$('w-sc');
-  S.forEach((s,i)=>{ const b=document.createElement('button');
-    b.className='chip'+(i===WS.sel?' on':''); b.textContent=s.lab;
-    b.onclick=()=>{ WS.sel=i; [...box.children].forEach((c,j)=>c.classList.toggle('on',j===i)); upd(); };
-    box.appendChild(b); });
-
   function upd(){
-    const s=S[WS.sel], r=eval_(WS.sel);
-    $('w-circ').textContent=fmt(WS.circ,0)+' °C';
-    $('w-days').textContent=r.Dd<0.02?'none':fmt(r.Dd,1)+' d';
-    $('w-daysbox').className='st '+(r.Dd>=15?'hi':r.Dd>=1?'':'bad');
-    $('w-edir').textContent=(100*r.Edir/r.Q).toFixed(0)+'%';
-    $('w-q').textContent=fmt(r.Q/1000,1)+' MWh';
-    $('w-wbase').textContent=fmt(r.W0,0)+' kWh';
-    $('w-wstore').textContent=fmt(r.W1,0)+' kWh';
-    $('w-save').textContent=(r.save>=0?'':'−')+fmt(Math.abs(r.save),0)+' kWh';
-    $('w-savebox').className='st '+(r.save<=0?'bad':r.pct>=3?'hi':'');
-    $('w-pct').textContent=(r.pct>=0?'':'−')+fmt(Math.abs(r.pct),2)+'%';
-    $('w-pctbox').className='st '+(r.pct<=0?'bad':r.pct>=3?'hi':'');
-    const bar=$('w-bar'), tot=Math.max(r.W0,r.W1)||1;
-    bar.innerHTML=`<div style="width:${(100*r.W1/tot).toFixed(1)}%;background:#2A78D6">with the store ${fmt(r.W1,0)}</div>`+
-      `<div style="width:${(100*(tot-r.W1)/tot).toFixed(1)}%;background:${r.save>0?'#0A6E38':'#C0392B'}">`+
-      `${r.save>0?'saved '+fmt(r.save,0):'WORSE by '+fmt(-r.save,0)}</div>`;
-    $('w-say').innerHTML=
-      (r.Dd<0.02
-        ? `Not one of the 61 discharge days clears <b>${fmt(WS.circ,0)}&nbsp;°C</b> — every kilowatt-hour has to go through a heat pump. `
-        : `<b>${fmt(r.Dd,1)}</b> of the 61 days clear ${fmt(WS.circ,0)}&nbsp;°C, carrying <b>${(100*r.Edir/r.Q).toFixed(0)}%</b> of the recovered heat; the rest needs a heat pump. `)
-      + (r.save>0
-        ? `Against simply pumping the undisturbed ${fmt(s.T0,0)}&nbsp;°C rock, the store saves <b>${fmt(r.save,0)}&nbsp;kWh</b> of compressor work a year — <b>${fmt(r.pct,2)}%</b> of the ${fmt(s.inj/1000,1)}&nbsp;MWh you pushed in to get it.`
-        : `And it is <b>worse than doing nothing</b>: the outlet averages colder than the ${fmt(s.T0,0)}&nbsp;°C rock it sits in, so a plain ground-source heat pump would need <b>${fmt(-r.save,0)}&nbsp;kWh less</b> work. Charging 10&nbsp;°C water through warm rock cools the source you already had.`);
+    hitS=[];
+    const s=S[P.sc], r=evalr(P.sc,P.Tc);
+    $('w-say').innerHTML = r.save<=0
+      ? `<b>This one is worse than doing nothing.</b> The outlet falls below the ${s.T0}&nbsp;°C rock it sits in, so the red `+
+        `area hangs <em>below</em> the free pipe: a plain ground-source heat pump on the undisturbed ground would need `+
+        `<b>${fmt(-r.save,0)}&nbsp;kWh less</b> compressor work a year. Charging 10&nbsp;°C water through warm rock cools `+
+        `the source you already had.`
+      : `The green area is the whole product of the store: <b>${fmt(r.save,0)}&nbsp;kWh</b> of compressor work saved a year `+
+        `against running the same heat pump on the undisturbed ${s.T0}&nbsp;°C rock — <b>${fmt(r.pct,2)}%</b> of the `+
+        `${fmt(s.inj/1000,1)}&nbsp;MWh you pushed in to get it. `+
+        (r.Dd<0.02?`Not one of the 61 days clears ${fmt(P.Tc,0)}&nbsp;°C, so every kilowatt-hour goes through the pump.`
+                  :`Only <b>${fmt(r.Dd,1)}</b> days clear ${fmt(P.Tc,0)}&nbsp;°C on their own.`);
     draw();
   }
   window.fig4bRedraw=()=>upd();
