@@ -210,7 +210,7 @@
     <div class="t">Interactive poster<small>ALERT Geomaterials 2026 · Aussois — every figure is live</small></div>
     <span class="sp"></span>
     <label class="toggle" title="show or hide the clickable regions"><input type="checkbox" id="spotSw" checked>spots</label>
-    <a class="labbtn" href="../">3-D lab ↗</a>
+    <a class="labbtn" href="../?b=23f">3-D lab ↗</a>
   </div></div>
 
   <p class="note">The poster exactly as printed. <b>Every figure is a door</b> — click one and it opens as the real
@@ -223,7 +223,7 @@
       <!-- the printed QR placeholder is covered and replaced by a working button -->
       <div id="qrpatch">
         <div class="k">INTERACTIVE · 3-D MODELS</div>
-        <a id="qrbtn" href="../">
+        <a id="qrbtn" href="../?b=23f">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2.6 21 7.3v9.4L12 21.4 3 16.7V7.3z"/><path d="M3 7.3 12 12l9-4.7M12 12v9.4"/>
           </svg>
@@ -240,7 +240,7 @@
     <b>Ali Ahmadi</b> &amp; Eleni Gerolymatou — Chair of Geomechanics and Multiphysical Systems, Institute of
     Geotechnology and Mineral Resources, TU&nbsp;Clausthal · MOVIE project. The geometry is the real surveyed
     Reiche&nbsp;Zeche drift; the duty cycle is hypothetical.
-    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../">Full 3-D lab →</a>
+    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../?b=23f">Full 3-D lab →</a>
   </div>
 
 <div class="scrim" id="scrim">
@@ -665,18 +665,20 @@ const MUMPS={
    HOTSPOTS — rectangles measured from poster_ALERT2026_selectable.pdf itself
    (PyMuPDF image + text bboxes), not placed by eye.  % of the poster image.
    ═════════════════════════════════════════════════════════════════════════ */
+const LABV='23f';                    // bump whenever the lab is redeployed, or a cached
+                                     // build serves the old figure on a return visit
 const HOT=[
  {l:30.38,t:16.78,w:18.07,h:6.73,  k:'FIG 1',  lab:'Match the calendar to the physics', m:'solar'},
- {l:10.58,t:39.82,w:30.44,h:9.92,  k:'FIG 2',  lab:'Open the drift in 3-D',            href:'../?fig=cutaway'},
- {l:7.13, t:58.41,w:37.33,h:7.49,  k:'FIG 3A', lab:'Play charge → storage in 3-D',      href:'../?fig=plume'},
- {l:7.13, t:68.55,w:37.33,h:9.34,  k:'FIG 3B', lab:'Watch the charge flow in 3-D',      href:'../?fig=flow'},
+ {l:10.58,t:39.82,w:30.44,h:9.92,  k:'FIG 2',  lab:'Open the drift in 3-D',            href:'../?fig=cutaway&b='+LABV},
+ {l:7.13, t:58.41,w:37.33,h:7.49,  k:'FIG 3A', lab:'Play charge → storage in 3-D',      href:'../?fig=plume&b='+LABV},
+ {l:7.13, t:68.55,w:37.33,h:9.34,  k:'FIG 3B', lab:'Watch the charge flow in 3-D',      href:'../?fig=flow&b='+LABV},
  {l:51.31,t:18.88,w:22.12,h:12.07, k:'FIG 4a', lab:'Put your own mine on the plane',  m:'screening'},
  {l:75.03,t:18.88,w:22.06,h:11.52, k:'FIG 4b', lab:'What the heat is actually worth',       m:'grade'},
  {l:51.31,t:41.09,w:45.78,h:12.07, k:'FIG 5',  lab:'Whose heat was it, really?',               m:'decade'},
  {l:50.85,t:54.95,w:46.80,h:7.70,  k:'TABLE',  lab:'Whose heat was it, really?',        m:'decade'},
- {l:51.66,t:69.18,w:45.06,h:7.74,  k:'FIG 6',  lab:'See the stress in 3-D',             href:'../?fig=stress'},
- {l:61.41,t:81.46,w:9.87, h:4.88,  k:'FIX',    lab:'Open the array cell in 3-D',        href:'../?scene=array&fig=arraydomain'},
- {l:73.06,t:81.46,w:9.87, h:4.88,  k:'RESULT', lab:'Open the year-10 cell in 3-D',      href:'../?scene=array&fig=arrayresult'},
+ {l:51.66,t:69.18,w:45.06,h:7.74,  k:'FIG 6',  lab:'See the stress in 3-D',             href:'../?fig=stress&b='+LABV},
+ {l:61.41,t:81.46,w:9.87, h:4.88,  k:'FIX',    lab:'Open the array cell in 3-D',        href:'../?scene=array&fig=arraydomain&b='+LABV},
+ {l:73.06,t:81.46,w:9.87, h:4.88,  k:'RESULT', lab:'Open the year-10 cell in 3-D',      href:'../?scene=array&fig=arrayresult&b='+LABV},
  {l:2.38, t:90.35,w:31.15,h:7.40,  k:'A',      lab:'Re-solve it: nodal flux vs reaction', m:'num', arg:'a'},
  {l:34.42,t:90.35,w:31.16,h:7.40,  k:'B',      lab:'Re-solve it: pin vs weak no-flux',  m:'num', arg:'b'},
  {l:66.47,t:90.35,w:31.15,h:7.40,  k:'C',      lab:'The saddle point, measured',        m:'num', arg:'c'},

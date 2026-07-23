@@ -1252,6 +1252,9 @@ function main() {
         }
       });
       colorWire(mode);
+      if (window._figPal) Object.keys(window._figPal).forEach(nm => {   // a figure preset owns its colours
+        const o = objs[nm], c = window._figPal[nm];
+        if (o) { o.mapper.setScalarVisibility(false); o.actor.getProperty().setColor(c[0], c[1], c[2]); } });
       // flow mode: dim the surfaces so the arrows read, hide + uncheck rock, reveal the inlet/outlet markers.
       // Snapshot the pre-flow rock state on ENTRY and restore it on EXIT so heat->flow->heat doesn't lose rock;
       // only touch surface opacity when leaving flow (and restore to the live op_ slider value, not a hard default),
@@ -1311,7 +1314,7 @@ function main() {
         heatFrames.push({ arr: f.arr, label: f.label });
         if (pi === 0) heatDefault = heatFrames.length - 1; // default time = END of the heating (charge) phase
       }));
-      document.getElementById('colMode').value = 'temperature'; setColorMode('temperature');
+      if (!window._figLock) { document.getElementById('colMode').value = 'temperature'; setColorMode('temperature'); }
       switchFrames(heatFrames);                            // phases become the timeline; opens at end-of-charge
       setStatus('ready');
     }).catch(() => {   // scenes without phase data (e.g. the array cell) have no heat.json -> no timeline, just show temperature
@@ -1516,8 +1519,8 @@ function main() {
                  // sampled from the printed panel itself: water renders #73b5d3, the slab #bec0c4.
                  // These are pre-divided by this renderer's mean shading factor (~0.85) so the
                  // shaded average matches the panel instead of the far darker base colour.
-                 pal:{ water:[0.533,0.839,0.976], concrete:[0.878,0.847,0.784], air:[0.980,0.988,1.0] },
-                 shade:{ water:[0.52,0.52,0.34,42], concrete:[0.50,0.52,0.10,8], air:[0.72,0.30,0.05,6] },
+                 pal:{ water:[0.453,0.713,0.830], concrete:[0.836,0.806,0.746], air:[0.968,0.976,0.992] },
+                 shade:{ water:[0.60,0.46,0.32,42], concrete:[0.56,0.46,0.10,8], air:[0.74,0.28,0.05,6] },
                  slabCol:[0.878,0.887,0.906],
                  cam:{ dir:[-0.62,0.78,-0.55], zoom:1.10 } },
       plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
@@ -1576,6 +1579,7 @@ function main() {
       const o = cm.querySelector('option[value="' + F.mode + '"]');
       if (o) { cm.value = F.mode; cm.dispatchEvent(new Event('change')); }
       if (F.layers && F.mode !== 'flow') Object.keys(F.layers).forEach(nm => figLayer(nm, F.layers[nm][0], F.layers[nm][1]));
+      window._figPal = F.pal || null;
       if (F.pal) Object.keys(F.pal).forEach(nm => { const o = objs[nm], c = F.pal[nm];   // the printed panel's own material colours
         if (o) { o.mapper.setScalarVisibility(false); o.actor.getProperty().setColor(c[0], c[1], c[2]); } });
       if (F.shade) Object.keys(F.shade).forEach(nm => { const o = objs[nm], h = F.shade[nm];
@@ -1710,7 +1714,7 @@ function main() {
     window._figLabels = updateFigLabels;
 
     document.getElementById('figFree').onclick = () => {          // back to the lab's own dark void, controls untouched
-      window._figLock = false;
+      window._figLock = false; window._figPal = null;
       document.body.classList.remove('figmode', 'figlabels', 'figkey', 'figbare', 'fignodeck');
       removeFigSlab();
       renderer.getActiveCamera().setParallelProjection(false);
@@ -2387,7 +2391,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-23e · FIG 2: colours matched to the printed render, not the base material');
+console.log('%c● GEOBATTERY build 2026-07-23f · FIG 2: palette survives late loads; poster links cache-busted');
 main();
 </script>
 
