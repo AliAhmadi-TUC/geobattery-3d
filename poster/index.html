@@ -488,9 +488,9 @@
             </div>
           </div>
         </div>
-        <div class="row2"><label>Elements across the inlet</label><span class="v" id="a-n">32</span></div>
+        <div class="row2"><label>Refine the mesh — elements across the inlet</label><span class="v" id="a-n">32</span></div>
         <input type="range" id="a-nin" min="2" max="512" step="1" value="32" aria-label="element count">
-        <div class="ticks"><span>2</span><span>32</span><span>512</span></div>
+        <div class="ticks"><span>2 — coarse</span><span>the nodal answer keeps moving, the reaction does not</span><span>512 — fine</span></div>
         <div class="stats">
           <div class="st bad"><b id="a-nod">—</b><span>nodal k&thinsp;dT/dn at the inlet</span></div>
           <div class="st hi"><b id="a-rea">—</b><span>reaction flux r<sub>h</sub>|<sub>Γ</sub></span></div>
@@ -528,7 +528,7 @@
           <button class="chip on" data-b="weak">no-flux, imposed weakly ✓</button>
           <button class="chip" data-b="pin">sealed face pinned at T₀ ✕</button>
         </div>
-        <div class="row2"><label>Elements</label><span class="v" id="b-n">40</span></div>
+        <div class="row2"><label>Refine the mesh — elements</label><span class="v" id="b-n">40</span></div>
         <input type="range" id="b-nin" min="4" max="400" step="2" value="40" aria-label="element count">
         <div class="stats">
           <div class="st" id="b-leakbox"><b id="b-leak">0.0 W/m²</b><span>flux through the “sealed” face</span></div>
@@ -1945,9 +1945,33 @@ const tent=(x,w,hgt,col,op)=>({type:'poly',
     $('a-rea').textContent=fmt(r.qReact,5);
     $('a-exa').textContent=fmt(FEM_A.qExact,5);
     $('a-err').textContent=(Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)*100).toFixed(2)+'%';
-    if(A_ST && !A_ST.S.playing && A_ST.S.i<2) A_ST.go(2,false); else if(A_MX) A_MX.draw();
+    // convergence chart
+    const s=$('c-num-a'), W=300,H=178,L=40,R=12,Tp=12,B=32; clear(s);
+    const ns=[]; for(let m=2;m<=512;m*=1.5) ns.push(Math.round(m)); ns.push(512);
+    const pts=ns.map(m=>{ const q=FEM_A.solve(m); return [m,
+      Math.max(1e-16,Math.abs(q.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)),
+      Math.max(1e-16,Math.abs(q.qReact-FEM_A.qExact)/Math.abs(FEM_A.qExact))]; });
+    const e0=1e-16,e1=1;
+    const X=m=>L+(W-L-R)*(Math.log(m)-Math.log(2))/(Math.log(512)-Math.log(2));
+    const Y=e=>Tp+(H-Tp-B)*(1-(Math.log10(e)-Math.log10(e0))/(Math.log10(e1)-Math.log10(e0)));
+    [0,-4,-8,-12,-16].forEach(p=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(Math.pow(10,p)),y2:Y(Math.pow(10,p))}));
+      s.appendChild(T(L-5,Y(Math.pow(10,p))+4,'1e'+p,{'text-anchor':'end','font-size':'9'})); });
+    [2,8,32,128,512].forEach(m=>s.appendChild(T(X(m),H-13,m,{'text-anchor':'middle','font-size':'9'})));
+    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' '),
+      fill:'none',stroke:'#B4501E','stroke-width':'2.4'}));
+    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[2]).toFixed(1)).join(' '),
+      fill:'none',stroke:'#0A6E38','stroke-width':'2.4'}));
+    s.appendChild(T(W-R-2,Y(pts[pts.length-1][1])-7,'nodal k dT/dn',{'text-anchor':'end',fill:'#B4501E','font-size':'9','font-weight':'700'}));
+    s.appendChild(T(W-R-2,Y(1e-15)-7,'reaction',{'text-anchor':'end',fill:'#0A6E38','font-size':'9','font-weight':'700'}));
+    const cur=Math.max(1e-16,Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact));
+    s.appendChild(E('circle',{cx:X(n),cy:Y(cur),r:4,fill:'#fff',stroke:'#C97A10','stroke-width':'2.6'}));
+    s.appendChild(T((L+W-R)/2,H-2,'elements',{'text-anchor':'middle','font-size':'9'}));
+    s.appendChild(T(-(H/2)+8,10,'relative flux error',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
   }
-  nIn.addEventListener('input',updA); updA();
+    if(A_ST && A_ST.S.i===2 && A_MX) A_MX.draw();   // the slider IS beat 3's experiment
+  nIn.addEventListener('input',updA);
+  nIn.addEventListener('pointerdown',()=>{ if(A_ST && !A_ST.S.playing && A_ST.S.i!==2) A_ST.go(2,true); });
+  updA();
 })();
 
 (function(){
@@ -2009,6 +2033,22 @@ const tent=(x,w,hgt,col,op)=>({type:'poly',
     $('b-n').textContent=n;
     $('b-leak').textContent=fmt(r.q,1)+' W/m²';
     $('b-leakbox').className='st '+(B_PIN?'bad':'hi');
+    const rw=FEM_B.solve(n,false), pin=B_PIN;
+    const s=$('c-num-b'), W=300,H=178,L=38,R=12,Tp=12,B=30; clear(s);
+    const X=x=>L+(W-L-R)*x/FEM_B.Ltot, Y=t=>Tp+(H-Tp-B)*(1-(t-0)/90);
+    s.appendChild(E('rect',{x:X(0),y:Tp,width:X(0.6)-X(0),height:H-Tp-B,fill:'#D0D0CD','fill-opacity':'.35'}));
+    s.appendChild(E('rect',{x:X(0.6),y:Tp,width:X(1.0)-X(0.6),height:H-Tp-B,fill:'#E6E0D2','fill-opacity':'.6'}));
+    s.appendChild(T(X(0.3),Tp+12,'rock',{'text-anchor':'middle',fill:'#6B7278','font-size':'9'}));
+    s.appendChild(T(X(0.8),Tp+12,'concrete',{'text-anchor':'middle',fill:'#6B7278','font-size':'9'}));
+    [0,30,60,90].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
+      s.appendChild(T(L-5,Y(g)+4,g,{'text-anchor':'end','font-size':'9'})); });
+    const path=t=>{ let d=''; for(let i=0;i<t.length;i++){ const x=i*FEM_B.Ltot/(t.length-1);
+      d+=(i?'L':'M')+X(x).toFixed(1)+' '+Y(t[i]).toFixed(1); } return d; };
+    s.appendChild(E('path',{d:path(rw.T),fill:'none',stroke:'#0A6E38','stroke-width':pin?1.4:2.6,'stroke-dasharray':pin?'4 3':''}));
+    if(pin) s.appendChild(E('path',{d:path(r.T),fill:'none',stroke:'#C0392B','stroke-width':'2.6'}));
+    s.appendChild(T(L,H-13,'sealed face',{'text-anchor':'start','font-size':'9',fill:pin?'#C0392B':'#0A6E38','font-weight':'700'}));
+    s.appendChild(T(W-R,H-13,'inlet 80 °C',{'text-anchor':'end','font-size':'9'}));
+    s.appendChild(T(-(H/2)+8,10,'temperature [°C]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
     if(B_MX) B_MX.draw(); }
   bIn.addEventListener('input',updB);
   document.querySelectorAll('#b-mode .chip').forEach(b=>b.onclick=()=>{
@@ -2088,6 +2128,32 @@ const tent=(x,w,hgt,col,op)=>({type:'poly',
     $('c-tab').innerHTML=h+'</tbody>';
     $('c-tab').querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>{ C_OP=+tr.dataset.i;
       [...box.children].forEach((c,j)=>c.classList.toggle('on',j===C_OP)); updC(); });
+    // scaling chart
+    const s=$('c-num-c'), W=300,H=178,L=42,R=14,Tp=12,B=32; clear(s);
+    const M=MUMPS.meshes;
+    const X=d=>L+(W-L-R)*(Math.log(d)-Math.log(3e5))/(Math.log(9e5)-Math.log(3e5));
+    const Y=m=>Tp+(H-Tp-B)*(1-(Math.log10(m)-Math.log10(500))/(Math.log10(30000)-Math.log10(500)));
+    [1000,3000,10000,30000].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
+      s.appendChild(T(L-5,Y(g)+4,(g/1000)+' GB',{'text-anchor':'end','font-size':'8.5'})); });
+    [3e5,5e5,8e5].forEach(d=>s.appendChild(T(X(d),H-13,(d/1e3)+'k',{'text-anchor':'middle','font-size':'9'})));
+    s.appendChild(E('line',{x1:L,x2:W-R,y1:Y(15000),y2:Y(15000),stroke:'#C0392B','stroke-width':'1.3','stroke-dasharray':'5 4'}));
+    s.appendChild(T(W-R-2,Y(15000)-5,'15 GB in-core ceiling',{'text-anchor':'end',fill:'#C0392B','font-size':'8.5','font-weight':'700'}));
+    const ok=M.filter(m=>m.ok);
+    s.appendChild(E('path',{d:ok.map((m,i)=>(i?'L':'M')+X(m.dof).toFixed(1)+' '+Y(m.mem).toFixed(1)).join(' '),
+      fill:'none',stroke:'#2A6FB0','stroke-width':'2.4'}));
+    // measured trend extended to the mesh that did not fit
+    const g=Math.log(M[1].mem/M[0].mem)/Math.log(M[1].dof/M[0].dof);
+    const pred=M[1].mem*Math.pow(M[2].dof/M[1].dof,g);
+    s.appendChild(E('path',{d:'M'+X(M[1].dof)+' '+Y(M[1].mem)+'L'+X(M[2].dof)+' '+Y(pred),
+      fill:'none',stroke:'#2A6FB0','stroke-width':'1.6','stroke-dasharray':'4 3','stroke-opacity':'.7'}));
+    M.forEach(m=>{ const yy=m.ok?m.mem:pred;
+      s.appendChild(E('circle',{cx:X(m.dof),cy:Y(yy),r:m.ok?4.5:5.5,fill:m.ok?'#2A6FB0':'#fff',
+        stroke:m.ok?'#fff':'#C0392B','stroke-width':m.ok?1.6:2.8}));
+      s.appendChild(T(X(m.dof),Y(yy)-11,m.ok?fmt(m.mem/1000,1)+' GB':'✕',
+        {'text-anchor':'middle','font-size':'9','font-weight':'700',fill:m.ok?'#2A6FB0':'#C0392B'})); });
+    s.appendChild(T(X(M[2].dof)-4,Y(pred)+16,'did not fit',{'text-anchor':'end',fill:'#C0392B','font-size':'8.5'}));
+    s.appendChild(T((L+W-R)/2,H-2,'degrees of freedom',{'text-anchor':'middle','font-size':'9'}));
+    s.appendChild(T(-(H/2)+8,10,'factorisation memory',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
     if(C_MX) C_MX.draw(); }
   updC();
 })();
