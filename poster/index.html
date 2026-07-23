@@ -312,33 +312,66 @@
     </div>
   </div>
 
-  <!-- ══════════ FIG 4a · the screening nomogram ══════════ -->
+  <!-- ══════════ FIG 4a · the admissibility plane ══════════ -->
   <div class="modal wide" id="m-screening" role="dialog" aria-modal="true" hidden>
-    <div class="mh"><h2><span class="k">04 · when it does work</span>Read your mine before you dig</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mh"><h2><span class="k">04 · when it does work</span>Read your own mine off the plane</h2><button class="x" data-close aria-label="close">✕</button></div>
     <div class="mb">
-      <p class="lead">Retention collapses onto <b>three dimensionless groups</b>, so absolute size cancels: a mine
-        reads its own first-cycle retention off one chart, from survey data alone, before any 3-D mesh exists.
-        The only geometry that enters is the specific surface <b>a&nbsp;=&nbsp;A<sub>wetted</sub>/V<sub>water</sub></b>,
-        or equivalently the reach <b>L<sub>c</sub>&nbsp;=&nbsp;2/a</b>.</p>
-      <div class="card2">
-        <h3>Retention chart · drag the marker</h3>
-        <p class="sc">Four host rocks spanning the conductivity ratio κ. Note how little the rock matters and how
-          much the geometry does — the band is narrow, the slope is not.</p>
-        <svg class="chart" id="c-screen" viewBox="0 0 520 260"></svg>
+      <p class="lead">Retention collapses onto three dimensionless groups, so <b>absolute size cancels</b>: a mine
+        reads its own first-cycle retention from survey data, before any mesh exists. Only two numbers enter — the
+        specific surface <b>a&nbsp;=&nbsp;A<sub>wetted</sub>/V<sub>water</sub></b> and how long you intend to seal it.
+        That makes the criterion a <b>plane</b>, not a curve, and every iso-retention level on it is
+        <b>exactly a straight line</b>, because Fo&nbsp;=&nbsp;α&thinsp;t&thinsp;a²/4.</p>
+
+      <div class="figkey">
+        <span><i style="background:linear-gradient(90deg,#0A6E38,#CFE4D7)"></i>retention high · viable</span>
+        <span><i style="background:linear-gradient(90deg,#F0C97A,#B4501E)"></i>retention low · drains to the rock</span>
+        <span><i style="background:#0C1015"></i>your acceptance criterion</span>
+        <span><i style="background:#0C1015;opacity:.15"></i>span of all four host rocks</span>
       </div>
-      <div class="row2"><label>Opening reach&nbsp; L<sub>c</sub></label><span class="v" id="k-lc">1.05 m</span></div>
-      <input type="range" class="heat" id="k-lcin" min="0.667" max="10" step="0.01" value="1.046" aria-label="opening reach">
-      <div class="ticks"><span>0.67 m</span><span>L<sub>c</sub> = 2/a</span><span>10 m</span></div>
+      <div class="howto">
+        <span>drag the puck anywhere on the plane — that is your mine</span>
+        <span>drag the ≡ tab to change what counts as viable</span>
+        <span>hover to read any point</span>
+      </div>
+
+      <div class="figwrap" id="k-fig">
+        <svg id="c-plane" viewBox="0 0 560 320" aria-label="admissibility plane: specific surface against seal length"></svg>
+        <div class="ftip" id="k-tip"></div>
+      </div>
+
       <div class="chips" id="k-rocks"></div>
+      <div class="chips" id="k-snap"></div>
+
       <div class="stats">
-        <div class="st"><b id="k-av">1.91 m⁻¹</b><span>specific surface a = 2/L<sub>c</sub></span></div>
-        <div class="st"><b id="k-fo">13.7</b><span>Fourier number over the 123-day seal</span></div>
-        <div class="st bad" id="k-rfbox"><b id="k-rf">4.9%</b><span>retained, first cycle</span></div>
-        <div class="st"><b><span class="verdict fail" id="k-verdict">✕ loses it</span></b><span>RF ≥ 50% is the viable band</span></div>
+        <div class="st"><b id="k-a">—</b><span>specific surface a = A/V</span></div>
+        <div class="st"><b id="k-lc">—</b><span>opening reach L<sub>c</sub> = 2/a</span></div>
+        <div class="st"><b id="k-t">—</b><span>seal length</span></div>
+        <div class="st"><b id="k-fo">—</b><span>Fourier number Fo = α·t·a²/4</span></div>
+        <div class="st bad" id="k-rfbox"><b id="k-rf">—</b><span>retained, first cycle</span></div>
+        <div class="st"><b><span class="verdict fail" id="k-verdict">—</span></b><span>against your target</span></div>
       </div>
       <p class="mut" id="k-say"></p>
-      <p class="mut">The as-built drift (L<sub>c</sub>&nbsp;=&nbsp;1.05&nbsp;m, a&nbsp;=&nbsp;1.91&nbsp;m⁻¹) sits
-        <b>3.3×</b> too deep in the loss regime: it needs L<sub>c</sub>&nbsp;≥&nbsp;3.4&nbsp;m — a chamber, or the array.</p>
+
+      <div class="card2">
+        <h3>Ten cycles — the array changes the shape of the climb, not its start</h3>
+        <p class="sc">Grey = isolated opening. Coloured = with neighbours at the chosen pitch. The dashed red line is
+          the <b>marginal</b> ratio, recovered ÷ injected <em>in that one cycle</em> — the number an array is usually
+          quoted by. The bars are <b>cumulative</b> retention, which is the one bounded by 100%.</p>
+        <svg class="chart" id="c-stair" viewBox="0 0 560 196"></svg>
+        <div class="row2"><label>Neighbour pitch</label><span class="v" id="k-pitch">isolated</span></div>
+        <input type="range" class="heat" id="k-pitchin" min="2.5" max="54" step="0.1" value="54" aria-label="neighbour pitch">
+        <div class="ticks"><span>close</span><span>← more neighbours · fewer →</span><span>isolated</span></div>
+        <p class="mut" id="k-stair" style="margin-top:9px"></p>
+      </div>
+
+      <p class="mut">The field is the 1-D radial solver of <b>theory_dimensionless.py</b>, solved offline over
+        (Fo, κ) and interpolated here — worst error <b>0.5%</b> against a fresh solve, and it reproduces the study's
+        own criterion (L<sub>c</sub>&nbsp;=&nbsp;3.405&nbsp;m → retention 0.4993). Panel 2 is the <b>host rock only</b>
+        (gneiss, κ&nbsp;=&nbsp;5); it reproduces the published pitch levers to within 3%. Conduction only — no flow —
+        and the charge is modelled as an instantaneous reset of the whole water body to 80&nbsp;°C, so retention here
+        is an <b>upper bound</b>. First cycle assumes cold rock, which is the conservative case. χ is held at the
+        study's value of 0.51; the rock ratio κ moves α<sub>rock</sub> with it. Limestone and sandstone are excluded —
+        they are permeable, and the conduction-only premise fails for them.</p>
     </div>
   </div>
 
@@ -565,6 +598,18 @@ const LDH_B64='biJqIvohqR/sH8QffR+vIDUh/CKEJP0mziYWJoUnLigfKjgslCsTKo8m1CTmI0MhJ
 function unpack16(b64){ const s=atob(b64), n=s.length>>1, a=new Uint16Array(n);
   for(let i=0;i<n;i++) a[i]=s.charCodeAt(2*i)|(s.charCodeAt(2*i+1)<<8); return a; }
 const PVH=unpack16(PVH_B64), LDH=unpack16(LDH_B64);
+
+/* ── FIG 4 payload ───────────────────────────────────────────────────────────
+   Retention solved with theory_dimensionless.solve_cycle (1-D radial FV) and
+   embedded as uint16 tables. chi = 0.509556, held at the study value.
+   A: first-cycle RF over (Fo, kappa), isolated opening   -> the printed criterion
+   B: cumulative retention theta over (Fo, R_far/Lc, cycle) at kappa = 5 (gneiss)
+      theta is bounded [0,1]; the marginal ratio is exact: RFn = tn/(1-t(n-1)).
+   alpha_rock = ALPHA0 * kappa  (rho*c held fixed), so Fo = ALPHA0*kappa*t*a^2/4. */
+const ALPHA0=2.8129395218e-07;
+const RFA={fo:[0.01,0.0118317,0.013999,0.0165633,0.0195972,0.0231869,0.0274341,0.0324594,0.0384051,0.0454399,0.0537633,0.0636113,0.0752632,0.0890495,0.105361,0.12466,0.147495,0.174512,0.206478,0.2443,0.289049,0.341995,0.40464,0.478759,0.566455,0.670215,0.792981,0.938235,1.11009,1.31343,1.55402,1.83868,2.17548,2.57397,3.04545,3.6033,4.26333,5.04426,5.96823,7.06146,8.35493,9.88534,11.6961,13.8385,16.3733,19.3725,22.921,27.1196,32.0872,37.9647,44.9188,53.1468,62.8819,74.4002,88.0284,104.153,123.231,145.804,172.511,204.111,241.498,285.735,338.074,400],kap:[1.2,1.33527,1.4858,1.65329,1.83966,2.04704,2.2778,2.53457,2.82029,3.13821,3.49198,3.88562,4.32364,4.81103,5.35337,5.95684,6.62834,7.37554,8.20697,9.13213,10.1616,11.3071,12.5817,14],s:32000,b64:'2nQLdT11b3WhddN1BXY3dml2mnbLdvx2LHdcd4t3uXfndxR4QXhseJd4wXjpeBF5IXRXdI10xHT6dDF1Z3WdddN1CXY/dnR2qHbcdg93Qnd0d6V31XcFeDN4YXiNeLh4WHOTc85zCXREdH90u3T2dDF1a3Wmdd91GXZRdol2wHb3dix3YXeUd8d3+HcoeFh4fXK9cv1yPXN+c79z/3NAdIB0wHT/dD51fHW6dfd1M3Zudqh24XYZd1B3hne7d+53jnHUcRpyYHKmcu1yM3N5c79zBXRKdI500nQVdVd1mXXZdRl2V3aUdtB2CndEd3x3inDWcCJxb3G7cQhyVXKhcu1yOXOEc89zGXRidKp08XQ3dXx1wHUDdkR2hHbCdv92b2/CbxVwaHC8cA9xY3G2cQlyW3Ktcv5yT3Oec+1zO3SHdNJ0HHVkdat18XU1dnd2O26Vbu9uSm+lbwBwW3C2cBBxanHDcRtyc3LKch9zdHPHcxl0aXS4dAV1UXWbdeN17GxObbBtE252btluPG+fbwFwY3DEcCRxhHHicT9ym3L2ck9zp3P9c1F0o3T0dEN1fmvpa1RswGwsbZdtA25vbtpuRW+ubxdwf3DmcExxsHETcnRy03Ixc4xz5nM+dJN08WllatpqT2vEazpsr2wkbZltDW6AbvJuZG/Ub0Jwr3AbcYVx7HFScrZyGHN3c9VzQGi+aD1pvWk9ar1qPWu8aztsuWw3bbRtL26pbiFvmG8NcIBw8XBgcc1xOHKgcgVzambzZn1nCGiTaB5pqWk0ar9qSGvRa1hs32xkbedtaG7obmVv4G9ZcM9wQ3G1cSNyamQAZZZlLWbEZltn82eKaCFptmlLat9qcWsCbJFsHW2obTFut246b7tvOnC1cC1xP2LhYoRjKGTNZHFlFma6Zl5nAWijaERp42mBahxrtWtNbOFsc20Dbo9uGG+fbyJw41+TYEVh92GpYlxjEGTCZHRlJmbWZoVnMmjeaIdpLmrSanRrE2yvbEht3m1wbv9uVV0UXtRelV9XYBph3GGfYmBjIWThZJ9lXGYWZ85nhGg3aedplGo+a+Vrh2wnbcJtkVpfWy9cAV3TXaZeeV9MYB5h8GHAYo9jXGQnZe9ltWZ4Zzho9GitaWJqE2vAa2psk1dyWFJZNVoYW/1b4lzHXatej19xYFJhMWINY+djvmSSZWJmL2f4Z71ofmk7avNqWVRIVTpWL1clWBxZFFoMWwNc+lzwXeRe1l/FYLJhnGKCY2VkRGUeZvVmxmeUaFxp4VDhUeRS61P0VP9VC1cXWCNZLlo5W0FcSF1MXk1fS2BFYTtiLmMbZARl6GXIZqFnKU05Tk9PaFCFUaRSxFPlVAdWKFdIWGdZg1qdW7RcyF3XXuNf6mDsYepi4mPUZMFlM0lSSnhLo0zTTQdPPVB0UaxS5FMbVVFWhVe2WOVZD1s2XFhddl6OX6FgrmG2YrdjAkUtRmFHnUjgSSdLc0zATQ9PX1CuUf1SSVSTVdpWHlhdWZdazVv9XCheTF9qYIJhnkDQQQ9DWUSsRQZHZUjJSS9Ll0z/TWdPzVAxUpJT8FRJVp1X7Vg2Wnpbt1ztXRxfDzxEPYg+2z86QaRCFUSORQpHikgLSo1LDU2MTglQglH2UmZU0VU2V5RY61k8W4RcZTeVONg5LjuUPAg+iD8SQaJCOETSRW1HCUmjSjxM0U1jT+9Qd1L4U3NV5lZSWLZZrjLSMw01XzbENz05xTpbPPw9pT9VQQlDvkR0RilI3EmLSzZN2056UBNSpFMuVa9W/S0PLzowfzHcMlA02TV0Nx851zqZPGI+MEAAQtFDoEVuRzdJ+0q6THJOIlDKUWpTYildKnIroyzvLVYv1jBuMho02TWmN385YTtJPTM/H0EKQ/JE1ka0SIxKXUwmTuZP7iTOJcgm3icSKWIq0CtaLf8uujCLMmw0XDZVOFY6WzxhPmdAakJoRGFGVEg+Sh9MsSBzIU8iRiNaJI4l4CZSKOMpkStZLTkvLTExM0E1Wjd4OZk7uT3XP/BBBEQQRhRItRxaHRYe7B7eH+0gHSJvI+IkdiYqKPwp6SvsLQIwJzJXNI02xzgCOzo9bj+cQcNDBRmOGSsa3xqsG5Ucnh3IHhQghSEZI9AkqCaeKK4q1CwLL1AxnTPvNUM4lTrkPCw/qBUXFpYWKRfTF5UYdBlyGpIb1xxCHtIfiCFjI14ldyeqKfErSC6qMBMzfzXqN1I6nxL3El0T0hNaFPcUrRV/FnAXhBi+GR4bpxxYHjEgLiJMJIgm2yhCK7ctNDC3Mjo17A8wEH8Q2xBFEcARUBL4ErsTnRSiFc0WIBieGUYbGB0THzIhciPPJUIoxipWLe0vjA3ADfwNQQ6SDvEOYA/hD3oQLRH+EfESChRNFbsWVhgeGhEcLR5uIM8iSyXbJ3sqewuhC84LAgw+DIUM2Aw5Da0NNQ7WDpUPdBB6EagSBBSNFUYXLhlCG38d4R9hIvoksgnOCe8JFQpBCnUKsQr5Ck0LsgsqDLkMZA0uDh4PNhB7EfASlxRuFnUYqhoHHYcfKwg/CFcIcwiSCLcI4wgWCVIJmgnwCVgK1QpsCyAM+Qz5DSUPghASEtUTyxXyF0Ya3gbtBv4GEQcoB0IHYQeEB68H4QcdCGYIvggqCawJSwoLC/ELBA1GDrsPZhFHE1wVxQXPBdsF6QX5BQsGIAY5BlYGeQaiBtQGEAdaB7QHIwisCFQJIAoXCzwMlQ0lD+wQ1wTfBOcE8QT8BAkFFwUoBTwFVAVvBZEFuQXqBScGcQbOBkMH0weFCF8JZwqhCxINEAQVBBsEIgQpBDIEPARIBFUEZQR4BI4EqATJBPAEIQVdBaoFCwaEBh0H2wfECN8JaQNsA3ADdQN6A4ADhwOPA5gDowOvA74DzwPkA/0DHARDBHQEsQQABWUF5gWIBlQH3ALfAuIC5QLpAu0C8gL3Av0CBAMNAxYDIgMvAz8DUwNrA4kDrwPgAyAEcgTcBGUFZwJpAmsCbQJvAnICdgJ5An4CggKIAo4ClgKfAqkCtgLFAtcC7gIMAzIDZAOlA/wDBAIGAgcCCQIKAgwCDwIRAhQCFwIbAiACJQIqAjECOQJDAk4CXAJuAoQCogLIAvsCsgGzAbQBtQG2AbcBuQG7Ab0BvwHCAcUByAHMAdAB1gHcAeMB7AH2AQQCFQIrAkgCbQFtAW4BbwFwAXEBcgFzAXQBdgF4AXoBfAF/AYIBhQGJAY4BkwGaAaIBrAG4AckBMwEzATQBNAE1ATYBNgE3ATgBOQE6ATwBPQE/AUEBRAFGAUkBTQFRAVYBXAFjAW0BAgEDAQMBAwEEAQQBBQEFAQYBBwEIAQgBCgELAQwBDgEQARIBFAEXARoBHgEiASgB2QDaANoA2gDaANsA2wDcANwA3QDdAN4A3wDfAOAA4QDjAOQA5gDnAOoA7ADvAPIAtwC3ALcAuAC4ALgAuAC5ALkAuQC6ALoAuwC7ALwAvQC+AL4AwADBAMIAxADGAMgAmgCaAJsAmwCbAJsAmwCbAJwAnACcAJwAnQCdAJ4AngCfAJ8AoAChAKIAowCkAKYAggCCAIIAggCCAIMAgwCDAIMAgwCDAIQAhACEAIQAhQCFAIYAhgCHAIcAiACJAIoAbgBuAG4AbgBuAG4AbgBuAG4AbgBvAG8AbwBvAG8AcABwAHAAcQBxAHEAcgByAHMAXQBdAF0AXQBdAF0AXQBdAF0AXQBdAF0AXQBeAF4AXgBeAF4AXwBfAF8AXwBgAGAATgBOAE4ATgBOAE4ATgBOAE4ATgBOAE8ATwBPAE8ATwBPAE8ATwBQAFAAUABQAFEAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQgBCAEIAQwBDAEMAQwBDAEMAQwBEAEQAOAA4ADgAOAA4ADgAOAA4ADgAOAA4ADgAOAA4ADgAOAA4ADgAOAA4ADkAOQA5ADkALwAvAC8ALwAvAC8ALwAvAC8ALwAvAC8ALwAvAC8ALwAvAC8AMAAwADAAMAAwADAAKAAoACgAKAAoACgAKAAoACgAKAAoACgAKAAoACgAKAAoACgAKAAoACgAKAAoACkA'};
+const RFB={fo:[0.02,0.0249062,0.0310159,0.0386243,0.0480992,0.0598984,0.0745919,0.09289,0.115677,0.144053,0.179391,0.223397,0.278198,0.346442,0.431427,0.53726,0.669055,0.83318,1.03757,1.29209,1.60905,2.00376,2.4953,3.10742,3.8697,4.81897,6.00111,7.47323,9.30648,11.5894,14.4324,17.9728,22.3817,27.8721,34.7094,43.2239,53.8271,67.0314,83.4747,103.952,129.452,161.208,200.753,250],rrl:[2.5,3.08997,3.81916,4.72044,5.8344,7.21125,8.91301,11.0164,13.6161,16.8293,20.8008,25.7096,31.7767,39.2756,48.5442,60],nc:10,s:65535,b64:'z+8P86/0uvV59gv3f/ff9zD4dfjP7w/zr/S69Xn2C/d/99/3MPh1+M/vD/Ov9Lr1efYL93/33/cw+HX4z+8P86/0uvV59gv3f/ff9zD4dfjP7w/zr/S69Xn2C/d/99/3MPh1+M/vD/Ov9Lr1efYL93/33/cw+HX4z+8P86/0uvV59gv3f/ff9zD4dfjP7w/zr/S69Xn2C/d/99/3MPh1+M/vD/Ov9Lr1efYL93/33/cw+HX4z+8P86/0uvV59gv3f/ff9zD4dfjP7w/zr/S69Xn2C/d/99/3MPh1+M/vD/Ov9Lr1efYL93/33/cw+HX4z+8P86/0uvV59gv3f/ff9zD4dfjP7w/zr/S69Xn2C/d/99/3MPh1+M/vD/Ov9Lr1efYL93/33/cw+HX4z+8P86/0uvV59gv3f/ff9zD4dfjq7YDxSvNw9EL14/Vj9sz2Jfdy9+rtgPFK83D0QvXj9WP2zPYl93L36u2A8UrzcPRC9eP1Y/bM9iX3cvfq7YDxSvNw9EL14/Vj9sz2Jfdy9+rtgPFK83D0QvXj9WP2zPYl93L36u2A8UrzcPRC9eP1Y/bM9iX3cvfq7YDxSvNw9EL14/Vj9sz2Jfdy9+rtgPFK83D0QvXj9WP2zPYl93L36u2A8UrzcPRC9eP1Y/bM9iX3cvfq7YDxSvNw9EL14/Vj9sz2Jfdy9+rtgPFK83D0QvXj9WP2zPYl93L36u2A8UrzcPRC9eP1Y/bM9iX3cvfq7YDxSvNw9EL14/Vj9sz2Jfdy9+rtgPFK83D0QvXj9WP2zPYl93L36u2A8UrzcPRC9eP1Y/bM9iX3cvfq7YDxSvNw9EL14/Vj9sz2Jfdy983rv++38fry4fOS9B/1k/X19Ur2zeu/77fx+vLh85L0H/WT9fX1SfbN67/vt/H68uHzkvQf9ZP19fVJ9s3rv++38fry4fOS9B/1k/X19Un2zeu/77fx+vLh85L0H/WT9fX1SfbN67/vt/H68uHzkvQf9ZP19fVJ9s3rv++38fry4fOS9B/1k/X19Un2zeu/77fx+vLh85L0H/WT9fX1SfbN67/vt/H68uHzkvQf9ZP19fVJ9s3rv++38fry4fOS9B/1k/X19Un2zeu/77fx+vLh85L0H/WT9fX1SfbN67/vt/H68uHzkvQf9ZP19fVJ9s3rv++38fry4fOS9B/1k/X19Un2zeu/77fx+vLh85L0H/WT9fX1SfbN67/vt/H68uHzkvQf9ZP19fVJ9s3rv++38fry4fOS9B/1k/X19Un2cOnH7fDvU/FR8hPzrvMu9Jr0+PRw6cft8O9T8VHyE/Ou8y30mfT19HDpx+3w71PxUfIT867zLfSZ9PX0cOnH7fDvU/FR8hPzrvMt9Jn09fRw6cft8O9T8VHyE/Ou8y30mfT19HDpx+3w71PxUfIT867zLfSZ9PX0cOnH7fDvU/FR8hPzrvMt9Jn09fRw6cft8O9T8VHyE/Ou8y30mfT19HDpx+3w71PxUfIT867zLfSZ9PX0cOnH7fDvU/FR8hPzrvMt9Jn09fRw6cft8O9T8VHyE/Ou8y30mfT19HDpx+3w71PxUfIT867zLfSZ9PX0cOnH7fDvU/FR8hPzrvMt9Jn09fRw6cft8O9T8VHyE/Ou8y30mfT19HDpx+3w71PxUfIT867zLfSZ9PX0cOnH7fDvU/FR8hPzrvMt9Jn09fTL5o/r7u1z74nwXvEJ8pfyEPN688vmj+vu7XPvifBe8QjylPIK83Dzy+aP6+7tc++J8F7xCPKU8grzcPPL5o/r7u1z74nwXvEI8pTyCvNw88vmj+vu7XPvifBe8QjylPIK83Dzy+aP6+7tc++J8F7xCPKU8grzcPPL5o/r7u1z74nwXvEI8pTyCvNw88vmj+vu7XPvifBe8QjylPIK83Dzy+aP6+7tc++J8F7xCPKU8grzcPPL5o/r7u1z74nwXvEI8pTyCvNw88vmj+vu7XPvifBe8QjylPIK83Dzy+aP6+7tc++J8F7xCPKU8grzcPPL5o/r7u1z74nwXvEI8pTyCvNw88vmj+vu7XPvifBe8QjylPIK83Dzy+aP6+7tc++J8F7xCPKU8grzcPPL5o/r7u1z74nwXvEI8pTyCvNw89jjEemp61PthO5u7yvwyvBV8dHx2OMR6anrU+2D7mzvJ/DA8ELxsvHY4xHpqetT7YPubO8n8MDwQvGx8djjEemp61Ptg+5s7yfwwPBC8bHx2OMR6anrU+2D7mzvJ/DA8ELxsfHY4xHpqetT7YPubO8n8MDwQvGx8djjEemp61Ptg+5s7yfwwPBC8bHx2OMR6anrU+2D7mzvJ/DA8ELxsfHY4xHpqetT7YPubO8n8MDwQvGx8djjEemp61Ptg+5s7yfwwPBC8bHx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MbTTvljEaMjoyxnPE9Lc1HnX7tkxtMq+CMR4xxTKRcw6zgzQxNFp0zG0yr4FxGPH08m5y0vNps7dz/vQMbTKvgXEYsfQya/LMs10zojPetAxtMq+BcRix9DJr8sxzXLOg89v0DG0yr4FxGLH0MmvyzHNcs6Dz2/QMbTKvgXEYsfQya/LMc1yzoPPb9AxtMq+BcRix9DJr8sxzXLOg89v0DG0yr4FxGLH0MmvyzHNcs6Dz2/QMbTKvgXEYsfQya/LMc1yzoPPb9AxtMq+BcRix9DJr8sxzXLOg89v0DG0yr4FxGLH0MmvyzHNcs6Dz2/QMbTKvgXEYsfQya/LMc1yzoPPb9AxtMq+BcRix9DJr8sxzXLOg89v0DG0yr4FxGLH0MmvyzHNcs6Dz2/QpatTuBLBk8grz/rUGNqa3pPiE+aPq+62Kb0QwmzGb8oozp/R19TW14+rzrZqvDPAOMPdxU7ImsrLzOPOj6vNtly887+TwqvEc8YKyIDJ4sqPq822XLzwv4bCh8QnxoXHtcjEyY+rzbZcvPC/hsKGxCLGesefyJ7Jj6vNtly88L+GwobEIsZ6x57InMmPq822XLzwv4bChsQixnrHnsicyY+rzbZcvPC/hsKGxCLGeseeyJzJj6vNtly88L+GwobEIsZ6x57InMmPq822XLzwv4bChsQixnrHnsicyY+rzbZcvPC/hsKGxCLGeseeyJzJj6vNtly88L+GwobEIsZ6x57InMmPq822XLzwv4bChsQixnrHnsicyY+rzbZcvPC/hsKGxCLGeseeyJzJj6vNtly88L+GwobEIsZ6x57InMlLotSwh7uwxJ/MfdNx2ZneEOPv5g2iRq6DtYm7+sD3xY/Kyc6u0kTWC6LrrfazQbjeuya/OMIhxebHiMoLouetx7Oct3263bz2vuTAt8J1xAui563Fs5C3ULp1vDi+u78UwU/CC6LnrcWzj7dOum68Jr6Vv9DA48ELouetxbOPt066brwlvpO/zMDbwQui563Fs4+3TrpuvCW+k7/MwNvBC6LnrcWzj7dOum68Jb6Tv8zA28ELouetxbOPt066brwlvpO/zMDbwQui563Fs4+3TrpuvCW+k7/MwNvBC6LnrcWzj7dOum68Jb6Tv8zA28ELouetxbOPt066brwlvpO/zMDbwQui563Fs4+3TrpuvCW+k7/MwNvBC6LnrcWzj7dOum68Jb6Tv8zA28ELouetxbOPt066brwlvpO/zMDbwTmYKqkvtjXBlsqQ0lnZH98I5DXooZftpIyt/rS4u9bBZ8d5zBfRS9Walxektqq+ry20SbglvMu/PsOCxpqXBqQ4qluul7FjtPK2W7mpu+G9mpcGpDCqL64csW6zY7Uet7S4MbqalwakMKotrhOxUrMmtbC2Bbg1uZqXBqQwqi2uErFRsyO1qLb0txW5mpcGpDCqLa4SsVGzI7WntvO3FLmalwakMKotrhKxUbMjtae287cUuZqXBqQwqi2uErFRsyO1p7bztxS5mpcGpDCqLa4SsVGzI7WntvO3FLmalwakMKotrhKxUbMjtae287cUuZqXBqQwqi2uErFRsyO1p7bztxS5mpcGpDCqLa4SsVGzI7WntvO3FLmalwakMKotrhKxUbMjtae287cUuZqXBqQwqi2uErFRsyO1p7bztxS5jo2BoS2xO74fyTbSy9kf4GflzulQjAibdKWZrs22Lb7PxMbKItD11DWMVpnIoNimV6x2sUK2w7r+vvbCNYwfmaufO6QAqGWrla6esYe0U7c1jB2ZjJ/Bo+Smdqm2q8Wtta+QsTWMHZmLn7ijw6YjqRerw6w/rpivNYwdmYufuKPBph6pCKujrASuOa81jB2Zi5+4o8GmHqkIq6KsAa4yrzWMHZmLn7ijwaYeqQiroqwBrjKvNYwdmYufuKPBph6pCKuirAGuMq81jB2Zi5+4o8GmHqkIq6KsAa4yrzWMHZmLn7ijwaYeqQiroqwBrjKvNYwdmYufuKPBph6pCKuirAGuMq81jB2Zi5+4o8GmHqkIq6KsAa4yrzWMHZmLn7ijwaYeqQiroqwBrjKvNYwdmYufuKPBph6pCKuirAGuMq9/ggean6zSu0DIadK52oThEuee6zKAzpBvnYioX7Iau9rCu8nWz0HV5H/CjV+WxZ2PpN6qvbA0tkq7B8DhfzSNMJRhmeidGqIVpuKphK3/sOF/Ko3Wk0iYuZusnlqh4KNLpqCo4X8qjdCTJ5hWm92d/Z/boZCjKaXhfyqN0JMmmFCbx53Kn3yh9aJDpOF/Ko3QkyaYT5vGncefdaHloiek4X8qjdCTJphPm8adx591oeWiJqThfyqN0JMmmE+bxp3Hn3Wh5aImpOF/Ko3QkyaYT5vGncefdaHloiak4X8qjdCTJphPm8adx591oeWiJqThfyqN0JMmmE+bxp3Hn3Wh5aImpOF/Ko3QkyaYT5vGncefdaHloiak4X8qjdCTJphPm8adx591oeWiJqThfyqN0JMmmE+bxp3Hn3Wh5aImpFJ37ZKhqAO68McY0wfcL+Pr6ILtfnOFhrWV9KKMrrK4lMFbySrQINbCcpOBv4vFlA6ds6TAq0GyQrjNvbRyW4D3hw2OkpPDmLCdYKLXphirtHI3gByH4ovIj0aTjJaumbScoZ+0cjWABoeBi9qOlZH2kyGWK5gemrRyNYAFh3qLvo5PkWuTOpXTlkiYtHI1gAWHeou9jkqRXpMelZ+W8Ze0cjWABYd6i72OSpFekx2VnJbrl7RyNYAFh3qLvY5KkV6THZWcluuXtHI1gAWHeou9jkqRXpMdlZyW65e0cjWABYd6i72OSpFekx2VnJbrl7RyNYAFh3qLvY5KkV6THZWcluuXtHI1gAWHeou9jkqRXpMdlZyW65e0cjWABYd6i72OSpFekx2VnJbrl7RyNYAFh3qLvY5KkV6THZWcluuXZ2xmjEaly7gdyCPUk9375MvqW++QZoF8gI4Fnmqr+7b2wJXJBdFx1w5lI3U9gR+MDpYjn3GnCK/5tVK84GTQclJ7lIJPiaiPqJVWm7egzqXeZGpykHnSfl6DmIeei36PO5PYlt5kY3JKeel9e4GFhEeH34lcjMWO3mRjckZ5zn0ogdGDD4YHiNKJf4veZGNyRnnNfSKBv4PihbGHRImqit5kY3JGec19IoG+g+CFq4c2iZCK3mRjckZ5zX0igb6D4IWrhzaJj4reZGNyRnnNfSKBvoPghauHNomPit5kY3JGec19IoG+g+CFq4c2iY+K3mRjckZ5zX0igb6D4IWrhzaJj4reZGNyRnnNfSKBvoPghauHNomPit5kY3JGec19IoG+g+CFq4c2iY+K3mRjckZ5zX0igb6D4IWrhzaJj4oyYqiGmKIZuKfIZdU038HmkOwK8e5ZI3MNiNuZBKnttevASMpB0gvZNFfsaDx3HoTIj1ma66OXrHG0j7u5VgBltm5id3x/GIdBjv6UVJtKobFWEmSSa4Zx7XYLfPKAqYUzipKOsVb3Y+Jqr2+XcxV3W3p/fYuAgoOxVvZj0Gpeb8pylXUEeDp6TnxLfrFW9mPQallvs3JYdYh3aHkSe5V8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'};
+
 const DOY0=[0]; for(let m=0;m<12;m++) DOY0.push(DOY0[m]+MDAY[m]);      // DOY0[m] = days before month m
 const dayMonth=d=>{ for(let m=11;m>=0;m--) if(d>DOY0[m]) return m; return 0; };   // d is 1-based
 const dayLabel=d=>{ const m=dayMonth(d); return (d-DOY0[m])+' '+MON[m]; };
@@ -634,7 +679,7 @@ const HOT=[
  {l:10.58,t:39.82,w:30.44,h:9.92,  k:'FIG 2',  lab:'Open the drift in 3-D',            href:'../?fig=cutaway'},
  {l:7.13, t:58.41,w:37.33,h:7.49,  k:'FIG 3A', lab:'Play charge → storage in 3-D',      href:'../?fig=plume'},
  {l:7.13, t:68.55,w:37.33,h:9.34,  k:'FIG 3B', lab:'Watch the charge flow in 3-D',      href:'../?fig=flow'},
- {l:51.31,t:18.88,w:22.12,h:12.07, k:'FIG 4a', lab:'Read your own mine off the chart',  m:'screening'},
+ {l:51.31,t:18.88,w:22.12,h:12.07, k:'FIG 4a', lab:'Put your own mine on the plane',  m:'screening'},
  {l:75.03,t:18.88,w:22.06,h:11.52, k:'FIG 4b', lab:'Move the ground temperature',       m:'grade'},
  {l:51.31,t:41.09,w:22.12,h:12.07, k:'FIG 5a', lab:'Scrub the ten years',               m:'decade'},
  {l:75.03,t:41.09,w:22.06,h:12.07, k:'FIG 5b', lab:'Scrub the ten years',               m:'decade'},
@@ -682,6 +727,7 @@ function openModal(id,arg){
   if(id==='num') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); });
   // canvases can only size themselves once their modal is actually laid out
   if(id==='solar') requestAnimationFrame(()=>{ if(window.figSolarRedraw) window.figSolarRedraw(); });
+  if(id==='screening') requestAnimationFrame(()=>{ if(window.fig4Redraw) window.fig4Redraw(); });
 }
 function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
 scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
@@ -754,38 +800,38 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
       const x0=X(w[0])-PW/ND/2, x1=X(w[1])+PW/ND/2;
       g(E('rect',{x:x0,y:AY0-8,width:Math.max(1,x1-x0),height:BY1-AY0+8,fill:col,'fill-opacity':'.13',rx:3}));
       g(E('rect',{x:x0,y:AY0-8,width:Math.max(1,x1-x0),height:3,fill:col}));
-      g(T((x0+x1)/2,AY0-12,lab,{'text-anchor':'middle',fill:txt,'font-weight':'700','font-size':'10'}));
+      g(T((x0+x1)/2,AY0-12,lab,{'text-anchor':'middle',fill:txt,'font-weight':'700','font-size':'17.86'}));
     });
     // ---- band A : supply ----
     [0,25,50,75,100].forEach(v=>{ if(v>PVMAX) return;
       g(E('line',{class:'grid',x1:L,x2:W-R,y1:YA(v),y2:YA(v)}));
-      g(T(L-6,YA(v)+4,v,{'text-anchor':'end','font-size':'10'})); });
+      g(T(L-6,YA(v)+4,v,{'text-anchor':'end','font-size':'17.86'})); });
     g(E('path',{d:area(dPV,YA,AY1),fill:'#E39A26','fill-opacity':'.62'}));
     g(E('path',{d:area(stD,YA,AY1),fill:'#16C46A','fill-opacity':'.95'}));
     // the ratio curve is what the threshold actually cuts: each day's PEAK hourly PV/load
     let rd=''; for(let i=0;i<ND;i++) rd+=(i?'L':'M')+X(i+1).toFixed(1)+' '+YR(dRAT[i]).toFixed(1);
     g(E('path',{d:rd,fill:'none',stroke:'#1C2128','stroke-width':'1.1','stroke-opacity':'.75'}));
     [0.25,0.5,0.75,1.0].forEach(r=>{ if(r>RATMAX) return;
-      g(T(W-R-5,YR(r)+3,(r*100)+'%',{'text-anchor':'end','font-size':'9',fill:'#B4B8B0'})); });
+      g(T(W-R-5,YR(r)+3,(r*100)+'%',{'text-anchor':'end','font-size':'16.07',fill:'#B4B8B0'})); });
     // the f threshold, draggable by the tab parked outside the plot
     g(E('line',{x1:L,x2:W-R,y1:YR(ST.f),y2:YR(ST.f),stroke:'#C0392B','stroke-width':'1.4','stroke-dasharray':'6 4'}));
     const hy=YR(ST.f);
     g(E('rect',{x:W-R+2,y:hy-10,width:20,height:20,rx:5,fill:'#C0392B'}));
-    g(T(W-R+12,hy+4,'f',{'text-anchor':'middle',fill:'#fff','font-weight':'700','font-size':'11'}));
+    g(T(W-R+12,hy+4,'f',{'text-anchor':'middle',fill:'#fff','font-weight':'700','font-size':'19.64'}));
     g(T(L+4,hy+(hy<46?14:-5),'storable when PV rises above '+fmt(ST.f*100,0)+'% of load',
-      {fill:'#C0392B','font-size':'9.5','font-weight':'600'}));
-    g(T(-(AY0+AY1)/2,12,'PV generation  [GWh/day]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'10'}));
+      {fill:'#C0392B','font-size':'16.96','font-weight':'600'}));
+    g(T(-(AY0+AY1)/2,12,'PV generation  [GWh/day]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'17.86'}));
     // ---- band B : demand, mirrored ----
     g(E('path',{d:area(dHDD,YB,BY0),fill:'#3E5C76','fill-opacity':'.55'}));
     g(E('line',{class:'grid',x1:L,x2:W-R,y1:BY0,y2:BY0}));
-    g(T(L-6,BY0+4,'0',{'text-anchor':'end','font-size':'10'}));
-    g(T(L-6,BY1+2,Math.round(HDDMAX),{'text-anchor':'end','font-size':'10'}));
-    g(T(-(BY0+BY1)/2,12,'heat demand  [HDD/day]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'10'}));
+    g(T(L-6,BY0+4,'0',{'text-anchor':'end','font-size':'17.86'}));
+    g(T(L-6,BY1+2,Math.round(HDDMAX),{'text-anchor':'end','font-size':'17.86'}));
+    g(T(-(BY0+BY1)/2,12,'heat demand  [HDD/day]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'17.86'}));
     // ---- month axis ----
     for(let m=0;m<12;m++){
       const x0=X(DOY0[m]+1)-PW/ND/2;
       g(E('line',{x1:x0,x2:x0,y1:AY0-8,y2:MY,stroke:'#E3E0D6','stroke-width':'1'}));
-      g(T(x0+PW*MDAY[m]/ND/2,MY+13,MON[m],{'text-anchor':'middle','font-size':'10'}));
+      g(T(x0+PW*MDAY[m]/ND/2,MY+13,MON[m],{'text-anchor':'middle','font-size':'17.86'}));
     }
     // ---- seal bracket ----
     const a=X(ST.ch[1])+PW/ND/2, b=X(ST.di[0])-PW/ND/2, by=MY+22;
@@ -793,9 +839,9 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
       g(E('line',{x1:a,x2:b,y1:by,y2:by,stroke:'#0A6E38','stroke-width':'1.5'}));
       g(E('line',{x1:a,x2:a,y1:by-5,y2:by+5,stroke:'#0A6E38','stroke-width':'1.5'}));
       g(E('line',{x1:b,x2:b,y1:by-5,y2:by+5,stroke:'#0A6E38','stroke-width':'1.5'}));
-      g(T((a+b)/2,by-6,'SEAL  '+sealDays()+' d',{'text-anchor':'middle',fill:'#0A6E38','font-weight':'700','font-size':'10.5'}));
+      g(T((a+b)/2,by-6,'SEAL  '+sealDays()+' d',{'text-anchor':'middle',fill:'#0A6E38','font-weight':'700','font-size':'18.75'}));
     } else {
-      g(T((a+b)/2,by+2,'seal '+sealDays()+' d (wraps the year end)',{'text-anchor':'middle',fill:'#0A6E38','font-weight':'700','font-size':'10'}));
+      g(T((a+b)/2,by+2,'seal '+sealDays()+' d (wraps the year end)',{'text-anchor':'middle',fill:'#0A6E38','font-weight':'700','font-size':'17.86'}));
     }
     // ---- window edge handles ----
     bands.forEach(([w,col])=>{ [w[0],w[1]].forEach(d=>{
@@ -1011,79 +1057,240 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
-   FIG 4a — the screening nomogram
+   FIG 4 — the admissibility plane.
+   Every iso-retention level is a straight line, exactly: Fo = alpha*t*a^2/4,
+   so log Fo is affine in (log a, log t) and the whole field is one linear
+   gradient.  No contouring, no raster — the physics draws itself.
+   Panel 2 adds what the printed criterion cannot show: the cycle staircase,
+   where the array changes the SHAPE of the climb, not its height.
    ═════════════════════════════════════════════════════════════════════════ */
 (function(){
-  const s=$('c-screen'), W=520,H=260,L=42,R=18,Tp=30,B=42;
-  const a0=0.2, a1=3.0;
-  const xa=a=>L+(W-L-R)*(Math.log(a)-Math.log(a0))/(Math.log(a1)-Math.log(a0));
-  const y=rf=>Tp+(H-Tp-B)*(1-rf);
-  let rock=2;
-  const rfRock=(idx,a)=>{ const g=AGRID, r=ROCKS[idx].rf;
-    if(a<=g[0])return r[0]; if(a>=g[g.length-1])return r[r.length-1];
-    for(let i=1;i<g.length;i++){ if(a<=g[i]){ const u=(Math.log(a)-Math.log(g[i-1]))/(Math.log(g[i])-Math.log(g[i-1]));
-      return r[i-1]+(r[i]-r[i-1])*u; } } return 0; };
-  // the host rock uses the fine master curve (identical physics, more points)
-  const rfHost=a=>rfOf(2/a);
+  const _A=unpack16(RFA.b64), _B=unpack16(RFB.b64), NK=RFA.kap.length,
+        NR=RFB.rrl.length, NC=RFB.nc;
+  const li=(a,x)=>{ let i=0; const n=a.length;
+    if(x<=a[0]) return [0,0]; if(x>=a[n-1]) return [n-2,1];
+    while(i<n-2 && a[i+1]<x) i++;
+    return [i,(Math.log(x)-Math.log(a[i]))/(Math.log(a[i+1])-Math.log(a[i]))]; };
+  const rf1=(fo,kap)=>{ const[i,u]=li(RFA.fo,fo),[j,v]=li(RFA.kap,kap), g=(p,q)=>_A[p*NK+q]/RFA.s;
+    return (1-u)*(1-v)*g(i,j)+u*(1-v)*g(i+1,j)+(1-u)*v*g(i,j+1)+u*v*g(i+1,j+1); };
+  const thB=(fo,rr,c)=>{ const[i,u]=li(RFB.fo,fo),[m,w]=li(RFB.rrl,rr), k=c-1,
+    g=(p,q)=>_B[(p*NR+q)*NC+k]/RFB.s;
+    return (1-u)*(1-w)*g(i,m)+u*(1-w)*g(i+1,m)+(1-u)*w*g(i,m+1)+u*w*g(i+1,m+1); };
+  const margB=(fo,rr,c)=>c<=1?thB(fo,rr,1):thB(fo,rr,c)/Math.max(1e-9,1-thB(fo,rr,c-1));
+  // Fo at which first-cycle retention equals a target, for this rock
+  const foStar=(t,kap)=>{ let lo=RFA.fo[0], hi=RFA.fo[RFA.fo.length-1];
+    if(rf1(lo,kap)<t) return lo; if(rf1(hi,kap)>t) return hi;
+    for(let n=0;n<60;n++){ const m=Math.sqrt(lo*hi); if(rf1(m,kap)>t) lo=m; else hi=m; }
+    return Math.sqrt(lo*hi); };
 
-  function draw(lc){
-    clear(s);
-    const a=2/lc;
-    s.appendChild(E('rect',{x:L,y:y(1),width:W-L-R,height:y(0.5)-y(1),fill:'#2A78D6','fill-opacity':'.055'}));
-    [0,0.25,0.5,0.75,1].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:y(g),y2:y(g)}));
-      s.appendChild(T(L-6,y(g)+4,(g*100).toFixed(0),{'text-anchor':'end'})); });
-    [0.2,0.3,0.5,0.8,1.2,2,3].forEach(v=>{ s.appendChild(T(xa(v),H-B+15,v,{'text-anchor':'middle','font-size':'9.5'})); });
-    [8,5,3.4,2,1.2,0.8].forEach(Lc=>{ const av=2/Lc; if(av<a0||av>a1) return;
-      s.appendChild(T(xa(av),Tp-14,Lc,{'text-anchor':'middle','font-size':'9.5',fill:'#8C9199'})); });
-    s.appendChild(T((L+W-R)/2,Tp-27,'effective opening radius  Lc = 2/a   [m]',{'text-anchor':'middle','font-size':'9.5',fill:'#565D62'}));
-    s.appendChild(E('line',{x1:L,x2:W-R,y1:y(0.5),y2:y(0.5),stroke:'#0A6E38','stroke-width':'1','stroke-dasharray':'4 3'}));
-    s.appendChild(T(W-R-2,y(0.5)-5,'viable · RF ≥ 50%',{'text-anchor':'end',fill:'#0A6E38','font-size':'9.5'}));
-    // markers from the study
-    [[AV0,'as-built drift'],[2/2.058,'radius ×2'],[2/3.40,'chamber Lc = 3.4 m']].forEach(([av,lab])=>{
-      s.appendChild(E('line',{x1:xa(av),x2:xa(av),y1:Tp,y2:y(0),stroke:'#8A8F86','stroke-width':'.9','stroke-dasharray':'2 3'}));
-      s.appendChild(T(xa(av)-4,Tp+4,lab,{'text-anchor':'start',fill:'#565D62','font-size':'8.6',
-        transform:'rotate(90 '+(xa(av)-4)+' '+(Tp+4)+')'}));
-    });
-    ROCKS.forEach((rk,i)=>{
-      const pts=[];
-      if(rk.host){ for(let j=0;j<=90;j++){ const av=a0*Math.pow(a1/a0,j/90); pts.push([av,rfHost(av)]); } }
-      else AGRID.forEach((av,j)=>pts.push([av,rk.rf[j]]));
-      s.appendChild(E('path',{d:pts.map((p,j)=>(j?'L':'M')+xa(p[0]).toFixed(1)+' '+y(p[1]).toFixed(1)).join(' '),
-        fill:'none',stroke:rk.c,'stroke-width':i===rock?3:1.5,'stroke-opacity':i===rock?1:.55}));
-    });
-    const rf=rock===2?rfHost(a):rfRock(rock,a);
-    s.appendChild(E('circle',{cx:xa(Math.max(a0,Math.min(a1,a))),cy:y(rf),r:6,fill:'#fff',
-      stroke:rf>=0.5?'#0A6E38':rf>=0.25?'#C97A10':'#C0392B','stroke-width':'3'}));
-    s.appendChild(T((L+W-R)/2,H-9,'specific surface  a = A_wetted / V_water   [1/m]',{'text-anchor':'middle','font-size':'9.5'}));
-    s.appendChild(T(-(H/2)+8,11,'retention RF, first cycle  [%]',{transform:'rotate(-90)','text-anchor':'middle'}));
-    return rf;
+  const ROCK=[{n:'shale',k:2.50,c:'#84BCDB'},{n:'basalt',k:2.83,c:'#3989C1'},
+              {n:'granite / gneiss',k:5.00,c:'#1C6BB0',host:1},{n:'rock salt',k:9.17,c:'#08326E'}];
+  const ST={a:AV0, t:TSTORE0, rock:2, tgt:0.5, rrl:54, cyc:10};
+  const DAYS=86400;
+  const kap=()=>ROCK[ST.rock].k;
+  const FoOf=(a,t,k)=>ALPHA0*k*t*DAYS*a*a/4;
+  const LcOf=a=>2/a;
+
+  /* ---- plane geometry ---- */
+  const W=560,H=320,L=50,R=54,MT=40,MB=46, PW=W-L-R, PH=H-MT-MB, YB=MT+PH;
+  const A0=0.15,A1=4.0,MT0=3,MT1=400;
+  const lx=Math.log10(A0), lX=Math.log10(A1), ly=Math.log10(MT0), lY=Math.log10(MT1);
+  const px=a=>L+(Math.log10(a)-lx)/(lX-lx)*PW;
+  const py=t=>YB-(Math.log10(t)-ly)/(lY-ly)*PH;
+  const xa=x=>Math.pow(10,lx+(x-L)/PW*(lX-lx));
+  const yt=y=>Math.pow(10,ly+(YB-y)/PH*(lY-ly));
+  // log10(Fo) is affine in screen coords: u = K + log10(t) + 2 log10(a)
+  const Kof=k=>Math.log10(ALPHA0*k*DAYS/4);
+  const uAt=(x,y,k)=>Kof(k)+Math.log10(yt(y))+2*Math.log10(xa(x));
+  const dudx=2*(lX-lx)/PW, dudy=-(lY-ly)/PH;
+
+  const svg=$('c-plane'), tip=$('k-tip'), wrap=$('k-fig');
+  let drag=null, hover=null;
+
+  /* a line of constant Fo, clipped to the box */
+  function isoLine(fo,k){
+    const c=Math.log10(fo)-Kof(k);              // log10 t = c - 2 log10 a
+    const pts=[];
+    [[A0,null],[A1,null]].forEach(([a])=>{ const t=Math.pow(10,c-2*Math.log10(a));
+      if(t>=MT0&&t<=MT1) pts.push([px(a),py(t)]); });
+    [[MT0,null],[MT1,null]].forEach(([t])=>{ const a=Math.pow(10,(c-Math.log10(t))/2);
+      if(a>=A0&&a<=A1) pts.push([px(a),py(t)]); });
+    return pts.length>=2?pts.slice(0,2):null;
   }
-  const box=$('k-rocks');
-  ROCKS.forEach((rk,i)=>{ const b=document.createElement('button');
-    b.className='chip'+(i===rock?' on':''); b.innerHTML=rk.n+' <span style="opacity:.7">κ='+fmt(rk.kap,2)+'</span>'+(rk.host?' ★':'');
-    b.onclick=()=>{ rock=i; [...box.children].forEach((c,j)=>c.classList.toggle('on',j===i)); upd(); };
-    box.appendChild(b); });
-  const lcIn=$('k-lcin');
+
+  function draw(){
+    clear(svg);
+    const k=kap(), g=e=>{ svg.appendChild(e); return e; };
+
+    /* the field: one linear gradient along grad(log Fo) */
+    const uc=[[L,MT],[L+PW,MT],[L,YB],[L+PW,YB]].map(([x,y])=>uAt(x,y,k));
+    const umin=Math.min.apply(null,uc), umax=Math.max.apply(null,uc);
+    const cx=L+PW/2, cy=MT+PH/2, uc0=uAt(cx,cy,k), s2=dudx*dudx+dudy*dudy;
+    const P=u=>[cx+dudx*(u-uc0)/s2, cy+dudy*(u-uc0)/s2];
+    const [x1,y1]=P(umin), [x2,y2]=P(umax);
+    const defs=g(E('defs',{}));
+    const grd=E('linearGradient',{id:'fld',gradientUnits:'userSpaceOnUse',x1,y1,x2,y2});
+    const LV=[[0.95,'#0A6E38'],[0.8,'#2E9C5E'],[0.65,'#7FC79B'],[0.5,'#CFE4D7'],
+              [0.35,'#F4F2EA'],[0.2,'#F0C97A'],[0.08,'#DE9A3A'],[0.02,'#B4501E'],[0.004,'#7E3312']];
+    LV.forEach(([lev,col])=>{ const fo=foStar(lev,k), off=(Math.log10(fo)-umin)/(umax-umin);
+      grd.appendChild(E('stop',{offset:Math.max(0,Math.min(1,off)).toFixed(4),'stop-color':col})); });
+    defs.appendChild(grd);
+    g(E('rect',{x:L,y:MT,width:PW,height:PH,fill:'url(#fld)'}));
+
+    /* grid + axes */
+    [0.2,0.3,0.5,0.8,1,1.5,2,3,4].forEach(a=>{ if(a<A0||a>A1)return;
+      g(E('line',{x1:px(a),x2:px(a),y1:MT,y2:YB,stroke:'#fff','stroke-opacity':'.28'}));
+      g(T(px(a),YB+15,a,{'text-anchor':'middle','font-size':'10'})); });
+    [3,7,14,30,60,123,250,400].forEach(t=>{ if(t<MT0||t>MT1)return;
+      g(E('line',{x1:L,x2:L+PW,y1:py(t),y2:py(t),stroke:'#fff','stroke-opacity':'.28'}));
+      g(T(L-6,py(t)+4,t,{'text-anchor':'end','font-size':'10'})); });
+    [8,4,2,1.2,0.8,0.6].forEach(lc=>{ const a=2/lc; if(a<A0||a>A1)return;
+      g(T(px(a),MT-9,lc,{'text-anchor':'middle','font-size':'9.5',fill:'#8C9199'})); });
+    g(T(L+PW/2,MT-23,'opening reach  L_c = 2/a   [m]',{'text-anchor':'middle','font-size':'10',fill:'#565D62'}));
+    g(T(L+PW/2,H-9,'specific surface  a = A_wetted / V_water   [1/m]',{'text-anchor':'middle','font-size':'10'}));
+    g(T(-(MT+YB)/2,13,'seal length  t_store  [days]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'10'}));
+
+    /* the lithology ribbon: the same criterion for the softest and hardest rock */
+    const kk=ROCK.map(r=>r.k), kmin=Math.min.apply(null,kk), kmax=Math.max.apply(null,kk);
+    const l1=isoLine(foStar(ST.tgt,kmin),kmin), l2=isoLine(foStar(ST.tgt,kmax),kmax);
+    if(l1&&l2) g(E('path',{d:`M${l1[0][0]} ${l1[0][1]}L${l1[1][0]} ${l1[1][1]}L${l2[1][0]} ${l2[1][1]}L${l2[0][0]} ${l2[0][1]}Z`,
+      fill:'#0C1015','fill-opacity':'.13'}));
+
+    /* the criterion for the selected rock */
+    const foS=foStar(ST.tgt,k), ln=isoLine(foS,k);
+    if(ln){ g(E('line',{x1:ln[0][0],y1:ln[0][1],x2:ln[1][0],y2:ln[1][1],stroke:'#0C1015','stroke-width':'2.4'}));
+      const mx=(ln[0][0]+ln[1][0])/2, my=(ln[0][1]+ln[1][1])/2;
+      g(T(mx,my-7,`retention ${(ST.tgt*100).toFixed(0)}%  ·  Fo* = ${fmt(foS,3)}`,
+        {'text-anchor':'middle','font-size':'9.5','font-weight':'700',fill:'#0C1015'})); }
+
+    /* the printed anchors */
+    [[AV0,'as-built'],[0.9718,'radius ×2'],[2/3.405,'chamber']].forEach(([a,lab],i)=>{
+      g(E('line',{x1:px(a),x2:px(a),y1:MT,y2:YB,stroke:'#0C1015','stroke-width':'.8','stroke-dasharray':'2 3','stroke-opacity':'.5'}));
+      if(i) g(T(px(a)-3,MT+11,lab,{'text-anchor':'start','font-size':'8.5',fill:'#3E444A',
+        transform:`rotate(90 ${px(a)-3} ${MT+11})`})); });
+    g(E('path',{d:`M${px(AV0)-6} ${py(TSTORE0)}h12M${px(AV0)} ${py(TSTORE0)-6}v12`,stroke:'#B4501E','stroke-width':'2'}));
+    g(T(px(AV0)-8,py(TSTORE0)-9,'as built',{'text-anchor':'end','font-size':'9','font-weight':'700',fill:'#B4501E'}));
+
+    /* the decades bracket — geometry gap against lithology spread */
+    const aMax=2*Math.sqrt(foS/(ALPHA0*k*ST.t*DAYS)), by=YB+27;
+    if(aMax>A0&&aMax<A1){
+      g(E('line',{x1:px(aMax),x2:px(AV0),y1:by,y2:by,stroke:'#B4501E','stroke-width':'1.6'}));
+      [px(aMax),px(AV0)].forEach(x=>g(E('line',{x1:x,x2:x,y1:by-4,y2:by+4,stroke:'#B4501E','stroke-width':'1.6'})));
+      g(T((px(aMax)+px(AV0))/2,by-6,`${fmt(Math.log10(AV0/aMax),3)} decades of geometry`,
+        {'text-anchor':'middle','font-size':'9','font-weight':'700',fill:'#B4501E'}));
+    }
+    const r1=2*Math.sqrt(foStar(ST.tgt,kmin)/(ALPHA0*kmin*ST.t*DAYS)),
+          r2=2*Math.sqrt(foStar(ST.tgt,kmax)/(ALPHA0*kmax*ST.t*DAYS));
+    g(T(L+2,by+11,`lithology spans only ${fmt(Math.abs(Math.log10(r1/r2)),3)} decades — geometry dominates`,
+      {'text-anchor':'start','font-size':'9',fill:'#565D62'}));
+
+    /* the retention-target tab, dragged on the figure */
+    const tx=L+PW+16, ty0=MT+8, ty1=YB-8, tY=t=>ty1-(t-0.05)/0.9*(ty1-ty0);
+    g(E('line',{x1:tx,x2:tx,y1:ty0,y2:ty1,stroke:'#C9C4B8','stroke-width':'3','stroke-linecap':'round'}));
+    [0.1,0.3,0.5,0.7,0.9].forEach(v=>g(T(tx+9,tY(v)+3,(v*100).toFixed(0),{'text-anchor':'start','font-size':'8.5',fill:'#8C9199'})));
+    g(E('rect',{x:tx-7,y:tY(ST.tgt)-8,width:14,height:16,rx:4,fill:'#0C1015'}));
+    g(T(tx,tY(ST.tgt)+4,'≡',{'text-anchor':'middle',fill:'#fff','font-size':'10','font-weight':'700'}));
+    g(T(tx+4,ty0-9,'target',{'text-anchor':'middle','font-size':'8.5',fill:'#565D62'}));
+
+    /* the puck */
+    const ux=px(ST.a), uy=py(ST.t), th=rf1(FoOf(ST.a,ST.t,k),k);
+    const col=th>=ST.tgt?'#0A6E38':th>=ST.tgt*0.5?'#C97A10':'#C0392B';
+    g(E('circle',{cx:ux,cy:uy,r:11,fill:'#fff',stroke:col,'stroke-width':'3.4'}));
+    g(T(ux,uy+4,th>=ST.tgt?'✓':th>=ST.tgt*0.5?'△':'✕',{'text-anchor':'middle',fill:col,'font-size':'11','font-weight':'700'}));
+    if(hover) g(E('circle',{cx:px(hover[0]),cy:py(hover[1]),r:3,fill:'#0C1015','fill-opacity':'.5'}));
+  }
+
+  /* ---- panel 2: the cycle staircase ---- */
+  function stair(){
+    const s=$('c-stair'),W2=560,H2=196,L2=46,R2=46,MT2p=16,B2=34; clear(s);
+    const PW2=W2-L2-R2, PH2=H2-MT2p-B2, YB2=MT2p+PH2;
+    const fo=FoOf(ST.a,ST.t,5.0);                 // panel 2 is the host rock only
+    const bx=i=>L2+PW2*(i+0.12)/10, bw=PW2*0.76/10;
+    const Y=v=>YB2-v*PH2;
+    [0,0.25,0.5,0.75,1].forEach(v=>{ s.appendChild(E('line',{class:'grid',x1:L2,x2:L2+PW2,y1:Y(v),y2:Y(v)}));
+      s.appendChild(T(L2-5,Y(v)+4,(v*100).toFixed(0),{'text-anchor':'end','font-size':'9.5'})); });
+    s.appendChild(E('line',{x1:L2,x2:L2+PW2,y1:Y(ST.tgt),y2:Y(ST.tgt),stroke:'#0A6E38','stroke-width':'1.2','stroke-dasharray':'4 3'}));
+    s.appendChild(T(L2+PW2,Y(ST.tgt)-4,`target ${(ST.tgt*100).toFixed(0)}%`,{'text-anchor':'end',fill:'#0A6E38','font-size':'9'}));
+    const iso=[],cur=[],mar=[];
+    for(let n=1;n<=10;n++){ iso.push(thB(fo,54,n)); cur.push(thB(fo,ST.rrl,n)); mar.push(margB(fo,ST.rrl,n)); }
+    for(let n=0;n<10;n++){
+      s.appendChild(E('rect',{x:bx(n),y:Y(iso[n]),width:bw,height:YB2-Y(iso[n]),fill:'#C9C4B8',rx:1.5}));
+      s.appendChild(E('rect',{x:bx(n),y:Y(cur[n]),width:bw,height:YB2-Y(cur[n]),
+        fill:cur[n]>=ST.tgt?'#0A6E38':'#3989C1',rx:1.5}));
+      s.appendChild(T(bx(n)+bw/2,H2-19,n+1,{'text-anchor':'middle','font-size':'9'}));
+    }
+    s.appendChild(E('path',{d:mar.map((v,n)=>(n?'L':'M')+(bx(n)+bw/2).toFixed(1)+' '+Y(Math.min(1,v)).toFixed(1)).join(' '),
+      fill:'none',stroke:'#C0392B','stroke-width':'2','stroke-dasharray':'3 2'}));
+    s.appendChild(T(L2+PW2+4,Y(Math.min(1,mar[9]))+4,'marginal',{'text-anchor':'start',fill:'#C0392B','font-size':'9','font-weight':'700'}));
+    s.appendChild(T(L2+PW2/2,H2-5,'cycle',{'text-anchor':'middle','font-size':'9.5'}));
+    s.appendChild(T(-(MT2p+YB2)/2,12,'retention  [%]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9.5'}));
+    const pitch=ST.rrl*Math.sqrt(Math.PI)*LcOf(ST.a);
+    $('k-pitch').textContent=ST.rrl>=50?'isolated':fmt(pitch,1)+' m pitch';
+    $('k-stair').innerHTML=`After ten cycles the cell holds <b>${(cur[9]*100).toFixed(1)}%</b> of everything ever injected`+
+      (ST.rrl>=50?'':`, against <b>${(iso[9]*100).toFixed(1)}%</b> isolated`)+
+      `. The <b style="color:#C0392B">marginal</b> ratio — recovered ÷ injected in that one cycle — reads `+
+      `<b>${(mar[9]*100).toFixed(1)}%</b>, which is the number the array is usually quoted by. `+
+      (cur[9]<ST.tgt&&mar[9]>=ST.tgt
+        ? `Cumulatively it is still <b>under</b> the ${(ST.tgt*100).toFixed(0)}% band: the cell recycles its own heat well, it has not stored more.`
+        : `Cycle 1 barely moves (${(cur[0]*100).toFixed(1)}%): the array changes the shape of the climb, not its start.`);
+  }
+
+  /* ---- interaction ---- */
+  const toS=e=>{ const r=svg.getBoundingClientRect(); return {x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)}; };
+  const tabX=L+PW+16, tY0=MT+8, tY1=YB-8;
+  svg.addEventListener('pointerdown',e=>{ const p=toS(e);
+    if(Math.abs(p.x-tabX)<14 && p.y>tY0-12 && p.y<tY1+12){ drag='t'; }
+    else if(p.x>=L&&p.x<=L+PW&&p.y>=MT&&p.y<=YB){ drag='p'; ST.a=xa(p.x); ST.t=yt(p.y); upd(); }
+    else return;
+    svg.setPointerCapture(e.pointerId); e.preventDefault(); });
+  svg.addEventListener('pointermove',e=>{ const p=toS(e);
+    if(drag==='t'){ ST.tgt=Math.max(0.05,Math.min(0.95,0.05+(tY1-p.y)/(tY1-tY0)*0.9)); upd(); return; }
+    if(drag==='p'){ ST.a=Math.max(A0,Math.min(A1,xa(p.x))); ST.t=Math.max(MT0,Math.min(MT1,yt(p.y))); upd(); return; }
+    if(p.x<L||p.x>L+PW||p.y<MT||p.y>YB){ hover=null; tip.style.opacity='0'; draw(); return; }
+    const a=xa(p.x), t=yt(p.y), k=kap(), fo=FoOf(a,t,k), th=rf1(fo,k);
+    hover=[a,t];
+    const r=wrap.getBoundingClientRect();
+    tip.innerHTML=`a = ${fmt(a,3)} 1/m   L_c = ${fmt(2/a,2)} m\nseal ${fmt(t,0)} d   Fo = ${fmt(fo,3)}\n`+
+      `retention <b>${(th*100).toFixed(1)}%</b>  ${th>=ST.tgt?'✓ viable':'✕ under target'}`;
+    tip.style.left=Math.max(70,Math.min(r.width-70,e.clientX-r.left))+'px';
+    tip.style.top=(e.clientY-r.top-8)+'px'; tip.style.opacity='1'; draw(); });
+  const end=()=>{ drag=null; };
+  svg.addEventListener('pointerup',end); svg.addEventListener('pointercancel',end);
+  svg.addEventListener('pointerleave',()=>{ if(!drag){ hover=null; tip.style.opacity='0'; draw(); } });
+
+  const rbox=$('k-rocks');
+  ROCK.forEach((r,i)=>{ const b=document.createElement('button');
+    b.className='chip'+(i===ST.rock?' on':''); b.innerHTML=r.n+' <span style="opacity:.7">κ='+fmt(r.k,2)+'</span>'+(r.host?' ★':'');
+    b.onclick=()=>{ ST.rock=i; [...rbox.children].forEach((c,j)=>c.classList.toggle('on',j===i)); upd(); };
+    rbox.appendChild(b); });
+  const sbox=$('k-snap');
+  [['as-built drift',AV0,TSTORE0],['radius ×2',0.9718,TSTORE0],['chamber L_c=3.4 m',2/3.405,TSTORE0],
+   ['monthly cycling',AV0,30]].forEach(([lab,a,t])=>{ const b=document.createElement('button');
+    b.className='chip'; b.textContent=lab; b.onclick=()=>{ ST.a=a; ST.t=t; upd(); }; sbox.appendChild(b); });
+  $('k-pitchin').addEventListener('input',e=>{ ST.rrl=+e.target.value; upd(); });
+
   function upd(){
-    const lc=+lcIn.value, rf=draw(lc), fo=foOf(lc,TSTORE0);
+    const k=kap(), fo=FoOf(ST.a,ST.t,k), th=rf1(fo,k), lc=LcOf(ST.a);
+    $('k-a').textContent=fmt(ST.a,3)+' m⁻¹';
     $('k-lc').textContent=fmt(lc,2)+' m';
-    $('k-av').textContent=fmt(2/lc,2)+' m⁻¹';
-    $('k-fo').textContent=fmt(fo,1);
-    $('k-rf').textContent=(rf*100).toFixed(rf<0.1?1:0)+'%';
-    $('k-rfbox').className='st '+(rf>=0.5?'hi':rf>=0.25?'':'bad');
-    const v=$('k-verdict'); const pass=rf>=0.5, mar=rf>=0.25;
+    $('k-t').textContent=fmt(ST.t,0)+' d';
+    $('k-fo').textContent=fmt(fo,fo<10?3:1);
+    $('k-rf').textContent=(th*100).toFixed(th<0.1?1:0)+'%';
+    $('k-rfbox').className='st '+(th>=ST.tgt?'hi':th>=ST.tgt*0.5?'':'bad');
+    const v=$('k-verdict'); const pass=th>=ST.tgt, mar=th>=ST.tgt*0.5;
     v.className='verdict '+(pass?'pass':mar?'marginal':'fail');
-    v.textContent=pass?'✓ stores it':mar?'△ marginal':'✕ loses it';
-    // where this rock actually crosses RF = 50%, found by bisection on the same curve the chart is drawn from
-    const rfAt=x=>rock===2?rfHost(2/x):rfRock(rock,2/x);
-    let lo=0.5, hi=12; for(let i=0;i<50;i++){ const mid=(lo+hi)/2; if(rfAt(mid)<0.5) lo=mid; else hi=mid; }
-    const need=(lo+hi)/2;
-    $('k-say').innerHTML='In '+ROCKS[rock].n+' (k = '+fmt(ROCKS[rock].k,1)+' W/mK), an opening of reach '+fmt(lc,2)+
-      ' m keeps <b>'+(rf*100).toFixed(rf<0.1?1:0)+'%</b> of what it stored through a 123-day seal. '+
-      (pass?'That is inside the viable band — this geometry is worth meshing.'
-           :'It crosses RF = 50% at L<sub>c</sub> ≈ <b>'+fmt(need,2)+' m</b>: a chamber, or the drift array of §06.');
+    v.textContent=pass?'✓ viable':mar?'△ marginal':'✕ loses it';
+    const aMax=2*Math.sqrt(foStar(ST.tgt,k)/(ALPHA0*k*ST.t*DAYS));
+    $('k-say').innerHTML=`At a seal of <b>${fmt(ST.t,0)} days</b> in ${ROCK[ST.rock].n}, anything with `+
+      `a ≤ <b>${fmt(aMax,3)} m⁻¹</b> (L_c ≥ ${fmt(2/aMax,2)} m) holds ${(ST.tgt*100).toFixed(0)}% through the first cycle. `+
+      (th>=ST.tgt?`Your opening clears it.`
+       :`Yours is <b>${fmt(ST.a/aMax,2)}×</b> too exposed — and note the shape of the boundary: `+
+        `a<sub>max</sub> ∝ t<sub>store</sub><sup>−1/2</sup>, so halving the seal buys only a factor <b>1.41</b> in admissible surface. `+
+        `That is why the escape is geometry, not scheduling.`);
+    draw(); stair();
   }
-  lcIn.addEventListener('input',upd); upd();
+  window.fig4Redraw=()=>{ draw(); stair(); };
+  upd();
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
