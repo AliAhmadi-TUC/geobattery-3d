@@ -430,11 +430,11 @@
         <span>tap a stratum to light the decade up to that cycle</span>
         <span>tap the gold hatching to strip the ground heat</span>
       </div>
+      <p class="mut" id="d-say" style="min-height:34px;margin:0 0 8px"></p>
       <div class="figwrap" id="d-fig">
-        <svg id="c-dec" viewBox="0 0 560 340" aria-label="the store and the decade ledger"></svg>
+        <svg id="c-dec" viewBox="0 0 560 352" aria-label="the store and the decade ledger"></svg>
         <div class="ftip" id="d-tip"></div>
       </div>
-      <p class="mut" id="d-say"></p>
       <p class="mut">Five full-3-D decades, forty phases each. The vessel is the bulk water at end of storage above the
         <b>undisturbed rock</b>; the dashed rule across it is the <b>tap</b> — the mean outlet actually delivered over
         the 61-day discharge, which §04b integrates into what it is worth. In both 30&nbsp;°C runs the tap sits
@@ -1458,133 +1458,130 @@ const DIS={tS:1000,TS:500,ES:1,n:186,s:[
 
 /* ═════════════════════════════════════════════════════════════════════════
    FIG 5 — the store and the ledger.
-   Left: the vessel. Rock at its own temperature, the water sitting above it,
-   and the tap — the mean outlet actually delivered. In 30 °C rock the tap sits
-   INSIDE the ambient block: the store hands back water colder than the ground
-   it was cut into.
-   Right: ten years of rock, one stratum per cycle. Stratum height is the heat
-   injected that year and width is the fraction of it that came back, so
-   AREA IS ENERGY — 44.0 px² per MWh, the same in every scenario.
-   Heat you stored and got back grows rightward out of the drift wall. Native
-   ground heat, mined by the 10 °C discharge, grows LEFTWARD out of the rock,
-   because it never came out of your injection.
+   Left: the vessel. Rock at its own temperature, the water above it, and the
+   tap — the mean outlet actually delivered. In 30 °C rock the tap sits INSIDE
+   the ambient block: the store returns water colder than the ground.
+   Right: ten strata, one per cycle. Height = heat injected that year, width =
+   the share that came back, so AREA IS ENERGY (38.5 px² per MWh, identical in
+   every scenario). Your own returned heat grows rightward out of the drift
+   wall; native ground heat grows LEFTWARD out of the rock, because it never
+   came out of your injection.
    ═════════════════════════════════════════════════════════════════════════ */
 (function(){
   const G={sc:4, cyc:10, gate:0};
-  const W=560,H=340, VX=34,VW=100, X0=244, WMAX=236, PT=100, PB=316, PH=PB-PT;
-  const Ty=t=>PB-t/60*PH;                                   // shared 0–60 °C scale
-  const TOT=DEC.map(s=>s.st.reduce((a,b)=>a+b,0));
-  const MXT=Math.max.apply(null,TOT);
-  const Wof=i=>WMAX*TOT[i]/MXT;                             // width ∝ total injected ⇒ area ∝ energy
-  const hOf=(s,i,n)=>PH*s.st[n]/TOT[i];
+  const W=560,H=352, VX=34,VW=96, X0=244, WMAX=236, PT=118, PB=326, PH=PB-PT;
+  const SH=2, SHH=62, HL=74;                                 // shelf y, shelf height, headline y
+  const Ty=t=>PB-t/60*PH;
+  const TOT=DEC.map(s=>s.st.reduce((a,b)=>a+b,0)), MXT=Math.max.apply(null,TOT);
+  const Wof=i=>WMAX*TOT[i]/MXT;
   const sum=(a,n)=>a.slice(0,n).reduce((x,y)=>x+y,0);
   const svg=$('c-dec'), tip=$('d-tip'), wrap=$('d-fig');
-  let hit=[];                                               // {x,y,w,h,kind,i}
-
+  let hit=[];
   const el=(n,a)=>E(n,a);
+
   function draw(){
     clear(svg); hit=[];
     const s=DEC[G.sc], i=G.sc, Wd=Wof(i), c=G.cyc;
     const g=e=>{ svg.appendChild(e); return e; };
     const defs=g(el('defs',{}));
     const pat=el('pattern',{id:'gnd',width:5,height:5,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'});
-    pat.appendChild(el('rect',{width:5,height:5,fill:'#F3E2C2'}));
-    pat.appendChild(el('line',{x1:0,y1:0,x2:0,y2:5,stroke:'#C97A10','stroke-width':2,'stroke-opacity':'.7'}));
+    pat.appendChild(el('rect',{width:5,height:5,fill:'#F6E7CB'}));
+    pat.appendChild(el('line',{x1:0,y1:0,x2:0,y2:5,stroke:'#C97A10','stroke-width':2,'stroke-opacity':'.75'}));
     defs.appendChild(pat);
 
-    /* ── the shelf: five scenarios, and the grade comparison that never moves ── */
+    /* ── shelf: the selector, and the grade comparison that never moves ── */
     DEC.forEach((sc,k)=>{
-      const x=2+111.5*k, on=k===i, my=t=>60-t/60*46;
-      const cell=g(el('rect',{x,y:2,width:108,height:64,rx:7,
-        fill:on?'#F1F7F2':'#FCFBF8',stroke:on?'#0A6E38':'#E3E0D6','stroke-width':on?1.6:1}));
-      hit.push({x,y:2,w:108,h:64,kind:'sc',i:k});
-      g(el('rect',{x:x+7,y:my(60),width:26,height:60-my(60),fill:'#F4F2EA',stroke:'#C9C4B8','stroke-width':.8,rx:2}));
-      g(el('rect',{x:x+7,y:my(sc.T0),width:26,height:60-my(sc.T0),fill:'#B9C3CC'}));   // undisturbed rock
-      g(el('rect',{x:x+7,y:my(sc.tw[9]),width:26,height:my(sc.T0)-my(sc.tw[9]),fill:sc.c,'fill-opacity':'.85'}));
-      g(el('line',{x1:x+4,x2:x+36,y1:my(sc.to[9]),y2:my(sc.to[9]),stroke:'#1C2128','stroke-width':1.3,'stroke-dasharray':'3 2'}));
+      const x=2+111.5*k, on=k===i, my=t=>SH+52-t/60*44, cold=sc.to[9]<sc.T0;
+      g(el('rect',{x,y:SH,width:108,height:SHH,rx:7,fill:on?sc.c:'#FBFAF7','fill-opacity':on?0.13:1,
+        stroke:on?sc.c:'#E3E0D6','stroke-width':on?2.6:1}));
+      if(on){ g(el('path',{d:`M${x+54} ${SH+SHH+7}l-6 -7h12Z`,fill:sc.c}));
+              g(el('rect',{x:x+2,y:SH+2,width:104,height:3,rx:1.5,fill:sc.c})); }
+      const o=on?1:0.55;
+      g(el('rect',{x:x+7,y:my(60),width:15,height:SH+52-my(60),fill:'#F4F2EA',stroke:'#C9C4B8','stroke-width':.7,'stroke-opacity':o}));
+      g(el('rect',{x:x+7,y:my(sc.T0),width:15,height:my(0)-my(sc.T0),fill:'#B9C3CC','fill-opacity':o}));
+      g(el('rect',{x:x+7,y:my(sc.tw[9]),width:15,height:my(sc.T0)-my(sc.tw[9]),fill:sc.c,'fill-opacity':on?.9:.45}));
+      g(el('line',{x1:x+4,x2:x+25,y1:my(sc.to[9]),y2:my(sc.to[9]),stroke:cold?'#C0392B':'#1C2128',
+        'stroke-width':1.2,'stroke-dasharray':'3 2','stroke-opacity':o}));
       const v=G.gate?(sc.rc[9]-sc.geo[9])/sc.st[9]:sc.rc[9]/sc.st[9];
-      g(T(x+40,16,sc.n.split(' · ')[0],{'font-size':'8.5','font-weight':'700',fill:'#1C2128'}));
-      g(T(x+40,26,sc.T0+' °C rock',{'font-size':'7.5',fill:'#8A8F86'}));
-      g(T(x+40,44,(v*100).toFixed(1)+'%',{'font-size':'13','font-weight':'800',fill:sc.c}));
-      g(T(x+40,56,'tap '+fmt(sc.to[9],1)+' °C',{'font-size':'7.5',fill:sc.to[9]<sc.T0?'#C0392B':'#6B7278'}));
-      if(sc.to[9]<sc.T0) g(T(x+40,64,'colder than the rock',{'font-size':'7',fill:'#C0392B','font-weight':'700'}));
+      const tx=x+28, ink=on?'#1C2128':'#7A8088';
+      g(T(tx,SH+13,sc.n.split(' · ')[0],{'font-size':'7','font-weight':'700',fill:ink}));
+      g(T(tx,SH+22,sc.T0+' °C rock',{'font-size':'6',fill:'#9AA0A6'}));
+      g(T(tx,SH+38,(v*100).toFixed(1)+'%',{'font-size':'11','font-weight':'800',fill:on?sc.c:'#9AA0A6'}));
+      g(T(tx,SH+47,'tap '+fmt(sc.to[9],1)+'°C',{'font-size':'6',fill:cold?'#C0392B':'#8A8F86'}));
+      if(cold) g(T(tx,SH+56,'below its rock',{'font-size':'5.8','font-weight':'700',fill:'#C0392B'}));
+      hit.push({x,y:SH,w:108,h:SHH,kind:'sc',i:k});
     });
 
-    /* ── the vessel ── */
+    /* ── headline: what just changed, in view with the figure ── */
+    const mar=(G.gate?(s.rc[c-1]-s.geo[c-1]):s.rc[c-1])/s.st[c-1];
+    const life=(sum(s.rc,c)-(G.gate?sum(s.geo,c):0))/sum(s.st,c);
+    g(el('rect',{x:2,y:HL,width:556,height:30,rx:6,fill:s.c,'fill-opacity':'.08',stroke:s.c,'stroke-opacity':'.3'}));
+    g(T(10,HL+13,s.n,{'font-size':'9','font-weight':'800',fill:s.c}));
+    g(T(10,HL+24,G.gate?'stored solar only — ground heat stripped':'as reported, ground heat included',
+      {'font-size':'7',fill:G.gate?'#0A6E38':'#C97A10','font-weight':'700'}));
+    const cells=[['cycle '+c+' alone',(mar*100).toFixed(1)+'%',s.c],
+                 ['cycles 1–'+c,(life*100).toFixed(1)+'%','#0C1015'],
+                 ['injected that cycle',fmt(s.st[c-1]/1000,1)+' MWh','#565D62'],
+                 ['tap vs rock',fmt(s.to[c-1],1)+' / '+s.T0+' °C',s.to[c-1]<s.T0?'#C0392B':'#565D62']];
+    cells.forEach((cl,k)=>{ const x=210+k*88;
+      g(T(x,HL+12,cl[0],{'font-size':'6.5',fill:'#8A8F86'}));
+      g(T(x,HL+25,cl[1],{'font-size':'11.5','font-weight':'800',fill:cl[2]})); });
+
+    /* ── vessel ── */
     [0,20,40,60].forEach(t=>{ g(el('line',{x1:VX-4,x2:VX,y1:Ty(t),y2:Ty(t),stroke:'#B4B8B0'}));
-      g(T(VX-7,Ty(t)+3.5,t,{'text-anchor':'end','font-size':'8.5'})); });
+      g(T(VX-7,Ty(t)+3,t,{'text-anchor':'end','font-size':'7.5'})); });
     g(el('rect',{x:VX,y:PT,width:VW,height:PH,fill:'#F4F2EA',stroke:'#C9C4B8','stroke-width':1,rx:3}));
     g(el('rect',{x:VX,y:Ty(s.T0),width:VW,height:PB-Ty(s.T0),fill:'#B9C3CC'}));
-    g(T(VX+VW/2,Ty(s.T0)+13,'undisturbed rock '+s.T0+' °C',{'text-anchor':'middle','font-size':'8',fill:'#3E444A'}));
+    g(T(VX+VW/2,Ty(s.T0)+12,'rock '+s.T0+' °C',{'text-anchor':'middle','font-size':'7.5',fill:'#3E444A'}));
     g(el('rect',{x:VX,y:Ty(s.tw[c-1]),width:VW,height:Ty(s.T0)-Ty(s.tw[c-1]),fill:s.c,'fill-opacity':'.85'}));
-    g(el('line',{x1:VX,x2:VX+VW,y1:Ty(s.tw[0]),y2:Ty(s.tw[0]),stroke:'#fff','stroke-width':1,'stroke-opacity':'.7','stroke-dasharray':'3 3'}));
-    g(T(VX+VW/2,Ty(s.tw[c-1])-5,'water '+fmt(s.tw[c-1],1)+' °C',{'text-anchor':'middle','font-size':'9','font-weight':'700',fill:'#1C2128'}));
+    g(T(VX+VW/2,Ty(s.tw[c-1])-5,'water '+fmt(s.tw[c-1],1)+' °C',{'text-anchor':'middle','font-size':'8','font-weight':'700',fill:'#1C2128'}));
     g(el('line',{x1:VX-2,x2:VX+VW+2,y1:Ty(s.to[c-1]),y2:Ty(s.to[c-1]),stroke:'#1C2128','stroke-width':1.6,'stroke-dasharray':'4 2.5'}));
-    g(T(VX+VW-4,Ty(s.to[c-1])-4,'tap '+fmt(s.to[c-1],1)+' °C',{'text-anchor':'end','font-size':'8.5','font-weight':'700',
+    g(T(VX+VW-4,Ty(s.to[c-1])-4,'tap '+fmt(s.to[c-1],1)+' °C',{'text-anchor':'end','font-size':'7.5','font-weight':'700',
       fill:s.to[c-1]<s.T0?'#C0392B':'#1C2128'}));
-    if(s.to[c-1]<s.T0) g(T(VX+VW-4,Ty(s.to[c-1])+9,'below ambient',{'text-anchor':'end','font-size':'7.5',fill:'#C0392B'}));
+    if(s.to[c-1]<s.T0) g(T(VX+VW-4,Ty(s.to[c-1])+9,'below ambient',{'text-anchor':'end','font-size':'6.5',fill:'#C0392B'}));
 
-    /* ── the pile ── */
+    /* ── pile ── */
     g(el('rect',{x:X0-3,y:PT,width:3,height:PH,fill:'#181C20'}));
-    g(T(X0-6,PT-6,'rock',{'text-anchor':'end','font-size':'8',fill:'#8A8F86'}));
-    g(T(X0+6,PT-6,'your injection  →',{'font-size':'8',fill:'#8A8F86'}));
+    g(T(X0-6,PT-5,'← out of the rock',{'text-anchor':'end','font-size':'7',fill:'#C97A10'}));
+    g(T(X0+6,PT-5,'out of your injection →',{'font-size':'7',fill:'#8A8F86'}));
     [0.25,0.5,0.75,1].forEach(f=>{ g(el('line',{x1:X0+Wd*f,x2:X0+Wd*f,y1:PT,y2:PB,stroke:'#D8D3C9','stroke-width':.7}));
-      g(T(X0+Wd*f,PB+12,(f*100).toFixed(0)+'%',{'text-anchor':'middle','font-size':'8'})); });
+      g(T(X0+Wd*f,PB+11,(f*100).toFixed(0)+'%',{'text-anchor':'middle','font-size':'7.5'})); });
     let y=PB;
     for(let n=0;n<10;n++){
-      const h=hOf(s,i,n), own=Math.max(0,(s.rc[n]-s.geo[n]))/s.st[n], gn=s.geo[n]/s.st[n];
-      const top=y-h, live=(n+1)<=c, op=live?1:0.13;
+      const h=PH*s.st[n]/TOT[i], own=Math.max(0,s.rc[n]-s.geo[n])/s.st[n], gn=s.geo[n]/s.st[n];
+      const top=y-h, live=(n+1)<=c, op=live?1:0.12;
       g(el('rect',{x:X0,y:top,width:Wd,height:h-0.7,fill:'#E7DFCE','fill-opacity':op}));
       g(el('rect',{x:X0,y:top,width:Math.max(0.8,Wd*own),height:h-0.7,fill:s.c,'fill-opacity':op}));
-      if(!G.gate && gn>1e-6){
-        const gw=Math.max(0.8,Wd*gn);
+      if(!G.gate&&gn>1e-6){ const gw=Math.max(0.8,Wd*gn);
         g(el('rect',{x:X0-gw,y:top,width:gw,height:h-0.7,fill:'url(#gnd)','fill-opacity':op,
           stroke:'#C97A10','stroke-width':.7,'stroke-opacity':op}));
-        if(live) hit.push({x:X0-gw,y:top,w:gw,h:h-0.7,kind:'gate'});
-      }
+        if(live) hit.push({x:X0-gw,y:top,w:gw,h:h-0.7,kind:'gate'}); }
       if(live) hit.push({x:X0,y:top,w:Wd,h:h-0.7,kind:'cyc',i:n+1});
-      if(n+1===c) g(el('rect',{x:X0-(G.gate?0:Wd*gn),y:top,width:Wd+(G.gate?0:Wd*gn),height:h-0.7,
-        fill:'none',stroke:'#0C1015','stroke-width':1.4}));
+      if(n+1===c){ const gw=G.gate?0:Wd*gn;
+        g(el('rect',{x:X0-gw,y:top,width:Wd+gw,height:h-0.7,fill:'none',stroke:'#0C1015','stroke-width':1.5}));
+        g(T(X0+Wd+6,top+h/2+3,'cycle '+c,{'font-size':'7','font-weight':'700',fill:'#0C1015'})); }
       y=top;
     }
-    /* the decade rule: everything up to and including the lit cycle */
     const dr=(sum(s.rc,c)-sum(s.geo,c))/sum(s.st,c);
-    g(el('line',{x1:X0+Wd*dr,x2:X0+Wd*dr,y1:PT-4,y2:PB,stroke:'#0C1015','stroke-width':1.8,'stroke-dasharray':'6 3'}));
-    g(T(X0+Wd*dr,PT-14,(dr*100).toFixed(1)+'% over '+c+(c>1?' cycles':' cycle'),
-      {'text-anchor':'middle','font-size':'8.5','font-weight':'700',fill:'#0C1015'}));
-    g(T(X0+Wd*0.5,PB+24,'width = share of that cycle’s injection · area = energy',
-      {'text-anchor':'middle','font-size':'8',fill:'#8A8F86'}));
-
-    /* ── the gutter ── */
-    const GX=X0+WMAX+14;
-    g(T(GX,PT+10,'cycle '+c,{'font-size':'10','font-weight':'800',fill:'#1C2128'}));
-    g(T(GX,PT+24,fmt(s.st[c-1]/1000,1)+' MWh in',{'font-size':'8.5',fill:'#565D62'}));
-    g(T(GX,PT+35,fmt((s.rc[c-1]-(G.gate?s.geo[c-1]:0))/1000,1)+' MWh back',{'font-size':'8.5',fill:s.c,'font-weight':'700'}));
-    if(!G.gate&&s.geo[c-1]>0){
-      g(T(GX,PT+50,'of which',{'font-size':'8',fill:'#8A8F86'}));
-      g(T(GX,PT+60,fmt(s.geo[c-1]/1000,1)+' MWh',{'font-size':'9','font-weight':'700',fill:'#C97A10'}));
-      g(T(GX,PT+70,'ground heat',{'font-size':'8',fill:'#C97A10'}));
-      g(T(GX,PT+80,'tap to strip it',{'font-size':'7.5',fill:'#8A8F86'}));
-    }
-    const sq=Math.sqrt(25000*PH*Wof(i)/ (TOT[i]*1000));
-    g(el('rect',{x:GX,y:PB-40,width:sq,height:sq,fill:'#E7DFCE',stroke:'#C9C4B8'}));
-    g(T(GX,PB-44,'= 25 MWh',{'font-size':'7.5',fill:'#8A8F86'}));
+    g(el('line',{x1:X0+Wd*dr,x2:X0+Wd*dr,y1:PT-2,y2:PB,stroke:'#0C1015','stroke-width':1.8,'stroke-dasharray':'6 3'}));
+    g(T(X0+Wd*0.5,PB+23,'width = share of that cycle’s injection · area = energy · tap a stratum',
+      {'text-anchor':'middle','font-size':'7',fill:'#9AA0A6'}));
+    if(!G.gate&&s.geo[9]>0) g(T(X0-Wof(i)*0.5,PB+11,'ground heat — tap to strip',
+      {'text-anchor':'middle','font-size':'7','font-weight':'700',fill:'#C97A10'}));
   }
 
-  /* ---- one pointer handler, hit-tested against the drawn rectangles ---- */
   const toS=e=>{ const r=svg.getBoundingClientRect(); return {x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)}; };
   const pick=p=>{ for(let k=hit.length-1;k>=0;k--){ const h=hit[k];
     if(p.x>=h.x&&p.x<=h.x+h.w&&p.y>=h.y&&p.y<=h.y+h.h) return h; } return null; };
   svg.addEventListener('pointerdown',e=>{ const h=pick(toS(e)); if(!h) return;
-    if(h.kind==='sc'){ G.sc=h.i; G.cyc=10; }
-    else if(h.kind==='cyc') G.cyc=h.i;
+    if(h.kind==='sc'){ G.sc=h.i; G.cyc=10; } else if(h.kind==='cyc') G.cyc=h.i;
     else if(h.kind==='gate') G.gate=!G.gate;
     upd(); e.preventDefault(); });
   svg.addEventListener('pointermove',e=>{ const p=toS(e), h=pick(p);
     svg.style.cursor=h?'pointer':'default';
     if(!h||h.kind==='sc'){ tip.style.opacity='0'; return; }
     const s=DEC[G.sc], r=wrap.getBoundingClientRect();
-    if(h.kind==='gate'){ tip.innerHTML='native ground heat\nmined by the 10 °C discharge\ntap to strip it from the ledger'; }
+    if(h.kind==='gate') tip.innerHTML='native ground heat\nmined by the 10 °C discharge\ntap to strip it from the ledger';
     else { const n=h.i-1;
       tip.innerHTML=`cycle ${h.i}\ninjected ${fmt(s.st[n]/1000,1)} MWh\ncame back ${fmt(s.rc[n]/1000,1)} MWh  (${(100*s.rc[n]/s.st[n]).toFixed(1)}%)`+
         (s.geo[n]>0?`\nof which ground heat ${(100*s.geo[n]/s.rc[n]).toFixed(0)}%`:'')+
@@ -1594,20 +1591,20 @@ const DIS={tS:1000,TS:500,ES:1,n:186,s:[
   svg.addEventListener('pointerleave',()=>{ tip.style.opacity='0'; });
 
   function upd(){
-    const s=DEC[G.sc], c=G.cyc;
-    const mar=(G.gate?(s.rc[c-1]-s.geo[c-1]):s.rc[c-1])/s.st[c-1];
-    const life=(sum(s.rc,c)-(G.gate?sum(s.geo,c):0))/sum(s.st,c);
-    const own10=(s.rc[9]-s.geo[9])/s.st[9], rep10=s.rc[9]/s.st[9];
+    const s=DEC[G.sc], own10=(s.rc[9]-s.geo[9])/s.st[9], rep10=s.rc[9]/s.st[9];
     const twin=DEC.find(t=>t.k===s.k.replace('_T30',''));
-    $('d-say').innerHTML=
-      `<b>Cycle ${c} alone returned ${(mar*100).toFixed(1)}%</b> of what that cycle put in; across cycles 1–${c} `+
-      `the store gave back <b>${(life*100).toFixed(1)}%</b> of everything ever injected — the dashed rule. `+
-      (s.k==='array'
-        ? `Watch the strata <b>thin</b> as you go up: the cell saturates and stops accepting charge, from 88.7 MWh in year 1 to 45.9 MWh in year 10. The famous 98.5% is one year of a store that has almost stopped being filled.`
-        : s.geo[9]>0
-          ? `The gold hatching grows <b>leftward, out of the rock</b> — it never came from your injection. Strip it and this drift returns <b>${(own10*100).toFixed(1)}%</b> at cycle 10 instead of ${(rep10*100).toFixed(1)}%, `+
-            `below the same geometry in cold 10 °C rock (${(100*twin.rc[9]/twin.st[9]).toFixed(1)}%). And read the tap: <b>${fmt(s.to[9],1)} °C out of ${s.T0} °C rock</b>.`
-          : `No gold here: in ${s.T0} °C rock every kilowatt-hour that comes back is one you put in.`);
+    $('d-say').innerHTML= s.k==='array'
+      ? `<b>The strata thin as you go up.</b> The cell saturates and stops accepting charge — injection falls from `+
+        `88.7&nbsp;MWh in year 1 to <b>45.9&nbsp;MWh</b> in year 10, while every other scenario holds 92–98%. `+
+        `The famous 98.5% is one year of a store that has nearly stopped being filled; the dashed rule — everything `+
+        `ever injected — stands at <b>73.4%</b>.`
+      : s.geo[9]>0
+        ? `<b>The gold grows leftward, out of the rock.</b> It never came from your injection. Strip it and this drift `+
+          `returns <b>${(own10*100).toFixed(1)}%</b> at cycle 10 instead of ${(rep10*100).toFixed(1)}% — below the same `+
+          `geometry in cold 10&nbsp;°C rock (${(100*twin.rc[9]/twin.st[9]).toFixed(1)}%). And the tap delivers `+
+          `<b>${fmt(s.to[9],1)}&nbsp;°C out of ${s.T0}&nbsp;°C rock</b>: colder than the ground it was cut into.`
+        : `No gold here — in ${s.T0}&nbsp;°C rock every kilowatt-hour that returns is one you put in. The pale bulk of `+
+          `each stratum is what stayed in the rock: <b>${(100*(1-rep10)).toFixed(0)}%</b> of cycle 10's injection never came back.`;
   }
   window.fig5Redraw=()=>{ draw(); upd(); };
   draw(); upd();
