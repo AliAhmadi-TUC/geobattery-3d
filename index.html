@@ -465,6 +465,17 @@
   #figLab b.port{ font-weight:700; background:rgba(255,255,255,.94); }
   @media (max-width:760px){ #figLab b{ font-size:10.5px; padding:2px 5px; } #figLab b.sm{ font-size:10px; } }
 
+  /* the figure-match view is a FIGURE, not the lab: strip the lab's furniture */
+  body.figbare #panel, body.figbare #panelBtn, body.figbare #infoBtn,
+  body.figbare #hint, body.figbare #hero .htx, body.figbare #status{ display:none !important; }
+  body.figbare.fignodeck #deck{ display:none !important; }
+  body.figbare.fignodeck #figKey{ bottom:24px; }
+  body.figbare #figchip{ top:calc(14px + env(safe-area-inset-top)); bottom:auto; left:14px; transform:none; }
+  body.figbare #figFree{ display:none; }
+  #figchip .fx.back{ background:#0a6e38; }
+  #figchip .fx.back:hover{ background:#0c1015; }
+  @media (max-width:640px){ body.figbare #figchip{ left:10px; right:10px; } }
+
   #figKey{ position:absolute; right:14px; bottom:150px; z-index:6; display:none;
     background:#fff; border:1px solid #d8d4ca; border-radius:8px; padding:9px 11px;
     box-shadow:0 8px 24px rgba(30,34,40,.16); min-width:212px; }
@@ -587,6 +598,7 @@
 <div id="figchip" role="status">
   <span class="fk" id="figKick">FIG</span>
   <span class="ft" id="figTxt"></span>
+  <a class="fx back" id="figBack" href="poster/">← back to the poster</a>
   <button class="fx" id="figFree" type="button">free the view</button>
 </div>
 
@@ -1498,23 +1510,24 @@ function main() {
       // FIG 2 is NOT a clipped cutaway: the printed panel shows a translucent rock slab you see
       // THROUGH, with the water body inside it, every region named, and a parallel projection.
       cutaway: { kick:'FIG 2', txt:'The surveyed drift — the printed panel, live: translucent rock, the water body inside it, every part named.',
-                 mode:'material', repr:'2', parallel:1, labels:1, key:1, wells:1,
-                 layers:{ rock:[1,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.28] },
+                 mode:'material', repr:'2', parallel:1, labels:1, key:1, wells:1, bare:1, nodeck:1,
+                 slab:3.87,                                     // the figure renders "a >= 3.87 m rock slab around the water body"
+                 layers:{ rock:[0,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.28] },
                  pal:{ rock:[0.541,0.490,0.427], water:[0.122,0.478,0.722],       // config.PV_MATERIALS, exactly
                        concrete:[0.788,0.761,0.706], air:[0.843,0.902,0.949] },
                  cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
-      plume:   { kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
+      plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
                  mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', play:1, cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
-      flow:    { kick:'FIG 3B', txt:'The charge flow as arrows — colour is speed, on the poster’s scale. Green marker = inlet, red = outlet.',
+      flow:    { bare:1, kick:'FIG 3B', txt:'The charge flow as arrows — colour is speed, on the poster’s scale. Green marker = inlet, red = outlet.',
                  mode:'flow', repr:'2', cam:{ dir:[0.20,0.96,-0.20], zoom:1.45 } },
-      stress:  { kick:'FIG 6', txt:'Von Mises stress at end of charge, sliced at the crown — the poster’s panel (a), live.',
+      stress:  { bare:1, kick:'FIG 6', txt:'Von Mises stress at end of charge, sliced at the crown — the poster’s panel (a), live.',
                  mode:'vm', layers:{ rock:[1,1.0], water:[1,0.9], concrete:[1,1.0], air:[0,0.3] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', cam:{ dir:[0.10,0.55,-0.83], zoom:1.35 } },
-      arraydomain:{ kick:'FIX', txt:'The simulated unit cell — the red box in the poster figure — as real geometry. Drifts repeat at 10 m pitch either side.',
+      arraydomain:{ bare:1, nodeck:1, kick:'FIX', txt:'The simulated unit cell — the red box in the poster figure — as real geometry. Drifts repeat at 10 m pitch either side.',
                  mode:'material', layers:{ rock:[1,0.20], water:[1,0.95], concrete:[1,1.0], air:[1,0.5] },
                  repr:'2', cam:{ dir:[-0.60,0.68,-0.39], zoom:1.15 } },
-      arrayresult:{ kick:'RESULT', txt:'The array cell’s stored heat, on the poster’s <b>10–80 °C</b> scale — the warm halo reaching the cell walls.',
+      arrayresult:{ bare:1, kick:'RESULT', txt:'The array cell’s stored heat, on the poster’s <b>10–80 °C</b> scale — the warm halo reaching the cell walls.',
                  mode:'temperature', layers:{ rock:[1,0.90], water:[1,1.0], concrete:[1,0.95], air:[1,0.5] },
                  clip:{ axis:0, pos:0.5, flip:false }, repr:'2', cam:{ dir:[-0.73,0.54,-0.41], zoom:1.15 } },
     };
@@ -1564,6 +1577,9 @@ function main() {
       if (F.parallel) renderer.getActiveCamera().setParallelProjection(true);            // the panel is a parallel projection
       if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom);
       if (F.wells) wellActors.forEach(a => a.setVisibility(true));
+      if (F.slab) buildFigSlab(F.slab); else removeFigSlab();
+      document.body.classList.toggle('figbare', !!F.bare);
+      document.body.classList.toggle('fignodeck', !!F.nodeck);
       document.body.classList.toggle('figkey', !!F.key);
       if (F.labels) { buildFigLabels(); document.body.classList.add('figlabels'); }
       else document.body.classList.remove('figlabels');
@@ -1577,6 +1593,29 @@ function main() {
       figApplied = true;
       renderWindow.render();
     }
+    /* ---- FIG 2 rock slab ---------------------------------------------------
+       The far-field block is 236 x 294 x 206 m while the drift sits at z ~ 0-2 m,
+       so clipping it cannot produce the printed panel's slab. The figure states
+       what it actually rendered — "a >= 3.87 m rock slab around the water body" —
+       so build exactly that and hide the far-field block. */
+    let figSlab = null;
+    function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; } }
+    function buildFigSlab(margin) {
+      removeFigSlab();
+      const wb = objs.water && objs.water.actor.getBounds(); if (!wb) return;
+      try {
+        const src = vtk.Filters.Sources.vtkCubeSource.newInstance({
+          xLength: (wb[1]-wb[0]) + 2*margin, yLength: (wb[3]-wb[2]) + 2*margin, zLength: (wb[5]-wb[4]) + 2*margin,
+          center: [(wb[0]+wb[1])/2, (wb[2]+wb[3])/2, (wb[4]+wb[5])/2] });
+        const m = vtk.Rendering.Core.vtkMapper.newInstance(); m.setInputConnection(src.getOutputPort());
+        const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
+        const pr = a.getProperty();
+        pr.setColor(0.541, 0.490, 0.427); pr.setOpacity(0.17);      // config.PV_MATERIALS rock
+        pr.setEdgeVisibility(true); pr.setEdgeColor(0.42, 0.40, 0.37); pr.setLineWidth(1);
+        renderer.addActor(a); figSlab = a;
+      } catch (e) { console.warn('slab unavailable', e); }
+    }
+
     /* ---- FIG 2 part labels ------------------------------------------------
        The printed panel names every region. The anchors are computed from the
        geometry actually loaded (centroid of each body, split into the two ends
@@ -1608,8 +1647,8 @@ function main() {
       push(figCentroid('concrete', hi), 'concrete plug', 70, -120, 'sm');
       push(figCentroid('air', lo), 'air-filled drift', -108, -58, 'sm');
       push(figCentroid('air', hi), 'air-filled drift', 46, -146, 'sm');
-      const rb = objs.rock && objs.rock.actor.getBounds();
-      if (rb) push([(rb[0]+rb[1])/2, (rb[2]+rb[3])/2, rb[4] + (rb[5]-rb[4])*0.06], 'rock (gneiss)', -30, 74);
+      const rb = figSlab ? figSlab.getBounds() : (objs.rock && objs.rock.actor.getBounds());
+      if (rb) push([rb[0] + (rb[1]-rb[0])*0.22, (rb[2]+rb[3])/2, rb[4]], 'rock (gneiss)', -34, 66);
       if (flowMeta && flowMeta.inlet)  push(flowMeta.inlet,  'inlet · invert', -76, 62, 'port');
       if (flowMeta && flowMeta.outlet) push(flowMeta.outlet, 'outlet · crown', 4, -66, 'port');
       figLabels = L;
@@ -1655,7 +1694,8 @@ function main() {
 
     document.getElementById('figFree').onclick = () => {          // back to the lab's own dark void, controls untouched
       window._figLock = false;
-      document.body.classList.remove('figmode', 'figlabels', 'figkey');
+      document.body.classList.remove('figmode', 'figlabels', 'figkey', 'figbare', 'fignodeck');
+      removeFigSlab();
       renderer.getActiveCamera().setParallelProjection(false);
       renderer.setBackground(voidRGB[0], voidRGB[1], voidRGB[2]);
       setColorMode(document.getElementById('colMode').value);     // restores the lab's own material colours
@@ -2330,7 +2370,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-23b · FIG 2 match: PV_MATERIALS palette, parallel projection, named parts, key panel', 'color:#e8871e;font-weight:bold');
+console.log('%c● GEOBATTERY build 2026-07-23c · FIG 2: rock slab, bare chrome, back button');
 main();
 </script>
 
