@@ -335,7 +335,7 @@
       </div>
 
       <div class="figwrap" id="k-fig">
-        <svg id="c-plane" viewBox="0 0 560 320" aria-label="admissibility plane: specific surface against seal length"></svg>
+        <svg id="c-plane" viewBox="0 0 560 348" aria-label="admissibility plane: specific surface against seal length"></svg>
         <div class="ftip" id="k-tip"></div>
       </div>
 
@@ -1092,7 +1092,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
   const LcOf=a=>2/a;
 
   /* ---- plane geometry ---- */
-  const W=560,H=320,L=50,R=54,MT=40,MB=46, PW=W-L-R, PH=H-MT-MB, YB=MT+PH;
+  const W=560,H=348,L=50,R=54,MT=40,MB=74, PW=W-L-R, PH=H-MT-MB, YB=MT+PH;
   const A0=0.15,A1=4.0,MT0=3,MT1=400;
   const lx=Math.log10(A0), lX=Math.log10(A1), ly=Math.log10(MT0), lY=Math.log10(MT1);
   const px=a=>L+(Math.log10(a)-lx)/(lX-lx)*PW;
@@ -1140,14 +1140,14 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
     /* grid + axes */
     [0.2,0.3,0.5,0.8,1,1.5,2,3,4].forEach(a=>{ if(a<A0||a>A1)return;
       g(E('line',{x1:px(a),x2:px(a),y1:MT,y2:YB,stroke:'#fff','stroke-opacity':'.28'}));
-      g(T(px(a),YB+15,a,{'text-anchor':'middle','font-size':'10'})); });
+      g(T(px(a),YB+14,a,{'text-anchor':'middle','font-size':'10'})); });
     [3,7,14,30,60,123,250,400].forEach(t=>{ if(t<MT0||t>MT1)return;
       g(E('line',{x1:L,x2:L+PW,y1:py(t),y2:py(t),stroke:'#fff','stroke-opacity':'.28'}));
       g(T(L-6,py(t)+4,t,{'text-anchor':'end','font-size':'10'})); });
     [8,4,2,1.2,0.8,0.6].forEach(lc=>{ const a=2/lc; if(a<A0||a>A1)return;
       g(T(px(a),MT-9,lc,{'text-anchor':'middle','font-size':'9.5',fill:'#8C9199'})); });
     g(T(L+PW/2,MT-23,'opening reach  L_c = 2/a   [m]',{'text-anchor':'middle','font-size':'10',fill:'#565D62'}));
-    g(T(L+PW/2,H-9,'specific surface  a = A_wetted / V_water   [1/m]',{'text-anchor':'middle','font-size':'10'}));
+    g(T(L+PW/2,YB+29,'specific surface  a = A_wetted / V_water   [1/m]',{'text-anchor':'middle','font-size':'10'}));
     g(T(-(MT+YB)/2,13,'seal length  t_store  [days]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'10'}));
 
     /* the lithology ribbon: the same criterion for the softest and hardest rock */
@@ -1172,7 +1172,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
     g(T(px(AV0)-8,py(TSTORE0)-9,'as built',{'text-anchor':'end','font-size':'9','font-weight':'700',fill:'#B4501E'}));
 
     /* the decades bracket — geometry gap against lithology spread */
-    const aMax=2*Math.sqrt(foS/(ALPHA0*k*ST.t*DAYS)), by=YB+27;
+    const aMax=2*Math.sqrt(foS/(ALPHA0*k*ST.t*DAYS)), by=YB+48;
     if(aMax>A0&&aMax<A1){
       g(E('line',{x1:px(aMax),x2:px(AV0),y1:by,y2:by,stroke:'#B4501E','stroke-width':'1.6'}));
       [px(aMax),px(AV0)].forEach(x=>g(E('line',{x1:x,x2:x,y1:by-4,y2:by+4,stroke:'#B4501E','stroke-width':'1.6'})));
@@ -1181,7 +1181,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
     }
     const r1=2*Math.sqrt(foStar(ST.tgt,kmin)/(ALPHA0*kmin*ST.t*DAYS)),
           r2=2*Math.sqrt(foStar(ST.tgt,kmax)/(ALPHA0*kmax*ST.t*DAYS));
-    g(T(L+2,by+11,`lithology spans only ${fmt(Math.abs(Math.log10(r1/r2)),3)} decades — geometry dominates`,
+    g(T(L+2,by+14,`lithology spans only ${fmt(Math.abs(Math.log10(r1/r2)),3)} decades — geometry dominates`,
       {'text-anchor':'start','font-size':'9',fill:'#565D62'}));
 
     /* the retention-target tab, dragged on the figure */
