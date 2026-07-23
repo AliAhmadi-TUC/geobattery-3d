@@ -416,30 +416,42 @@
     </div>
   </div>
 
-  <!-- ══════════ FIG 5 · ten years, five scenarios ══════════ -->
+  <!-- ══════════ FIG 5 · the decade, honestly accounted (5a + 5b + the table) ══════════ -->
   <div class="modal wide" id="m-decade" role="dialog" aria-modal="true" hidden>
-    <div class="mh"><h2><span class="k">05 · ten years, five scenarios</span>How much comes back — and how good</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mh"><h2><span class="k">05 · ten years, five scenarios</span>The leaderboard that will not sit still</h2><button class="x" data-close aria-label="close">✕</button></div>
     <div class="mb">
-      <p class="lead">Five full-3-D decades, forty cycles each of charge → seal → discharge. A wider opening and
-        warmer ground both lift the grade; only <b>removing the far-field sink</b> — the array — lifts the annual
-        return past 50%, and it needs about six cycles to get there.</p>
-      <div class="legend" id="d-leg"></div>
-      <div class="split">
-        <div class="card2" style="margin:0">
-          <h3>Return per year</h3><p class="sc">recovered ÷ injected</p>
-          <svg class="chart" id="c-dec-a" viewBox="0 0 300 210"></svg>
-        </div>
-        <div class="card2" style="margin:0">
-          <h3>Water at end of storage</h3><p class="sc">the grade you actually get</p>
-          <svg class="chart" id="c-dec-b" viewBox="0 0 300 210"></svg>
-        </div>
+      <p class="lead">The printed panel plots one number per scenario per year — recovered ÷ injected for
+        <em>that</em> year, with everything the ground contributed counted as a win. The same data answers two other
+        questions, and <b>each one re-orders the ranking</b>: is that this year alone or the whole decade, and
+        whose heat was it?</p>
+      <div class="howto">
+        <span>flip either lens and watch the bars re-sort</span>
+        <span>scrub the year</span>
+      </div>
+      <div class="chips" id="d-lens1"></div>
+      <div class="chips" id="d-lens2"></div>
+      <div class="figwrap" style="padding-bottom:2px">
+        <svg id="c-dec-a" viewBox="0 0 560 196" aria-label="return per year, five scenarios"></svg>
+        <svg id="c-dec-b" viewBox="0 0 560 196" aria-label="ranked leaderboard at the chosen year"></svg>
+      </div>
+      <div class="figkey">
+        <span><i style="background:#2A78D6"></i>heat you stored and got back</span>
+        <span><i style="background:#C97A10;opacity:.5"></i>hatched — native ground heat, mined by the 10&nbsp;°C discharge</span>
       </div>
       <div class="row2"><label>Cycle</label><span class="v" id="d-yr">year 10</span></div>
       <input type="range" id="d-yrin" min="1" max="10" step="1" value="10" aria-label="cycle">
       <div class="ticks"><span>y1</span><span>y5</span><span>y10</span></div>
       <table class="tb" id="d-tab"></table>
-      <p class="mut" id="d-note"></p>
-      <a class="mcta" href="../?scene=array&amp;fig=arrayresult">▶ Open the array cell in 3-D</a>
+      <p class="mut" id="d-say"></p>
+      <p class="mut">Five full-3-D decades, forty phases each. The geothermal split is <b>exact by linearity</b>, not
+        estimated: with the discharge fixed at 10&nbsp;°C, recovered(30&nbsp;°C rock) = (50/70)·recovered(10&nbsp;°C rock)
+        + geothermal, and <b>scenario_comparison.json</b> carries the residual per year (its own linearity check drifts
+        from 1.6% in year 1 to 11% by year 10 for the 2× radius run, so treat the split as good to a few percent, not
+        exact arithmetic). “Lifetime to date” is Σrecovered ÷ Σinjected over years 1…n — the number a plant owner
+        actually has. The array cell is a <b>closed unit cell</b> with adiabatic symmetry planes, so its balance is
+        pushed toward 100% by construction; the delivered grade in the last column is the honest counterweight, and
+        §04b integrates what that grade is worth. Water = bulk mean at end of storage; outlet = mean over the 61-day
+        discharge — <b>these two columns are what the printed FIG 5b plots and what it hides.</b></p>
     </div>
   </div>
 
@@ -646,29 +658,6 @@ const THOT=80, CONFIGS=[
  {n:'array · 10 m pitch',    s:'array 10 m',  th:0.49212, c:'#E34948'},
  {n:'radius ×2 + array',     s:'×2 + array',  th:0.91579, c:'#4A3AA7'}];
 
-/* five full-3-D decades — data/decadal_*.json                                 */
-const SCN=[
- {id:'baseline', n:'As-built drift · 10 °C', c:'#2A78D6', T0:10, geo:0,
-  rt:[7.33,9.35,10.39,11.07,11.55,11.92,12.22,12.46,12.67,12.84],
-  Tw:[19.19,20.85,21.62,22.10,22.43,22.69,22.89,23.06,23.19,23.31],
-  To:[12.18,12.70,12.96,13.12,13.23,13.32,13.39,13.45,13.50,13.54]},
- {id:'r2x', n:'2× radius · 10 °C', c:'#008300', T0:10, geo:0,
-  rt:[16.00,18.73,20.02,20.85,21.44,21.89,22.25,22.54,22.79,23.00],
-  Tw:[29.43,31.38,32.17,32.65,32.99,33.24,33.44,33.61,33.74,33.86],
-  To:[17.02,17.98,18.39,18.65,18.84,18.97,19.08,19.17,19.25,19.31]},
- {id:'baseline_T30', n:'As-built drift · 30 °C', c:'#1BAF7A', T0:30, geo:1,
-  rt:[37.73,38.64,39.48,40.07,40.49,40.81,41.07,41.28,41.45,41.61],
-  Tw:[36.71,37.18,37.48,37.69,37.84,37.95,38.05,38.12,38.19,38.24],
-  To:[18.32,18.48,18.58,18.65,18.70,18.74,18.77,18.80,18.82,18.84]},
- {id:'r2x_T30', n:'2× radius · 30 °C', c:'#4A3AA7', T0:30, geo:1,
-  rt:[44.81,44.71,45.70,46.38,46.87,47.25,47.55,47.79,48.00,48.18],
-  Tw:[44.01,44.50,44.83,45.04,45.20,45.32,45.42,45.50,45.56,45.62],
-  To:[24.90,25.16,25.33,25.44,25.53,25.59,25.64,25.68,25.72,25.75]},
- {id:'array', n:'ARRAY cell · 10 °C (3D)', c:'#E34948', T0:10, geo:0, star:1,
-  rt:[26.92,50.10,67.16,78.57,86.07,90.99,94.20,96.28,97.63,98.49],
-  Tw:[35.81,46.40,51.42,54.10,55.64,56.57,57.15,57.51,57.74,57.89],
-  To:[17.76,21.10,22.71,23.58,24.08,24.39,24.58,24.70,24.78,24.83]}];
-
 /* year-1 energy-balance residual per phase [kWh] — data/headline_numbers.json */
 const CLOSURE=[['charge',-1.197602e-6],['store',2.288743e-7],['discharge',-5.213148e-7],['recover',1.806064e-7]];
 const DELIVERED_KWH=454532.3, STORED_KWH=88387.44553, AWET=441.52;
@@ -698,9 +687,9 @@ const HOT=[
  {l:7.13, t:68.55,w:37.33,h:9.34,  k:'FIG 3B', lab:'Watch the charge flow in 3-D',      href:'../?fig=flow'},
  {l:51.31,t:18.88,w:22.12,h:12.07, k:'FIG 4a', lab:'Put your own mine on the plane',  m:'screening'},
  {l:75.03,t:18.88,w:22.06,h:11.52, k:'FIG 4b', lab:'What the heat is actually worth',       m:'grade'},
- {l:51.31,t:41.09,w:22.12,h:12.07, k:'FIG 5a', lab:'Scrub the ten years',               m:'decade'},
- {l:75.03,t:41.09,w:22.06,h:12.07, k:'FIG 5b', lab:'Scrub the ten years',               m:'decade'},
- {l:50.85,t:54.95,w:46.80,h:7.70,  k:'TABLE',  lab:'Compare the five scenarios',        m:'decade'},
+ {l:51.31,t:41.09,w:22.12,h:12.07, k:'FIG 5a', lab:'Whose heat was it, really?',               m:'decade'},
+ {l:75.03,t:41.09,w:22.06,h:12.07, k:'FIG 5b', lab:'Whose heat was it, really?',               m:'decade'},
+ {l:50.85,t:54.95,w:46.80,h:7.70,  k:'TABLE',  lab:'Whose heat was it, really?',        m:'decade'},
  {l:51.66,t:69.18,w:45.06,h:7.74,  k:'FIG 6',  lab:'See the stress in 3-D',             href:'../?fig=stress'},
  {l:61.41,t:81.46,w:9.87, h:4.88,  k:'FIX',    lab:'Open the array cell in 3-D',        href:'../?scene=array&fig=arraydomain'},
  {l:73.06,t:81.46,w:9.87, h:4.88,  k:'RESULT', lab:'Open the year-10 cell in 3-D',      href:'../?scene=array&fig=arrayresult'},
@@ -746,6 +735,7 @@ function openModal(id,arg){
   if(id==='solar') requestAnimationFrame(()=>{ if(window.figSolarRedraw) window.figSolarRedraw(); });
   if(id==='screening') requestAnimationFrame(()=>{ if(window.fig4Redraw) window.fig4Redraw(); });
   if(id==='grade') requestAnimationFrame(()=>{ if(window.fig4bRedraw) window.fig4bRedraw(); });
+  if(id==='decade') requestAnimationFrame(()=>{ if(window.fig5Redraw) window.fig5Redraw(); });
 }
 function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
 scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
@@ -1113,6 +1103,18 @@ const MINE={a:AV0,t:TSTORE0,k:5.0,rrl:54,tgt:0.5};
    From run_decade_<scenario>/yNN_p2_discharge/metrics.csv (t_days, T_out_C, Eout_kWh).
    The poster collapses each of these curves to a single mean; they are not
    means, they are decaying transients. uint16, scales below. */
+/* ── FIG 5 payload: five measured decades, with the exact geothermal split ──
+   decadal_*.json + scenario_comparison.json 'decomposition'. The 30 °C runs'
+   recovered heat is part stored solar, part native ground heat mined by the
+   10 °C discharge; the split is exact by linearity. kWh and °C, per year. */
+const DEC=[
+  {k:'baseline',n:'as-built drift · 10 °C',c:'#2A78D6',T0:10,st:[88387.4, 85713.8, 84266.8, 83367.6, 82745.8, 82299.7, 81964.7, 81700.9, 81481.7, 81289.8],rc:[6478.4, 8013.5, 8756.1, 9225.3, 9557.9, 9812.6, 10016.1, 10182.2, 10321.8, 10441.5],geo:[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],tw:[19.19, 20.85, 21.62, 22.1, 22.43, 22.69, 22.89, 23.06, 23.19, 23.31],to:[12.18, 12.7, 12.96, 13.12, 13.23, 13.32, 13.39, 13.45, 13.5, 13.54]},
+  {k:'r2x',n:'2× radius · 10 °C',c:'#008300',T0:10,st:[141009.6, 136346.9, 134041.3, 132586.0, 131558.9, 130805.0, 130226.9, 129764.7, 129378.7, 129043.1],rc:[22555.2, 25543.0, 26837.8, 27645.4, 28212.1, 28638.9, 28976.5, 29252.6, 29484.1, 29682.3],geo:[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],tw:[29.43, 31.38, 32.17, 32.65, 32.99, 33.24, 33.44, 33.61, 33.74, 33.86],to:[17.02, 17.98, 18.39, 18.65, 18.84, 18.97, 19.08, 19.17, 19.25, 19.31]},
+  {k:'baseline_T30',n:'as-built drift · 30 °C',c:'#1BAF7A',T0:30,st:[64113.4, 63785.7, 63166.2, 62748.4, 62457.1, 62245.3, 62084.0, 61954.7, 61845.4, 61748.5],rc:[24189.9, 24645.6, 24940.3, 25141.5, 25289.2, 25403.6, 25495.8, 25572.2, 25637.1, 25693.0],geo:[19562.5, 18921.6, 18686.0, 18551.9, 18462.1, 18394.6, 18341.4, 18299.2, 18264.3, 18234.8],tw:[36.71, 37.18, 37.48, 37.69, 37.84, 37.95, 38.05, 38.12, 38.19, 38.24],to:[18.32, 18.48, 18.58, 18.65, 18.7, 18.74, 18.77, 18.8, 18.82, 18.84]},
+  {k:'r2x_T30',n:'2× radius · 30 °C',c:'#4A3AA7',T0:30,st:[104498.1, 106516.5, 105352.7, 104568.4, 104012.9, 103601.2, 103282.9, 103026.5, 102810.9, 102622.4],rc:[46828.6, 47625.3, 48147.7, 48498.1, 48753.2, 48949.6, 49106.9, 49236.7, 49346.1, 49440.1],geo:[30717.8, 29380.3, 28977.9, 28751.4, 28601.7, 28493.2, 28409.4, 28342.0, 28286.0, 28238.5],tw:[44.01, 44.5, 44.83, 45.04, 45.2, 45.32, 45.42, 45.5, 45.56, 45.62],to:[24.9, 25.16, 25.33, 25.44, 25.53, 25.59, 25.64, 25.68, 25.72, 25.75]},
+  {k:'array',n:'ARRAY cell · 10 °C',c:'#E34948',T0:10,st:[88740.5, 67898.9, 57904.9, 52816.4, 49969.0, 48276.9, 47237.0, 46587.3, 46177.8, 45919.0],rc:[23889.7, 34019.5, 38887.0, 41496.9, 43009.2, 43926.9, 44497.0, 44855.3, 45081.8, 45225.2],geo:[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],tw:[35.81, 46.4, 51.42, 54.1, 55.64, 56.57, 57.15, 57.51, 57.74, 57.89],to:[17.76, 21.1, 22.71, 23.58, 24.08, 24.39, 24.58, 24.7, 24.78, 24.83]},
+];
+
 const DIS={tS:1000,TS:500,ES:1,n:186,s:[
   {lab:'as-built drift · yr 1',T0:10,inj:88387.4,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'1h3XHd4dDR7MHsQgZSO5IzgkKyXbJZAmBSfsJkEmGSWhIyIi2CDUHwEfUR65HTYdwhxdHAMcsxtsGy0b9BrBGpMaaBpCGh8a/hngGcQZqhmRGXsZZRlRGT4ZLBkaGQoZ+hjsGN0Y0BjDGLYYqhieGJMYiBh+GHQYahhgGFcYThhGGD0YNRgtGCUYHhgWGA8YCBj4F+YX1hfJF7wXrxejF5cXjBeCF3gXbhdlF1wXUxdKF0IXOhczFysXJBcdFxYXDxcIFwIX+xb1Fu8W6RbjFt0W2BbSFs0WxxbCFr0WuBazFq4WqRakFp8WmxaWFpIWjRaJFoQWgBZ8FngWdBZwFmwWaBZkFmAWXBZZFlUWURZOFkoWRxZDFkAWPBY5FjYWMhYvFiwWKRYmFiIWHxYcFhkWFhYTFhAWDhYLFggWBRYCFv8V/RX6FfcV9RXyFe8V7RXqFegV5RXjFeAV3hXbFdkV1xXUFdIV0BXNFcsVyRXGFcQV',E:'AAAAAAEABAAOACcAXQCwAA8BdQHfAU4CwAIyA6EDCgRoBL0ECQVOBY4FyQUABjQGZQaUBsEG7AYWBz4HZQeLB68H0wf2BxgIOQhaCHoImgi5CNcI9ggTCTEJTglqCYYJogm+CdkJ9AkPCikKRApeCncKkQqqCsMK3Ar1Cg4LJgs+C1YLbguGC50LtAvMC+ML+gsiDE8MewymDNEM+wwlDU4Ndw2fDccN7g0VDjwOYw6JDq4O1A75Dh4PQg9mD4oPrg/SD/UPGBA6EF0QfxChEMIQ5BAFESYRRxFnEYgRqBHIEegRBxInEkYSZRKEEqISwRLfEv0SGxM5E1cTdBOSE68TzBPpEwUUIhQ+FFoUdhSSFK4UyhTlFAEVHBU3FVIVbRWIFaMVvRXXFfIVDBYmFkAWWRZzFo0Wpha/FtgW8RYKFyMXPBdVF20XhheeF7YXzhfmF/4XFhguGEUYXRh0GIwYoxi6GNEY6Bj/GBYZLBlDGVkZ'},
   {lab:'as-built drift · yr 10',T0:10,inj:81289.8,t:'AAAAAAIADAAvAHQA9ACoAXkCSQMZBOoEugWKBlsHKwj7CMwJnApsCz0MDQ3dDa4Ofg9OEB8R7xG/EpATYBQwFQEW0RahF3IYQhkSGuMasxuDHFQdJB70HsUflSBlITYiBiPWI6ckdyVHJhgn6Ce4KIkpWSopK/oryiyaLWsuOy8LMNwwrDF8Mk0zHTTtNL41jjYFOKY5RjvnPIg+KEDJQWpDCkWrRkxI7EmNSy5Nzk5vUBBSsFNRVfJWklgzWtRbdF0VX7ZgVmL3Y5hlOGfZaHpqGmy7bVxv/HCdcj503nV/dyB5wHphfAJ+on9DgeSChIQlhsaHZokHi6iMSI7pj4qRKpPLlGyWDJitmU6b7pyPnjCg0KFxoxKlsqZTqPSplKs1rdaudrAXsrizWLX5tpq4Orrbu3y9HL+9wF7C/sOfxUDH4MiByiLMws1jzwTRpNJF1ObVhtcn2cjaaNwJ3qrfSuHr4ozkLObN527pDuuv7FDu',T:'TSROJFYkjSRgJXonTSrvKs0rDS31Lc0uUy81L2Iu4SzjKs8oACeSJWokdSOiIuohSSG7ID0gzh9rHxIfwh57Hjoe/x3KHZgdax1BHRod9hzUHLQclhx6HF8cRhwvHBgcAhzuG9obxxu1G6QbkxuEG3QbZRtXG0kbPBsvGyMbFhsLG/8a9BrpGt8a1BrKGsAatxqhGocacRpfGk0aPBorGhsaDBr+GfAZ4xnXGcsZvxm0GakZnhmUGYoZgBl3GW4ZZRlcGVMZSxlDGTsZMxkrGSQZHBkVGQ4ZBxkAGfkY8hjsGOYY3xjZGNMYzRjHGMEYuxi2GLAYqhilGKAYmhiVGJAYixiGGIEYfBh3GHMYbhhpGGUYYBhcGFcYUxhOGEoYRhhCGD4YORg1GDEYLRgpGCYYIhgeGBoYFhgTGA8YCxgIGAQYARj9F/oX9hfzF+8X7BfpF+UX4hffF9wX2RfVF9IXzxfMF8kXxhfDF8AXvRe6F7cX',E:'AAAAAAEABgAXADwAigAAAYoBHQK2AlQD9QOYBDUFywVTBs4GPQeiB/8HVQinCPQIPQmDCcYJBwpFCoEKvAr1CiwLYwuYC8wL/gsxDGIMkgzCDPEMHw1NDXoNpw3TDf8NKg5VDoAOqg7TDv0OJg9OD3cPnw/HD+4PFRA8EGMQiRCwENUQ+xAhEUYRaxGQEbUR2REaEmESpxLtEjETdRO4E/sTPRR+FL8U/xQ/FX4VvRX7FTkWdhazFvAWLBdoF6MX3xcZGFQYjhjIGAEZOhlzGasZ5BkbGlMaihrBGvgaLxtlG5sb0RsGHDwccRylHNocDh1CHXYdqh3dHRAeQx52Hqke2x4NHz8fcR+jH9QfBiA3IGcgmCDJIPkgKSFZIYkhuSHoIRciRiJ1IqQi0yIBIzAjXiOMI7oj6CMVJEMkcCSdJMok9yQkJVElfSWpJdYlAiYuJlkmhSaxJtwmByczJ14niCezJ94nCSgzKF0oiCiyKNwo'},
@@ -1463,48 +1465,115 @@ const DIS={tS:1000,TS:500,ES:1,n:186,s:[
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
-   FIG 5 — ten years, five scenarios
+   FIG 5 — ten years, five scenarios, and the leaderboard that will not sit still.
+   The printed panel plots one number per scenario per year: recovered ÷ injected
+   for THAT year, with everything the ground contributed counted as a win. Two
+   questions the same data answers differently:
+     · per-year or lifetime?   the array's 98.5 % is its tenth year alone; over
+       the whole decade it returned 73.4 % of everything ever put in.
+     · whose heat?             in 30 °C rock, 71-81 % of the "recovery" is native
+       ground heat mined by the 10 °C discharge, not stored solar.
+   Flip either and the ranking re-orders. That is the figure.
    ═════════════════════════════════════════════════════════════════════════ */
 (function(){
-  const on=SCN.map(()=>true);
-  const leg=$('d-leg');
-  SCN.forEach((sc,i)=>{ const l=document.createElement('label');
-    l.innerHTML='<input type="checkbox" checked><i style="background:'+sc.c+'"></i>'+sc.n;
-    l.querySelector('input').onchange=e=>{ on[i]=e.target.checked; l.classList.toggle('off',!on[i]); upd(); };
-    leg.appendChild(l); });
+  const DS={life:0, solar:0, yr:10};
+  const sum=(a,n)=>a.slice(0,n).reduce((x,y)=>x+y,0);
+  function val(s,n){                                   // n = 1..10
+    const rc=DS.life?sum(s.rc,n):s.rc[n-1], st=DS.life?sum(s.st,n):s.st[n-1],
+          ge=DS.life?sum(s.geo,n):s.geo[n-1];
+    return {tot:rc/st, solar:(rc-ge)/st, geo:ge/st, st, rc, ge};
+  }
+  const shown=s=>{ const v=val(s,DS.yr); return DS.solar?v.solar:v.tot; };
 
-  function panel(svg,key,ymin,ymax,ticks,unit){
-    const W=300,H=210,L=36,R=10,Tp=12,B=30, yr=+$('d-yrin').value;
-    clear(svg);
-    const X=i=>L+(W-L-R)*i/9, Y=v=>Tp+(H-Tp-B)*(1-(v-ymin)/(ymax-ymin));
-    ticks.forEach(g=>{ svg.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
-      svg.appendChild(T(L-5,Y(g)+4,g,{'text-anchor':'end','font-size':'9.5'})); });
-    [[0,'y1'],[4,'y5'],[9,'y10']].forEach(([i,t])=>svg.appendChild(T(X(i),H-13,t,{'text-anchor':'middle','font-size':'9.5'})));
-    svg.appendChild(E('line',{x1:X(yr-1),x2:X(yr-1),y1:Tp,y2:Y(ymin),stroke:'#C97A10','stroke-width':'1.2','stroke-dasharray':'3 3'}));
-    SCN.forEach((sc,i)=>{ if(!on[i])return; const d=sc[key];
-      svg.appendChild(E('path',{d:d.map((v,j)=>(j?'L':'M')+X(j).toFixed(1)+' '+Y(v).toFixed(1)).join(' '),
-        fill:'none',stroke:sc.c,'stroke-width':sc.star?2.8:2,'stroke-linejoin':'round'}));
-      svg.appendChild(E('circle',{cx:X(yr-1),cy:Y(d[yr-1]),r:3.6,fill:'#fff',stroke:sc.c,'stroke-width':'2.2'})); });
-    svg.appendChild(T(-(H/2)+8,10,unit,{transform:'rotate(-90)','text-anchor':'middle','font-size':'9.5'}));
+  /* ---- panel 1: the decade, under the current lens ---- */
+  function traj(){
+    const s=$('c-dec-a'),W=560,H=196,L=46,R=104,MT=14,MB=32; clear(s);
+    const PW=W-L-R, PH=H-MT-MB, YB=MT+PH;
+    const X=n=>L+PW*(n-1)/9, Y=v=>YB-Math.max(0,Math.min(1,v))*PH;
+    [0,0.25,0.5,0.75,1].forEach(v=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:L+PW,y1:Y(v),y2:Y(v)}));
+      s.appendChild(T(L-5,Y(v)+4,(v*100).toFixed(0),{'text-anchor':'end','font-size':'9.5'})); });
+    [1,5,10].forEach(n=>s.appendChild(T(X(n),H-13,'y'+n,{'text-anchor':'middle','font-size':'9.5'})));
+    s.appendChild(E('line',{x1:X(DS.yr),x2:X(DS.yr),y1:MT,y2:YB,stroke:'#C97A10','stroke-width':'1.2','stroke-dasharray':'3 3'}));
+    DEC.forEach(sc=>{
+      const pts=[]; for(let n=1;n<=10;n++){ const v=val(sc,n); pts.push(DS.solar?v.solar:v.tot); }
+      s.appendChild(E('path',{d:pts.map((v,i)=>(i?'L':'M')+X(i+1).toFixed(1)+' '+Y(v).toFixed(1)).join(' '),
+        fill:'none',stroke:sc.c,'stroke-width':sc.k==='array'?2.8:2,'stroke-linejoin':'round'}));
+      s.appendChild(E('circle',{cx:X(DS.yr),cy:Y(pts[DS.yr-1]),r:3.6,fill:'#fff',stroke:sc.c,'stroke-width':'2.2'}));
+      s.appendChild(T(L+PW+5,Y(pts[9])+4,sc.n,{fill:sc.c,'font-size':'9','font-weight':'600'}));
+    });
+    s.appendChild(T(-(MT+YB)/2,11,(DS.life?'lifetime':'per-year')+' return  [%]',
+      {transform:'rotate(-90)','text-anchor':'middle','font-size':'9.5'}));
   }
+
+  /* ---- panel 2: the leaderboard, sorted, split by whose heat it is ---- */
+  function board(){
+    const s=$('c-dec-b'),W=560,H=196,L=150,R=54,MT=20,MB=28; clear(s);
+    const PW=W-L-R, PH=H-MT-MB;
+    const rows=DEC.map(sc=>({sc,v:val(sc,DS.yr)})).sort((a,b)=>
+      (DS.solar?b.v.solar-a.v.solar:b.v.tot-a.v.tot));
+    const mx=Math.max(1e-6,Math.max.apply(null,rows.map(r=>DS.solar?r.v.solar:r.v.tot)));
+    const sc2=v=>PW*Math.min(1,v/Math.max(mx,0.5));
+    const bh=PH/rows.length*0.66, gap=PH/rows.length;
+    const dfs=E('defs',{}); const pat=E('pattern',{id:'hatch',width:6,height:6,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'});
+    pat.appendChild(E('rect',{width:6,height:6,fill:'#C97A10','fill-opacity':'.18'}));
+    pat.appendChild(E('line',{x1:0,y1:0,x2:0,y2:6,stroke:'#C97A10','stroke-width':2.2,'stroke-opacity':'.55'}));
+    dfs.appendChild(pat); s.appendChild(dfs);
+    [0,0.25,0.5,0.75,1].forEach(f=>{ const x=L+PW*f;
+      s.appendChild(E('line',{class:'grid',x1:x,x2:x,y1:MT-4,y2:MT+PH-4}));
+      s.appendChild(T(x,MT+PH+10,(f*Math.max(mx,0.5)*100).toFixed(0)+'%',{'text-anchor':'middle','font-size':'9'})); });
+    rows.forEach((r,i)=>{
+      const y=MT+i*gap, v=r.v;
+      s.appendChild(T(L-8,y+bh*0.72,r.sc.n,{'text-anchor':'end','font-size':'9.5','font-weight':r.sc.k==='array'?'700':'500',fill:'#3E444A'}));
+      s.appendChild(E('rect',{x:L,y,width:Math.max(1,sc2(v.solar)),height:bh,fill:r.sc.c,rx:2}));
+      if(!DS.solar && v.geo>1e-6){
+        s.appendChild(E('rect',{x:L+sc2(v.solar),y,width:Math.max(1,sc2(v.geo)),height:bh,fill:'url(#hatch)',stroke:'#C97A10','stroke-width':.8,rx:2}));
+        s.appendChild(T(L+sc2(v.solar)+sc2(v.geo)/2,y+bh*0.72,(v.geo*100).toFixed(0)+'% ground',
+          {'text-anchor':'middle','font-size':'8',fill:'#8A5A12','font-weight':'700'}));
+      }
+      const tot=DS.solar?v.solar:v.tot;
+      s.appendChild(T(L+sc2(tot)+6,y+bh*0.72,(tot*100).toFixed(1)+'%',{'text-anchor':'start','font-size':'10','font-weight':'700',fill:r.sc.c}));
+    });
+    s.appendChild(T(L+PW/2,10,(DS.life?'lifetime to date':'year '+DS.yr+' alone')+' · '+
+      (DS.solar?'stored solar only':'as reported, ground heat included'),
+      {'text-anchor':'middle','font-size':'9.5','font-weight':'700',fill:'#565D62'}));
+  }
+
+  /* ---- controls ---- */
+  function chips(id,opts,get,set){
+    const b=$(id); b.innerHTML='';
+    opts.forEach((o,i)=>{ const x=document.createElement('button');
+      x.className='chip'+(get()===i?' on':''); x.innerHTML=o;
+      x.onclick=()=>{ set(i); [...b.children].forEach((c,j)=>c.classList.toggle('on',j===i)); upd(); };
+      b.appendChild(x); });
+  }
+  chips('d-lens1',['this year alone','lifetime to date'],()=>DS.life,v=>DS.life=v);
+  chips('d-lens2',['as reported','stored solar only'],()=>DS.solar,v=>DS.solar=v);
+  $('d-yrin').addEventListener('input',e=>{ DS.yr=+e.target.value; upd(); });
+
   function upd(){
-    const yr=+$('d-yrin').value;
-    $('d-yr').textContent='year '+yr;
-    panel($('c-dec-a'),'rt',0,100,[0,25,50,75,100],'recovered  [%]');
-    panel($('c-dec-b'),'Tw',10,60,[10,25,40,55],'water  [°C]');
-    let h='<thead><tr><th>Scenario</th><th>return</th><th>water</th><th>out</th></tr></thead><tbody>';
-    SCN.forEach((sc,i)=>{ h+='<tr class="'+(on[i]?'':'off')+'" style="opacity:'+(on[i]?1:.4)+'">'+
-      '<td><span class="sw" style="background:'+sc.c+'"></span>'+sc.n+(sc.geo?' <span style="color:#B4501E">†</span>':'')+'</td>'+
-      '<td'+(sc.star?' style="color:#0A6E38;font-weight:800"':'')+'>'+fmt(sc.rt[yr-1],1)+'%</td>'+
-      '<td>'+fmt(sc.Tw[yr-1],1)+' °C</td><td>'+fmt(sc.To[yr-1],1)+' °C</td></tr>'; });
-    h+='</tbody>'; $('d-tab').innerHTML=h;
-    const arr=SCN[4];
-    $('d-note').innerHTML='<b>†</b> the 30&nbsp;°C rows include native geothermal heat mined by the 10&nbsp;°C '+
-      'discharge — roughly 57–81% of that “return” is ground heat, not stored solar. The array cell is a '+
-      '<b>closed unit cell</b> with adiabatic symmetry planes, so its balance is forced toward 100%: read the '+
-      '~6-cycle approach and the '+fmt(arr.To[yr-1],1)+'&nbsp;°C delivered grade, not the '+fmt(arr.rt[9],1)+'% alone.';
+    $('d-yr').textContent='year '+DS.yr;
+    traj(); board();
+    const arr=DEC.find(s=>s.k==='array'), b=DEC.find(s=>s.k==='baseline_T30'),
+          b10=DEC.find(s=>s.k==='baseline');
+    let h='<thead><tr><th>Scenario</th><th>return</th><th>of which ground heat</th><th>water</th><th>outlet</th></tr></thead><tbody>';
+    DEC.map(sc=>({sc,v:val(sc,DS.yr)})).sort((a,b2)=>(DS.solar?b2.v.solar-a.v.solar:b2.v.tot-a.v.tot))
+      .forEach(({sc,v})=>{ h+=`<tr><td><span class="sw" style="background:${sc.c}"></span>${sc.n}</td>`+
+        `<td><b>${((DS.solar?v.solar:v.tot)*100).toFixed(1)}%</b></td>`+
+        `<td style="color:${v.geo>0?'#B4501E':'#8A8F86'}">${v.geo>0?(v.geo/v.tot*100).toFixed(0)+'%':'—'}</td>`+
+        `<td>${fmt(sc.tw[DS.yr-1],1)} °C</td><td>${fmt(sc.to[DS.yr-1],1)} °C</td></tr>`; });
+    $('d-tab').innerHTML=h+'</tbody>';
+    const av=val(arr,DS.yr), bv=val(b,DS.yr), b10v=val(b10,DS.yr);
+    $('d-say').innerHTML=
+      `<b>The array.</b> Its famous ${(val(arr,10).tot*100).toFixed(1)}% is year 10 <em>alone</em>; across the whole decade `+
+      `it returned <b>${(function(){const t=DS.solar;DS.solar=0;const L=DS.life;DS.life=1;const x=val(arr,10).tot;DS.life=L;DS.solar=t;return (x*100).toFixed(1);})()}%</b> of everything ever injected. `+
+      `<b>Warm rock.</b> The 30 °C runs look like the second-best lever until you ask whose heat it is: `+
+      `at year ${DS.yr}, <b>${(bv.geo/bv.tot*100).toFixed(0)}%</b> of the as-built 30 °C "recovery" is native ground heat the `+
+      `10 °C discharge would have mined anyway. Strip it and it returns <b>${(bv.solar*100).toFixed(1)}%</b> — `+
+      `<em>below</em> the same drift in cold 10 °C rock (${(b10v.solar*100).toFixed(1)}%). `+
+      `Siting warmer does not store more; it only changes what the ground gives you for free.`;
   }
-  $('d-yrin').addEventListener('input',upd); upd();
+  window.fig5Redraw=()=>upd();
+  upd();
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
