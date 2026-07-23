@@ -174,6 +174,19 @@
   .tab{ flex:1 1 auto; background:transparent; border:0; border-bottom:3px solid transparent; cursor:pointer;
     padding:9px 8px; font:700 12px var(--sans); color:var(--ink-3); white-space:nowrap; }
   .tab:hover{ color:var(--ink); } .tab.on{ color:var(--grn-d); border-bottom-color:var(--grn-d); }
+  .story{ display:flex; align-items:center; gap:8px; margin:7px 0 4px; }
+  .story button{ flex:none; width:30px; height:30px; border-radius:8px; cursor:pointer;
+    background:#F5F4F0; border:1px solid var(--line); color:var(--ink); font:600 12px/1 var(--sans); }
+  .story button:hover{ border-color:var(--grn-d); color:var(--grn-d); }
+  .story button.play{ width:38px; background:var(--grn-d); border-color:var(--grn-d); color:#fff; }
+  .story button:disabled{ opacity:.35; cursor:default; }
+  .story .dots{ display:flex; gap:5px; margin-left:2px; }
+  .story .dots i{ width:7px; height:7px; border-radius:50%; background:var(--line-2); display:block; transition:background .2s, width .2s; }
+  .story .dots i.on{ background:var(--grn-d); width:18px; border-radius:4px; }
+  .story .cap{ margin-left:auto; font:600 10.5px var(--mono); letter-spacing:.04em; color:var(--ink-3); }
+  .beat{ font:400 12.5px/1.45 var(--sans); color:var(--ink-2); margin:2px 2px 8px; min-height:36px; }
+  .beat b{ color:var(--ink); } .beat em{ font-style:normal; color:var(--grn-d); font-weight:600; }
+  .beat .num{ font:700 12.5px var(--mono); color:var(--rust); }
   canvas.mini{ width:100%; height:230px; display:block; background:#fff; border:1px solid var(--line);
     border-radius:9px; cursor:grab; touch-action:none; }
   canvas.mini:active{ cursor:grabbing; }
@@ -459,6 +472,7 @@
         <div class="split">
           <div>
             <canvas class="mini" id="n3d-a"></canvas>
+            <div class="story" id="st-a"></div>
             <p class="capt"><b>Γ<sub>in</sub> ·</b> the pinned inlet face (blue) with the advective inflow. Drag to rotate.</p>
           </div>
           <div>
@@ -497,6 +511,7 @@
         <div class="split">
           <div>
             <canvas class="mini" id="n3d-b"></canvas>
+            <div class="story" id="st-b"></div>
             <p class="capt"><b>Corner ·</b> rock (grey) meets concrete (sand); the red edge is the shared node that
               a Dirichlet pin over-constrains. Drag to rotate.</p>
           </div>
@@ -534,7 +549,8 @@
         <div class="split">
           <div>
             <canvas class="mini" id="n3d-c"></canvas>
-            <p class="capt"><b>[[A, Bᵀ], [B, 0]] ·</b> bar height = factor fill-in. The zero block is the problem.
+            <div class="story" id="st-c"></div>
+            <p class="capt"><b>[[A, Bᵀ], [B, 0]] ·</b> structure only — MUMPS reports one factor count for the whole matrix, not per block. The zero block is the problem.
               Drag to rotate.</p>
           </div>
           <div>
@@ -723,7 +739,8 @@ function openModal(id,arg){
   if(id==='grade') requestAnimationFrame(()=>{ if(window.fig4bRedraw) window.fig4bRedraw(); });
   if(id==='decade') requestAnimationFrame(()=>{ if(window.fig5Redraw) window.fig5Redraw(); });
 }
-function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
+function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow='';
+  for(const k in STORIES) if(STORIES[k].pause) STORIES[k].pause(); }
 scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeModal));
 addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
@@ -1670,6 +1687,59 @@ const DEC=[
    A tiny painter's-algorithm 3-D canvas — the §07 figures, rotatable
    ═════════════════════════════════════════════════════════════════════════ */
 const MINI=[];
+/* ── the §07 transport: a stepped, replayable narrative ──────────────────────
+   Each challenge is a list of beats. `t` eases 0→1 within a beat so geometry can
+   interpolate; play chains beats and stops at the end. Dragging to rotate keeps
+   working throughout because rotation lives in mini3d, not here. Anyone who has
+   asked for reduced motion gets the end state of each beat immediately. */
+const REDUCED = matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
+function story(n, render, dur){
+  const S={i:0, t:1, playing:false, raf:null};
+  const ease=e=>e<0.5?2*e*e:1-Math.pow(-2*e+2,2)/2;
+  function go(i, animate){
+    S.i=Math.max(0,Math.min(n-1,i)); if(S.sync) S.sync();
+    if(S.raf){ cancelAnimationFrame(S.raf); S.raf=null; }
+    if(REDUCED||!animate){ S.t=1; render(); return; }
+    S.t=0; const t0=performance.now(), D=dur||1000;
+    const loop=()=>{ const e=Math.min(1,(performance.now()-t0)/D); S.t=ease(e); render();
+      if(e<1){ S.raf=requestAnimationFrame(loop); }
+      else { S.raf=null; if(S.playing){ if(S.i<n-1) go(S.i+1,true); else { S.playing=false; if(S.sync) S.sync(); render(); } } } };
+    S.raf=requestAnimationFrame(loop);
+  }
+  return { S, n,
+    go, next:()=>go(S.i+1,true), prev:()=>go(S.i-1,true),
+    pause(){ S.playing=false; if(S.raf){cancelAnimationFrame(S.raf); S.raf=null;} S.t=1; if(S.sync)S.sync(); render(); },
+    play(){ if(S.playing){ S.playing=false; if(S.raf){cancelAnimationFrame(S.raf); S.raf=null;} S.t=1; render(); return; }
+            S.playing=true; go(S.i>=n-1?0:S.i+1,true); },
+    reset(){ S.playing=false; go(0,false); } };
+}
+const clamp01=x=>x<0?0:x>1?1:x;
+const seg=(t,a,b)=>{const e=clamp01((t-a)/(b-a)); return e<.5?2*e*e:1-Math.pow(-2*e+2,2)/2;};
+const lerp=(a,b,t)=>a+(b-a)*t;
+/* the renderer refits to the projected extents every frame, so a beat that adds
+   geometry would read as a zoom. An unpainted cage pins the box instead. */
+const cage=b=>({type:'line',pts:[[b[0],b[2],b[4]],[b[1],b[2],b[4]],[b[1],b[3],b[4]],[b[0],b[3],b[4]],
+                                 [b[0],b[2],b[5]],[b[1],b[2],b[5]],[b[1],b[3],b[5]],[b[0],b[3],b[5]]]});
+function storyBar(el, st, labels, onRender){
+  el.insertAdjacentHTML('afterend','<div class="beat"></div>');
+  const say=el.nextElementSibling;
+  el.innerHTML='<button data-a="prev" title="previous beat" aria-label="previous beat">◀</button>'+
+    '<button class="play" data-a="play" title="play" aria-label="play">▶</button>'+
+    '<button data-a="next" title="next beat" aria-label="next beat">▶|</button>'+
+    '<span class="dots"></span><span class="cap"></span>';
+  const dots=el.querySelector('.dots');
+  for(let k=0;k<st.n;k++){ const d=document.createElement('i'); d.onclick=()=>{ st.S.playing=false; st.go(k,true); }; dots.appendChild(d); }
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const a=b.dataset.a;
+    if(a==='play') st.play(); else if(a==='next'){ st.S.playing=false; st.next(); } else { st.S.playing=false; st.prev(); } });
+  st.say=h=>{ say.innerHTML=h; };
+  st.S.sync=()=>{ [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===st.S.i));
+    if(labels&&labels[st.S.i]) say.innerHTML=labels[st.S.i];
+    el.querySelector('[data-a="play"]').textContent=st.S.playing?'❚❚':'▶';
+    el.querySelector('[data-a="prev"]').disabled=st.S.i===0;
+    el.querySelector('[data-a="next"]').disabled=st.S.i===st.n-1;
+    el.querySelector('.cap').textContent='beat '+(st.S.i+1)+' / '+st.n; };
+  st.S.sync(); return st;
+}
 function mini3d(canvas,build,yaw0,pitch0){
   const st={yaw:yaw0,pitch:pitch0,dpr:1,w:0,h:0};
   const ctx=canvas.getContext('2d');
@@ -1714,9 +1784,11 @@ function mini3d(canvas,build,yaw0,pitch0){
       ctx.beginPath();
       pr.forEach((p,i)=>{ const q=S(p); i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]); });
       if(it.type==='poly'){ ctx.closePath(); if(it.fill){ ctx.fillStyle=it.fill; ctx.fill(); } }
-      if(it.stroke){ ctx.strokeStyle=it.stroke; ctx.lineWidth=it.lw||1; ctx.lineJoin='round'; ctx.stroke(); }
+      if(it.stroke){ ctx.strokeStyle=it.stroke; ctx.lineWidth=it.lw||1; ctx.lineJoin='round';
+        if(it.dash){ ctx.setLineDash(it.dash); ctx.stroke(); ctx.setLineDash([]); } else ctx.stroke(); }
       if(it.type==='arrow'){                          // head at the last point
         const a=S(pr[pr.length-2]), b=S(pr[pr.length-1]);
+        if((b[0]-a[0])**2+(b[1]-a[1])**2<4) return;   // tweened from zero length: no head yet
         const an=Math.atan2(b[1]-a[1],b[0]-a[0]), hl=it.head||7;
         ctx.beginPath(); ctx.moveTo(b[0],b[1]);
         ctx.lineTo(b[0]-hl*Math.cos(an-0.42),b[1]-hl*Math.sin(an-0.42));
@@ -1749,7 +1821,10 @@ function box3(o,s,fill,stroke,lw){
 }
 
 /* ── §07 tabs ────────────────────────────────────────────────────────────── */
+const STORIES={};        // only the visible tab of an open modal may animate
+let A_LVL=32;            // elements across the inlet, written by the slider, read by beat 3
 function numTab(t){
+  for(const k in STORIES) if(k!==t && STORIES[k].pause) STORIES[k].pause();
   document.querySelectorAll('#n-tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('.npane').forEach(p=>p.hidden=(p.dataset.p!==t));
   requestAnimationFrame(()=>MINI.forEach(m=>m.resize()));
@@ -1786,10 +1861,12 @@ const FEM_A=(function(){
   return {solve,qExact,k,Tin,Tout};
 })();
 (function(){
+  let A_ST=null, A_MX=null;      // declared before upd() runs — a TDZ const throws even under typeof
   const nIn=$('a-nin');
   function upd(){
-    const n=+nIn.value, r=FEM_A.solve(n);
+    const n=+nIn.value, r=FEM_A.solve(n); A_LVL=n;
     $('a-n').textContent=n;
+    if(A_ST && A_ST.S.i!==2 && !A_ST.S.playing) A_ST.go(2,false);
     $('a-nod').textContent=fmt(r.qNodal,5);
     $('a-rea').textContent=fmt(r.qReact,5);
     $('a-exa').textContent=fmt(FEM_A.qExact,5);
@@ -1823,20 +1900,46 @@ const FEM_A=(function(){
   CLOSURE.forEach(([p,v])=>{ h+='<tr><td>'+p+'</td><td>'+v.toExponential(3)+'</td><td>'+
     (Math.abs(v)/DELIVERED_KWH).toExponential(1)+'</td></tr>'; });
   h+='</tbody>'; $('a-clos').innerHTML=h;
-  // the 3-D panel
-  mini3d($('n3d-a'),()=>{
-    const it=[];
-    box3([0.18,0.05,0.05],[0.72,0.80,0.62],'rgba(223,231,238,.42)','#9AA3AB',1).forEach(b=>it.push(b));
+  // ---- the story: five beats, the same P1 solve driving every number ----
+  const A_BEATS=[
+    'Everything the model claims in a year crosses <b>this one face</b> — <span class="num">454 532 kWh</span> of it. Get its flux wrong and the whole balance is wrong.',
+    'Pin the face to a temperature. The nodal values are now <em>exact at every node</em> — and the slope you read off them is <span class="num">50 %</span> wrong at 2 elements.',
+    'Refine, and watch which number moves. The nodal gradient falls only as <b>O(h)</b>: <span class="num">50 → 12.5 → 3.1 → 0.78 → 0.20 %</span>. It never arrives.',
+    'The pin <b>overwrote a row</b> of the assembled system. Keep that row, and evaluate it on the solved field: that is the reaction.',
+    'The reaction is <em>exact at every mesh</em> — <span class="num">1e-13</span>, not a limit you approach. In the real 3-D run it closes each phase to <span class="num">~1e-6 kWh</span> in 4.5×10⁵.'];
+  A_ST=story(5,()=>{ if(A_MX) A_MX.draw(); },[420,520,640,480,420]);
+  A_MX=mini3d($('n3d-a'),()=>{
+    const i=A_ST.S.i, t=A_ST.S.t, it=[];
+    it.push(cage([-0.30,1.05,0.0,0.95,-0.15,0.95]));
+    box3([0.18,0.05,0.05],[0.72,0.80,0.62],'rgba(223,231,238,'+(i>=3?0.22:0.42)+')','#9AA3AB',1).forEach(x=>it.push(x));
+    // the inlet face: dormant, then pinned
+    const fa=i===0?0.35:lerp(0.35,0.62,seg(t,0,0.35)*(i>=1?1:0))+(i>=2?0.27:0);
     it.push({type:'poly',pts:[[0.18,0.05,0.05],[0.18,0.85,0.05],[0.18,0.85,0.67],[0.18,0.05,0.67]],
-      fill:'rgba(42,111,176,.55)',stroke:'#2A6FB0',lw:1.6});
-    [[0.25,0.22],[0.45,0.22],[0.65,0.22],[0.25,0.48],[0.45,0.48],[0.65,0.48]].forEach(([y,z])=>{
-      it.push({type:'arrow',pts:[[-0.12,y,z],[0.30,y,z]],stroke:'#E39A26',lw:2.6,head:7}); });
-    it.push({type:'dot',pts:[[0.55,0.45,0.36]],r:4,fill:'#181C20'});
-    it.push({type:'text',pts:[[0.62,0.45,0.36]],text:'node',color:'#181C20',align:'left',font:'500 11px "IBM Plex Mono",monospace'});
-    it.push({type:'text',pts:[[0.18,0.45,0.86]],text:'Γin :  T = Tin',color:'#2A6FB0',font:'700 11px "IBM Plex Mono",monospace'});
-    it.push({type:'text',pts:[[0.55,0.05,-0.10]],text:'qn = rh|Γ',color:'#0A6E38',font:'700 12px "IBM Plex Mono",monospace'});
+      fill:'rgba(42,111,176,'+Math.min(0.62,fa).toFixed(2)+')',stroke:'#2A6FB0',lw:1.6});
+    // beat 1: the inflow arrives
+    if(i===0) [[0.25,0.22],[0.45,0.22],[0.65,0.22],[0.25,0.48],[0.45,0.48],[0.65,0.48]].forEach(([y,z],k)=>{
+      const g=seg(t,k*0.06,k*0.06+0.55);
+      it.push({type:'arrow',pts:[[-0.12,y,z],[lerp(-0.12,0.30,g),y,z]],stroke:'#E39A26',lw:2.6,head:7}); });
+    else [[0.25,0.22],[0.45,0.22],[0.65,0.22],[0.25,0.48],[0.45,0.48],[0.65,0.48]].forEach(([y,z])=>
+      it.push({type:'arrow',pts:[[-0.12,y,z],[0.30,y,z]],stroke:'#E39A26',lw:2.2,head:6}));
+    // beat 2: the two nodes the slope is read from
+    if(i>=1&&i<=2){ const pop=i===1?seg(t,0.35,1):1;
+      [[0.18,0.45,0.36],[0.18+0.72/Math.max(2,A_LVL),0.45,0.36]].forEach((q,k)=>
+        it.push({type:'dot',pts:[q],r:3+2*pop*(k?1:0),fill:k?'#B4501E':'#2A6FB0'})); }
+    // beat 3: the mesh refines — slice planes, honest to 32 then only the first three
+    if(i===2){ const n=Math.min(32,Math.max(2,Math.round(lerp(2,A_LVL,t)))), lim=Math.min(n,32);
+      for(let j=1;j<lim;j++){ const x=0.18+j*0.72/n; if(x>0.90) break;
+        it.push({type:'line',pts:[[x,0.05,0.05],[x,0.85,0.05],[x,0.85,0.67],[x,0.05,0.67],[x,0.05,0.05]],
+          stroke:'rgba(58,63,69,0.30)',lw:0.8}); } }
+    // beat 4: the discarded row
+    if(i===3){ it.push({type:'text',pts:[[0.54,0.45,0.86]],text:'row kept',color:'#0A6E38',font:'700 11px "IBM Plex Mono",monospace'}); }
+    if(i===4){ it.push({type:'text',pts:[[0.54,0.45,0.86]],text:'qn = rh|Γ',color:'#0A6E38',font:'700 12px "IBM Plex Mono",monospace'});
+      it.push({type:'dot',pts:[[0.18,0.45,0.36]],r:5,fill:'#0A6E38'}); }
+    it.push({type:'text',pts:[[0.18,0.92,0.78]],text:'Γin',color:'#2A6FB0',font:'700 11px "IBM Plex Mono",monospace'});
     return it;
   },-58*Math.PI/180,20*Math.PI/180);
+  storyBar($('st-a'),A_ST,A_BEATS);
+  STORIES.a=A_ST;
 })();
 
 /* ═════════════════════════════════════════════════════════════════════════
