@@ -330,7 +330,7 @@
       </div>
       <div class="howto">
         <span>drag the puck anywhere on the plane — that is your mine</span>
-        <span>drag the ≡ tab to change what counts as viable</span>
+        <span>drag the <b>TARGET</b> tab — the minimum retention you accept</span>
         <span>hover to read any point</span>
       </div>
 
@@ -339,6 +339,7 @@
         <div class="ftip" id="k-tip"></div>
       </div>
 
+      <p class="capt" style="margin:2px 3px 9px"><b>Target</b> — the minimum fraction of injected heat that must still be in the water when the seal opens, for you to call the opening viable. The printed poster fixes it at 50&nbsp;% without saying so; <b>screening.json</b> tabulates 30, 50 and 70&nbsp;%, and the choice moves the gneiss criterion from L<sub>c</sub>&nbsp;≥&nbsp;2.27&nbsp;m to 5.81&nbsp;m.</p>
       <div class="chips" id="k-rocks"></div>
       <div class="chips" id="k-snap"></div>
 
@@ -1092,7 +1093,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
   const LcOf=a=>2/a;
 
   /* ---- plane geometry ---- */
-  const W=560,H=348,L=50,R=54,MT=40,MB=74, PW=W-L-R, PH=H-MT-MB, YB=MT+PH;
+  const W=560,H=348,L=50,R=74,MT=40,MB=74, PW=W-L-R, PH=H-MT-MB, YB=MT+PH;
   const A0=0.15,A1=4.0,MT0=3,MT1=400;
   const lx=Math.log10(A0), lX=Math.log10(A1), ly=Math.log10(MT0), lY=Math.log10(MT1);
   const px=a=>L+(Math.log10(a)-lx)/(lX-lx)*PW;
@@ -1185,12 +1186,13 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
       {'text-anchor':'start','font-size':'9',fill:'#565D62'}));
 
     /* the retention-target tab, dragged on the figure */
-    const tx=L+PW+16, ty0=MT+8, ty1=YB-8, tY=t=>ty1-(t-0.05)/0.9*(ty1-ty0);
+    const tx=L+PW+18, ty0=MT+8, ty1=YB-8, tY=t=>ty1-(t-0.05)/0.9*(ty1-ty0);
     g(E('line',{x1:tx,x2:tx,y1:ty0,y2:ty1,stroke:'#C9C4B8','stroke-width':'3','stroke-linecap':'round'}));
-    [0.1,0.3,0.5,0.7,0.9].forEach(v=>g(T(tx+9,tY(v)+3,(v*100).toFixed(0),{'text-anchor':'start','font-size':'8.5',fill:'#8C9199'})));
-    g(E('rect',{x:tx-7,y:tY(ST.tgt)-8,width:14,height:16,rx:4,fill:'#0C1015'}));
-    g(T(tx,tY(ST.tgt)+4,'≡',{'text-anchor':'middle',fill:'#fff','font-size':'10','font-weight':'700'}));
-    g(T(tx+4,ty0-9,'target',{'text-anchor':'middle','font-size':'8.5',fill:'#565D62'}));
+    [0.1,0.3,0.5,0.7,0.9].forEach(v=>g(T(tx+18,tY(v)+3,(v*100).toFixed(0)+'%',{'text-anchor':'start','font-size':'8.5',fill:'#8C9199'})));
+    g(E('rect',{x:tx-15,y:tY(ST.tgt)-9,width:30,height:18,rx:5,fill:'#0C1015'}));
+    g(T(tx,tY(ST.tgt)+4,(ST.tgt*100).toFixed(0)+'%',{'text-anchor':'middle',fill:'#fff','font-size':'10','font-weight':'700'}));
+    g(T(tx+4,ty0-10,'TARGET',{'text-anchor':'middle','font-size':'8','font-weight':'700',fill:'#0C1015'}));
+    g(T(-(ty0+ty1)/2,tx+48,'minimum retention you accept',{transform:'rotate(-90)','text-anchor':'middle','font-size':'8.5',fill:'#565D62'}));
 
     /* the puck */
     const ux=px(ST.a), uy=py(ST.t), th=rf1(FoOf(ST.a,ST.t,k),k);
@@ -1237,9 +1239,9 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
   /* ---- interaction ---- */
   const toS=e=>{ const r=svg.getBoundingClientRect(); return {x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)}; };
-  const tabX=L+PW+16, tY0=MT+8, tY1=YB-8;
+  const tabX=L+PW+18, tY0=MT+8, tY1=YB-8;
   svg.addEventListener('pointerdown',e=>{ const p=toS(e);
-    if(Math.abs(p.x-tabX)<14 && p.y>tY0-12 && p.y<tY1+12){ drag='t'; }
+    if(Math.abs(p.x-tabX)<17 && p.y>tY0-12 && p.y<tY1+12){ drag='t'; }
     else if(p.x>=L&&p.x<=L+PW&&p.y>=MT&&p.y<=YB){ drag='p'; ST.a=xa(p.x); ST.t=yt(p.y); upd(); }
     else return;
     svg.setPointerCapture(e.pointerId); e.preventDefault(); });
