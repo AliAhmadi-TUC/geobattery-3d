@@ -7,189 +7,200 @@
 <meta name="description" content="The ALERT 2026 geobattery poster, made interactive — tap any figure to explore it in 3-D or with a live tool.">
 <style>
   :root{
-    --ink:#242424; --mut:#63696b; --line:#e2e6e4; --card:#ffffff; --bg:#eef1f0;
-    --grn:#00824a; --grn-d:#006037; --grn-l:#e4f0ea; --amber:#d9791f; --red:#c0392b; --hot:#e0a400;
+    /* sampled from the poster itself */
+    --dark:#0c0f15; --grn:#20c267; --grn-d:#096e37; --cream:#f4f1e9;
+    --ink:#1c2128; --mut:#6d7480; --line:#dcd8cf; --card:#ffffff;
+    --amber:#d9791f; --red:#c0392b; --blue:#3f6f9e;
   }
   *{ box-sizing:border-box; }
-  html,body{ margin:0; background:var(--bg); color:var(--ink);
+  html,body{ margin:0; background:var(--cream); color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased; line-height:1.5; }
-  a{ color:var(--grn); text-decoration:none; }
+  a{ color:var(--grn-d); text-decoration:none; }
 
-  /* top bar */
-  .bar{ position:sticky; top:0; z-index:20; background:#fff; border-bottom:1px solid var(--line);
-    box-shadow:0 1px 8px rgba(0,0,0,.05); }
-  .bar .in{ max-width:1000px; margin:0 auto; padding:9px 14px; display:flex; align-items:center; gap:10px; }
-  .bar .dot{ width:9px; height:9px; border-radius:50%; background:var(--grn); box-shadow:0 0 8px var(--grn); flex:none; }
-  .bar .t{ font:700 13px/1.25 inherit; }
-  .bar .t small{ display:block; font-weight:500; color:var(--mut); font-size:11.5px; }
-  .bar .lab{ margin-left:auto; background:var(--grn); color:#fff; font:700 12px inherit; padding:8px 13px; border-radius:9px; white-space:nowrap; }
-  .bar .lab:hover{ filter:brightness(1.07); text-decoration:none; }
+  /* top bar — mirrors the poster's dark header band */
+  .bar{ position:sticky; top:0; z-index:20; background:var(--dark); color:#fff; }
+  .bar .in{ max-width:1080px; margin:0 auto; padding:10px 14px; display:flex; align-items:center; gap:10px; }
+  .bar .dot{ width:8px; height:8px; border-radius:50%; background:var(--grn); box-shadow:0 0 9px var(--grn); flex:none; }
+  .bar .t{ font:700 12.5px/1.25 ui-monospace,Menlo,Consolas,monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--grn); }
+  .bar .t small{ display:block; font:500 11px/1.4 -apple-system,Segoe UI,sans-serif; letter-spacing:0;
+    text-transform:none; color:#b9c0c8; margin-top:2px; }
+  .bar .lab{ margin-left:auto; background:var(--grn); color:#06210f; font:800 12px inherit; padding:9px 14px;
+    border-radius:8px; white-space:nowrap; }
+  .bar .lab:hover{ filter:brightness(1.08); }
+
+  .note{ max-width:1080px; margin:14px auto 8px; padding:0 14px; color:var(--mut); font-size:13px; }
+  .note b{ color:var(--grn-d); }
 
   /* poster */
-  .stagewrap{ max-width:1000px; margin:14px auto 30px; padding:0 12px; }
-  .poster{ position:relative; border-radius:8px; overflow:hidden; box-shadow:0 6px 30px rgba(0,0,0,.14);
-    background:#fff; }
+  .stagewrap{ max-width:1080px; margin:6px auto 26px; padding:0 12px; }
+  .poster{ position:relative; overflow:hidden; box-shadow:0 8px 34px rgba(0,0,0,.18); background:#fff; border-radius:4px; }
   .poster img{ width:100%; display:block; }
 
   /* hotspots */
-  .hot{ position:absolute; display:block; border:1.5px dashed rgba(0,130,74,.45); border-radius:8px;
-    background:rgba(0,130,74,.06); cursor:pointer; transition:background .15s, border-color .15s, box-shadow .15s;
-    text-decoration:none; -webkit-tap-highlight-color:transparent; }
-  .hot:hover, .hot:focus-visible{ background:rgba(0,130,74,.16); border-color:var(--grn); border-style:solid;
-    box-shadow:0 0 0 2px rgba(0,130,74,.25), 0 6px 20px rgba(0,130,74,.2); outline:none; }
+  .hot{ position:absolute; display:block; border:1.5px dashed rgba(9,110,55,.5); border-radius:6px;
+    background:rgba(32,194,103,.07); cursor:pointer; text-decoration:none; -webkit-tap-highlight-color:transparent;
+    transition:background .15s, border-color .15s, box-shadow .15s; }
+  .hot:hover, .hot:focus-visible{ background:rgba(32,194,103,.18); border-color:var(--grn-d); border-style:solid;
+    box-shadow:0 0 0 2px rgba(32,194,103,.35), 0 6px 22px rgba(9,110,55,.25); outline:none; }
   .hot .badge{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    background:var(--grn); color:#fff; font:700 clamp(9px,1.5vw,12.5px)/1 -apple-system,Segoe UI,sans-serif;
-    padding:6px 11px; border-radius:999px; box-shadow:0 3px 12px rgba(0,0,0,.35); white-space:nowrap;
-    display:inline-flex; align-items:center; gap:6px; opacity:.92; transition:opacity .15s, transform .15s; }
-  .hot:hover .badge, .hot:focus-visible .badge{ opacity:1; transform:translate(-50%,-50%) scale(1.06); }
-  .hot .badge svg{ width:12px; height:12px; }
-  .hot.primary{ border-color:var(--grn); border-style:solid; background:rgba(0,130,74,.1); }
-  /* attention pulse on load */
-  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(0,130,74,.0); } 50%{ box-shadow:0 0 0 4px rgba(0,130,74,.28); } }
+    background:var(--grn-d); color:#fff; font:700 clamp(8.5px,1.35vw,12px)/1 -apple-system,Segoe UI,sans-serif;
+    padding:6px 11px; border-radius:999px; box-shadow:0 3px 12px rgba(0,0,0,.4); white-space:nowrap;
+    display:inline-flex; align-items:center; gap:6px; opacity:.94; transition:opacity .15s, transform .15s; }
+  .hot:hover .badge, .hot:focus-visible .badge{ opacity:1; transform:translate(-50%,-50%) scale(1.06); background:var(--grn); color:#06210f; }
+  .hot .badge svg{ width:11px; height:11px; }
+  .hot.primary{ border-color:var(--grn); border-style:solid; background:rgba(32,194,103,.14); }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(32,194,103,0);} 50%{ box-shadow:0 0 0 5px rgba(32,194,103,.32);} }
   body.hinton .hot{ animation:pulse 2.2s ease-in-out 2; }
   @media (prefers-reduced-motion:reduce){ body.hinton .hot{ animation:none; } }
 
-  .note{ max-width:1000px; margin:0 auto; padding:0 14px; color:var(--mut); font-size:13px; }
-  .foot{ max-width:1000px; margin:22px auto 40px; padding:0 14px; color:var(--mut); font-size:12.5px; line-height:1.6; }
+  .foot{ max-width:1080px; margin:0 auto 44px; padding:0 14px; color:var(--mut); font-size:12.5px; line-height:1.65; }
   .foot b{ color:var(--ink); }
 
   /* modals */
-  .scrim{ position:fixed; inset:0; z-index:40; background:rgba(20,26,24,.55); backdrop-filter:blur(3px);
+  .scrim{ position:fixed; inset:0; z-index:40; background:rgba(12,15,21,.62); backdrop-filter:blur(3px);
     -webkit-backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .25s; display:grid; place-items:center; padding:16px; }
   .scrim.open{ opacity:1; pointer-events:auto; }
-  .modal{ width:min(96vw,560px); max-height:90vh; overflow:auto; background:var(--card); border-radius:16px;
-    box-shadow:0 20px 60px rgba(0,0,0,.4); padding:18px 18px 16px; transform:translateY(10px); transition:transform .25s; }
+  .modal{ width:min(96vw,560px); max-height:90vh; overflow:auto; background:var(--card); border-radius:14px;
+    box-shadow:0 22px 64px rgba(0,0,0,.45); padding:0 0 16px; transform:translateY(10px); transition:transform .25s; }
   .scrim.open .modal{ transform:none; }
-  .modal .mh{ display:flex; align-items:flex-start; gap:10px; margin-bottom:8px; }
-  .modal h2{ margin:0; font-size:19px; letter-spacing:-.01em; } .modal h2 .k{ display:block; font:700 10.5px ui-monospace,Consolas,monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--grn); margin-bottom:3px; }
-  .modal .x{ margin-left:auto; flex:none; width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
-    background:#fff; color:var(--mut); cursor:pointer; font-size:17px; line-height:1; }
-  .modal .x:hover{ color:var(--ink); border-color:var(--grn); }
-  .modal p{ margin:0 0 11px; font-size:14.5px; color:#3c4340; } .modal p b{ color:var(--ink); }
+  .mh{ background:var(--dark); color:#fff; padding:15px 18px; border-radius:14px 14px 0 0; display:flex; align-items:flex-start; gap:10px; }
+  .mh h2{ margin:0; font-size:18px; letter-spacing:-.01em; color:#fff; }
+  .mh .k{ display:block; font:700 10px ui-monospace,Consolas,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--grn); margin-bottom:4px; }
+  .mh .x{ margin-left:auto; flex:none; width:30px; height:30px; border-radius:50%; border:1px solid #39414c;
+    background:transparent; color:#b9c0c8; cursor:pointer; font-size:16px; line-height:1; }
+  .mh .x:hover{ color:#fff; border-color:var(--grn); }
+  .mb{ padding:15px 18px 0; }
+  .modal p{ margin:0 0 11px; font-size:14.5px; color:#3a4149; } .modal p b{ color:var(--ink); }
   .modal .mut{ color:var(--mut); font-size:12.5px; }
-  .card2{ border:1px solid var(--line); border-radius:12px; padding:13px 12px 9px; margin:10px 0; }
-  .card2 h3{ margin:0 0 1px; font-size:14.5px; } .card2 .sc{ color:var(--mut); font-size:12px; margin:0 0 6px; }
+  .card2{ border:1px solid var(--line); border-radius:11px; padding:12px 11px 8px; margin:10px 0; background:#fcfbf8; }
+  .card2 h3{ margin:0 0 1px; font-size:14px; } .card2 .sc{ color:var(--mut); font-size:11.5px; margin:0 0 6px; }
   svg.chart{ width:100%; height:auto; display:block; overflow:visible; }
-  .chart text{ font:10.5px ui-monospace,Consolas,monospace; fill:#8a908d; }
+  .chart text{ font:10.5px ui-monospace,Consolas,monospace; fill:#8c9199; }
   .chart .grid{ stroke:var(--line); stroke-width:1; }
   .legend{ display:flex; gap:14px; margin:1px 2px 7px; font-size:11.5px; color:var(--mut); flex-wrap:wrap; }
   .legend i{ display:inline-block; width:14px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle; }
 
-  /* screening tool */
   .tool .row{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
   .tool label{ font:700 11.5px ui-monospace,Consolas,monospace; letter-spacing:.05em; color:var(--mut); text-transform:uppercase; }
   .tool .lcval{ font:800 17px ui-monospace,Consolas,monospace; color:var(--ink); }
   input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:4px;
     background:linear-gradient(90deg,#e0a04a,#e0b93a,var(--grn)); outline:none; margin:9px 0 3px; }
-  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--grn); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3); }
-  input[type=range]::-moz-range-thumb{ width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid var(--grn); cursor:pointer; }
-  .ticks{ display:flex; justify-content:space-between; font:9.5px ui-monospace,Consolas,monospace; color:#a0a6a3; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--grn-d); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.3); }
+  input[type=range]::-moz-range-thumb{ width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid var(--grn-d); cursor:pointer; }
+  .ticks{ display:flex; justify-content:space-between; font:9.5px ui-monospace,Consolas,monospace; color:#a7aca6; }
   .readout{ display:flex; align-items:center; gap:13px; margin:12px 0 4px; }
   .readout .rf{ font:800 32px/1 ui-monospace,Consolas,monospace; letter-spacing:-.02em; }
   .readout .rl{ font-size:11.5px; color:var(--mut); line-height:1.35; }
   .verdict{ margin-left:auto; padding:7px 13px; border-radius:999px; font:800 12px ui-monospace,Consolas,monospace; white-space:nowrap; }
-  .verdict.pass{ background:var(--grn-l); color:var(--grn-d); border:1px solid #a9d6bf; }
+  .verdict.pass{ background:#e2f4ea; color:var(--grn-d); border:1px solid #a9d6bf; }
   .verdict.marginal{ background:#fbf0dd; color:#a4620f; border:1px solid #ecd2a3; }
   .verdict.fail{ background:#fbe4e0; color:#a3372a; border:1px solid #eab9b0; }
   .presets{ display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
-  .preset{ font:600 11px inherit; padding:6px 10px; border-radius:9px; cursor:pointer; color:var(--mut); background:#f5f7f6; border:1px solid var(--line); }
-  .preset:hover{ color:var(--ink); border-color:var(--grn); }
+  .preset{ font:600 11px inherit; padding:6px 10px; border-radius:8px; cursor:pointer; color:var(--mut); background:#f5f4f0; border:1px solid var(--line); }
+  .preset:hover{ color:var(--ink); border-color:var(--grn-d); }
   .scn{ width:100%; border-collapse:collapse; font-size:12.5px; margin-top:4px; }
-  .scn th,.scn td{ padding:7px 7px; text-align:right; border-bottom:1px solid var(--line); }
+  .scn th,.scn td{ padding:7px; text-align:right; border-bottom:1px solid var(--line); }
   .scn th{ color:var(--mut); font:700 10px ui-monospace,Consolas,monospace; letter-spacing:.03em; text-transform:uppercase; }
   .scn td:first-child,.scn th:first-child{ text-align:left; color:var(--ink); }
   .scn tr:last-child td{ border-bottom:0; } .scn .big{ color:var(--grn-d); font-weight:800; } .scn .em{ color:var(--amber); font-weight:700; }
-  .mcta{ display:block; text-align:center; margin-top:12px; background:var(--grn); color:#fff; font-weight:800; padding:12px; border-radius:11px; font-size:14px; }
-  .mcta:hover{ filter:brightness(1.07); text-decoration:none; }
+  .mcta{ display:block; text-align:center; margin:12px 0 0; background:var(--grn-d); color:#fff; font-weight:800; padding:12px; border-radius:10px; font-size:14px; }
+  .mcta:hover{ filter:brightness(1.12); }
 </style>
 </head>
 <body class="hinton">
 
   <div class="bar"><div class="in">
     <span class="dot"></span>
-    <div class="t">Geobattery — the interactive poster<small>Tap any highlighted figure to explore it</small></div>
-    <a class="lab" href="../">Open 3-D lab ↗</a>
+    <div class="t">Interactive poster<small>ALERT Geomaterials 2026 · tap any highlighted figure</small></div>
+    <a class="lab" href="../">3-D lab ↗</a>
   </div></div>
 
-  <p class="note" style="margin:14px auto 8px">ALERT&nbsp;Geomaterials&nbsp;2026 · TU&nbsp;Clausthal. Tap the
-    <span style="color:var(--grn);font-weight:700">outlined figures</span> to open them in 3-D or as a live tool.</p>
+  <p class="note">The poster exactly as printed — the <b>outlined figures are live</b>: tap one to open it in 3-D or as an interactive tool.</p>
 
   <div class="stagewrap">
     <div class="poster" id="poster">
-      <img src="poster.png" alt="Geobattery: a dimensionless criterion for seasonal heat storage in flooded mine workings — ALERT 2026 poster">
-      <!-- hotspots injected by JS -->
+      <img src="poster.png" alt="Geobattery: a dimensionless criterion for seasonal heat storage in flooded mine workings — ALERT Geomaterials 2026 poster">
     </div>
   </div>
 
   <div class="foot">
-    <b>Ali Ahmadi</b> &amp; Eleni Gerolymatou — Chair of Geomechanics and Multiphysical Systems, TU&nbsp;Clausthal.
-    Poster for ALERT&nbsp;Geomaterials&nbsp;2026. The geometry is the real surveyed Reiche&nbsp;Zeche drift; the duty
-    cycle is hypothetical. &nbsp;·&nbsp; <a href="../simple/">Read the story version →</a> &nbsp;·&nbsp; <a href="../">Full 3-D lab →</a>
+    <b>Ali Ahmadi</b> &amp; Eleni Gerolymatou — Chair of Geomechanics and Multiphysical Systems, Institute of
+    Geotechnology and Mineral Resources, TU&nbsp;Clausthal · MOVIE project. The geometry is the real surveyed
+    Reiche&nbsp;Zeche drift; the duty cycle is hypothetical.
+    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../">Full 3-D lab →</a>
   </div>
 
-  <!-- ── modals ── -->
   <div class="scrim" id="scrim">
-    <!-- SCREENING -->
+    <!-- SCREENING TOOL -->
     <div class="modal" id="m-screening" role="dialog" aria-modal="true" hidden>
-      <div class="mh"><h2><span class="k">Section 3 · the criterion</span>Read your mine before you dig</h2><button class="x" data-close>✕</button></div>
-      <p>Retention collapses onto dimensionless groups, so absolute size cancels — a mine reads its own recovery off
-        one master curve. The only geometry that matters is the opening's reach <b>L<sub>c</sub> = 2·V/A</b>. Drag it:</p>
-      <div class="tool">
-        <div class="row"><label>Opening reach&nbsp; L<sub>c</sub></label><span class="lcval" id="lcval">1.05 m</span></div>
-        <input type="range" id="lc" min="0.5" max="5" step="0.01" value="1.05" aria-label="opening effective radius">
-        <div class="ticks"><span>0.5 m</span><span>drift</span><span>chamber</span><span>shaft 5 m</span></div>
-        <div class="readout">
-          <div><div class="rf" id="rfval">4.9%</div><div class="rl">of stored heat still<br>recoverable · first cycle</div></div>
-          <span class="verdict fail" id="verdict">✕ loses it</span>
+      <div class="mh"><h2><span class="k">04 · when it does work</span>Read your mine before you dig</h2><button class="x" data-close aria-label="close">✕</button></div>
+      <div class="mb">
+        <p>Retention collapses onto three dimensionless groups, so <b>absolute size cancels</b> — a mine reads its own
+          recovery off one master curve. The only geometry that matters is the opening's reach
+          <b>L<sub>c</sub>&nbsp;=&nbsp;2·V/A</b>. Drag it:</p>
+        <div class="tool">
+          <div class="row"><label>Opening reach&nbsp; L<sub>c</sub></label><span class="lcval" id="lcval">1.05 m</span></div>
+          <input type="range" id="lc" min="0.5" max="5" step="0.01" value="1.05" aria-label="opening effective radius">
+          <div class="ticks"><span>0.5 m</span><span>drift</span><span>chamber</span><span>shaft 5 m</span></div>
+          <div class="readout">
+            <div><div class="rf" id="rfval">4.9%</div><div class="rl">of stored heat still<br>recoverable · first cycle</div></div>
+            <span class="verdict fail" id="verdict">✕ loses it</span>
+          </div>
+          <svg class="chart" id="chart-master" viewBox="0 0 360 200"></svg>
+          <div class="presets" id="presets"></div>
         </div>
-        <svg class="chart" id="chart-master" viewBox="0 0 360 200"></svg>
-        <div class="presets" id="presets"></div>
+        <p class="mut" style="margin-top:10px">The as-built drift (L<sub>c</sub>&nbsp;=&nbsp;1.05&nbsp;m, A/V&nbsp;=&nbsp;1.91&nbsp;m⁻¹)
+          sits 3.3× too deep in the loss regime — it needs L<sub>c</sub>&nbsp;≥&nbsp;3.4&nbsp;m: a chamber, or an array.</p>
       </div>
-      <p class="mut" style="margin-top:10px">The as-built drift (L<sub>c</sub>&nbsp;=&nbsp;1.05&nbsp;m, A/V&nbsp;=&nbsp;1.91&nbsp;m⁻¹) sits
-        3.3× too deep in the loss regime; it needs L<sub>c</sub>&nbsp;≥&nbsp;3.4&nbsp;m — a chamber or an array.</p>
     </div>
 
     <!-- CHARTS / SCENARIOS -->
     <div class="modal" id="m-charts" role="dialog" aria-modal="true" hidden>
-      <div class="mh"><h2><span class="k">Section 4 · ten years, five scenarios</span>How much comes back — and how good</h2><button class="x" data-close>✕</button></div>
-      <div class="card2">
-        <h3>Recovered each winter, over ten years</h3>
-        <p class="sc">Share of stored heat drawn back. The closed array cell nears 100% by construction — only as ~25&nbsp;°C water.</p>
-        <div class="legend"><span><i style="background:var(--amber)"></i>single drift · round-trip</span><span><i style="background:var(--grn)"></i>10-m array · retained</span></div>
-        <svg class="chart" id="chart-decade" viewBox="0 0 360 200"></svg>
+      <div class="mh"><h2><span class="k">05 · ten years, five scenarios</span>How much comes back — and how good</h2><button class="x" data-close aria-label="close">✕</button></div>
+      <div class="mb">
+        <div class="card2">
+          <h3>Recovered each winter, over ten years</h3>
+          <p class="sc">Share of stored heat drawn back. The closed array cell nears 100% by construction — only as ~25&nbsp;°C water.</p>
+          <div class="legend"><span><i style="background:var(--amber)"></i>single drift</span><span><i style="background:var(--grn-d)"></i>10-m array · retained</span></div>
+          <svg class="chart" id="chart-decade" viewBox="0 0 360 200"></svg>
+        </div>
+        <div class="card2">
+          <h3>Grade — water temperature at end of storage</h3>
+          <p class="sc">Quantity climbs with geometry; grade stays modest in 10&nbsp;°C rock.</p>
+          <svg class="chart" id="chart-grade" viewBox="0 0 360 190"></svg>
+        </div>
+        <table class="scn">
+          <thead><tr><th>Scenario</th><th>Return y1→y10</th><th>Water</th><th>Out</th></tr></thead>
+          <tbody>
+            <tr><td>As-built drift · 10 °C</td><td><span class="em">7 → 13%</span></td><td>23 °C</td><td>14 °C</td></tr>
+            <tr><td>2× radius · 10 °C</td><td>16 → 23%</td><td>34 °C</td><td>19 °C</td></tr>
+            <tr><td>As-built drift · 30 °C</td><td>38 → 42%</td><td>38 °C</td><td>19 °C</td></tr>
+            <tr><td>2× radius · 30 °C</td><td>45 → 48%</td><td>46 °C</td><td>26 °C</td></tr>
+            <tr><td>ARRAY cell · 10 °C (3D)</td><td><span class="big">27 → 98.5%</span></td><td>58 °C</td><td>25 °C</td></tr>
+          </tbody>
+        </table>
+        <p class="mut" style="margin-top:8px">Water/Out at year 10. The 30&nbsp;°C rows include geothermal heat —
+          ~57–81% of that "return" is mined ground heat, not stored solar.</p>
+        <a class="mcta" href="../?play=1">▶ Play the yearly cycle in 3-D</a>
       </div>
-      <div class="card2">
-        <h3>Grade: water temperature at end of storage</h3>
-        <p class="sc">Quantity climbs with geometry; grade stays modest in 10&nbsp;°C rock.</p>
-        <svg class="chart" id="chart-grade" viewBox="0 0 360 190"></svg>
-      </div>
-      <table class="scn">
-        <thead><tr><th>Scenario</th><th>Return y1→y10</th><th>Water °C</th><th>Out °C</th></tr></thead>
-        <tbody>
-          <tr><td>As-built drift · 1.05 m</td><td><span class="em">7.3 → 12.8%</span></td><td>19 → 23</td><td>12 → 14</td></tr>
-          <tr><td>2× radius · 2.06 m</td><td>16.0 → 23.0%</td><td>29 → 34</td><td>17 → 19</td></tr>
-          <tr><td>10-m array cell</td><td><span class="big">26.9 → 98.5%</span></td><td>36 → 58</td><td>18 → 25</td></tr>
-        </tbody>
-      </table>
-      <p class="mut" style="margin-top:8px">In warm 30&nbsp;°C rock the same drift "returns" ~38–45%, but ~57–81% of that is
-        mined geothermal heat, not stored solar — warm rock changes the grade, not the retention.</p>
-      <a class="mcta" href="../?play=1">▶ Play the yearly cycle in 3-D</a>
     </div>
 
     <!-- SOLAR -->
     <div class="modal" id="m-solar" role="dialog" aria-modal="true" hidden>
-      <div class="mh"><h2><span class="k">The motivation</span>Why store for months</h2><button class="x" data-close>✕</button></div>
-      <p>Solar runs to <b>surplus in summer</b>, when almost nothing needs heating; the demand it could serve arrives
-        in <b>winter</b>. The two are in anti-phase — a gap only seasonal storage can bridge.</p>
-      <div class="card2">
-        <h3>Solar surplus vs heat demand · over a year</h3>
-        <p class="sc">Saxony, 2023 (schematic of the seasonal pattern).</p>
-        <div class="legend"><span><i style="background:var(--amber)"></i>PV surplus</span><span><i style="background:#3f6f9e"></i>heat demand</span></div>
-        <svg class="chart" id="chart-solar" viewBox="0 0 360 180"></svg>
+      <div class="mh"><h2><span class="k">01 · motivation</span>Summer supply, winter demand</h2><button class="x" data-close aria-label="close">✕</button></div>
+      <div class="mb">
+        <p>Solar runs to <b>surplus in summer</b>, when almost nothing needs heating; the demand it could serve arrives
+          in <b>winter</b>. The two are in anti-phase — a gap only seasonal storage can bridge.</p>
+        <div class="card2">
+          <h3>Solar surplus vs heat demand · through the year</h3>
+          <p class="sc">Saxony, 2023 — share of the annual total per month.</p>
+          <div class="legend"><span><i style="background:var(--amber)"></i>solar-PV surplus</span><span><i style="background:var(--blue)"></i>building heat demand</span></div>
+          <svg class="chart" id="chart-solar" viewBox="0 0 360 180"></svg>
+        </div>
+        <p class="mut"><b>89%</b> of the PV surplus fell in May–Jul; heat demand is <b>58%</b> in Nov–Feb and
+          essentially <b>zero</b> in Jun–Aug.</p>
       </div>
-      <p class="mut"><b>89%</b> of the PV surplus fell in May–Jul; building heat demand is <b>58%</b> in Nov–Feb and
-        essentially <b>zero</b> in Jun–Aug.</p>
     </div>
   </div>
 
@@ -198,19 +209,22 @@
   const E=(n,a)=>{const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); return e;};
   const $=id=>document.getElementById(id);
 
-  // ── hotspots over the poster (position/size as % of the image) ──
+  /* Hotspots over the REDESIGNED poster (position/size as % of the image).
+     Layout: left col = 01 motivation / 02 model / 03 why it fails ;
+             right col = 04 criterion / 05 scenarios / 06 stress ; then THE ANSWER band. */
   const HOT=[
-    {l:48.3,t:17.2,w:50.9,h:19.2,label:'Explore in 3-D',href:'../'},                    // hero geometry
-    {l:4.8, t:27.9,w:40.5,h:6.7, label:'Seasonal mismatch',m:'solar'},                  // solar chart
-    {l:35.9,t:47.9,w:23.7,h:7.5, label:'Play the cycle',href:'../?play=1'},             // plume · charge
-    {l:35.9,t:56.9,w:23.9,h:7.7, label:'Play the cycle',href:'../?play=1'},             // plume · store
-    {l:35.4,t:71.7,w:25.1,h:6.6, label:'Watch the flow',href:'../?mode=flow'},          // flow arrows
-    {l:65.4,t:47.8,w:34.0,h:14.0,label:'Try the screening tool',m:'screening'},          // screening chart
-    {l:65.4,t:63.3,w:34.0,h:12.0,label:'Quantity vs grade',m:'charts'},                 // grade chart
-    {l:4.8, t:58.9,w:30.0,h:9.0, label:'Ten-year climb',m:'charts'},                    // decade chart
-    {l:4.8, t:69.4,w:30.0,h:8.7, label:'Grade over ten years',m:'charts'},              // water T chart
-    {l:3.4, t:79.4,w:31.4,h:5.7, label:'The five scenarios',m:'charts'},                // scenario table
-    {l:91.0,t:86.8,w:8.4, h:11.3,label:'Open the 3-D lab',href:'../',primary:1},        // 3-D models box
+    {l:29.7,t:15.2,w:20.0,h:9.9, label:'Supply vs demand', m:'solar'},                   // FIG 1
+    {l:2.7, t:39.3,w:46.9,h:11.3,label:'Explore in 3-D',  href:'../'},                   // FIG 2 · drift cutaway
+    {l:2.7, t:57.9,w:46.9,h:7.2, label:'Play the cycle',  href:'../?play=1'},            // FIG 3A · plumes
+    {l:2.7, t:67.4,w:46.9,h:8.6, label:'Watch the flow',  href:'../?mode=flow'},         // FIG 3B · flow arrows
+    {l:50.7,t:18.1,w:23.0,h:13.0,label:'Try the screening tool', m:'screening'},          // FIG 4a · screening ⭐
+    {l:74.0,t:18.1,w:24.3,h:13.0,label:'Grade vs ground T', m:'charts'},                  // FIG 4b
+    {l:50.7,t:40.4,w:23.2,h:11.4,label:'Ten-year climb',  m:'charts'},                    // FIG 5a
+    {l:74.3,t:40.4,w:24.0,h:11.4,label:'Grade over ten years', m:'charts'},               // FIG 5b
+    {l:50.7,t:54.7,w:47.6,h:7.6, label:'The five scenarios', m:'charts'},                 // scenario table
+    {l:50.7,t:68.2,w:47.6,h:8.4, label:'See the stress',  href:'../?mode=vm'},            // FIG 6 · von Mises
+    {l:60.8,t:80.0,w:21.7,h:5.8, label:'The array cell',  href:'../?scene=array'},        // ANSWER · fix + result
+    {l:86.1,t:79.7,w:12.5,h:9.9, label:'Open the 3-D lab', href:'../', primary:1},        // QR box
   ];
   const ICON='<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h4M4 4v4M14 14h-4M14 14v-4M4 14v-4M4 14h4M14 4h-4M14 4v4"/></svg>';
   const poster=$('poster');
@@ -223,42 +237,36 @@
     a.innerHTML=`<span class="badge">${ICON}${h.label}</span>`;
     poster.appendChild(a);
   });
-  // stop the load-pulse after it plays
   setTimeout(()=>document.body.classList.remove('hinton'),5200);
 
-  // ── modal open/close ──
-  const scrim=$('scrim'); let openId=null;
+  const scrim=$('scrim');
   function openModal(id){ document.querySelectorAll('.modal').forEach(m=>m.hidden=(m.id!=='m-'+id));
-    scrim.classList.add('open'); openId=id; document.body.style.overflow='hidden'; }
-  function closeModal(){ scrim.classList.remove('open'); openId=null; document.body.style.overflow=''; }
+    scrim.classList.add('open'); document.body.style.overflow='hidden'; }
+  function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
   scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
   document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeModal));
   addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
-  // ── line-chart helper (light theme) ──
   function lineY(s,W,H,L,R,T,B,ymin,ymax,grid,series,xlabels,ylabel){
-    const x=i=>L+(W-L-R)*i/(series[0].d.length-1), y=v=>T+(H-T-B)*(1-(v-ymin)/(ymax-ymin));
+    const n=series[0].d.length, x=i=>L+(W-L-R)*i/(n-1), y=v=>T+(H-T-B)*(1-(v-ymin)/(ymax-ymin));
     grid.forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:y(g),y2:y(g)}));
       const tx=E('text',{x:L-6,y:y(g)+4,'text-anchor':'end'}); tx.textContent=g; s.appendChild(tx); });
     xlabels.forEach(([i,t])=>{ const tx=E('text',{x:x(i),y:H-9,'text-anchor':'middle'}); tx.textContent=t; s.appendChild(tx); });
     series.forEach(se=>{ const d=se.d.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
-      s.appendChild(E('path',{d,fill:'none',stroke:se.c,'stroke-width':se.w||2.4,'stroke-linejoin':'round',
-        'stroke-dasharray':se.dash||''})); if(se.end){ s.appendChild(E('circle',{cx:x(se.d.length-1),cy:y(se.d[se.d.length-1]),r:3,fill:se.c}));
-        const tx=E('text',{x:x(se.d.length-1)-4,y:y(se.d[se.d.length-1])+(se.below?15:-7),'text-anchor':'end',fill:se.c,'font-weight':'700'}); tx.textContent=se.end; s.appendChild(tx);} });
+      s.appendChild(E('path',{d,fill:'none',stroke:se.c,'stroke-width':se.w||2.4,'stroke-linejoin':'round'}));
+      if(se.end){ s.appendChild(E('circle',{cx:x(n-1),cy:y(se.d[n-1]),r:3,fill:se.c}));
+        const tx=E('text',{x:x(n-1)-4,y:y(se.d[n-1])+(se.below?15:-7),'text-anchor':'end',fill:se.c,'font-weight':'700'});
+        tx.textContent=se.end; s.appendChild(tx); } });
     if(ylabel){ const yl=E('text',{x:-(H/2)+6,y:11,transform:'rotate(-90)','text-anchor':'middle'}); yl.textContent=ylabel; s.appendChild(yl); }
   }
-
-  // decade recovery
   lineY($('chart-decade'),360,200,32,14,10,26,0,100,[0,25,50,75,100],
     [{d:[7.3,9.3,10.4,11.1,11.6,11.9,12.2,12.5,12.7,12.8],c:'#d9791f',end:'12.8%',below:1},
-     {d:[26.9,50.1,67.2,78.6,86.1,91,94.2,96.3,97.6,98.5],c:'#00824a',w:2.6,end:'98.5%'}],
+     {d:[26.9,50.1,67.2,78.6,86.1,91,94.2,96.3,97.6,98.5],c:'#096e37',w:2.6,end:'98.5%'}],
     [[0,'y1'],[4,'y5'],[9,'y10']],'recovered %');
-  // grade over the decade
   lineY($('chart-grade'),360,190,32,14,10,26,10,60,[10,25,40,55],
     [{d:[19.2,20.9,21.6,22.1,22.4,22.7,22.9,23.1,23.2,23.3],c:'#d9791f',end:'23'},
-     {d:[35.8,46.4,51.4,54.1,55.6,56.6,57.1,57.5,57.7,57.9],c:'#00824a',w:2.6,end:'58 °C'}],
+     {d:[35.8,46.4,51.4,54.1,55.6,56.6,57.1,57.5,57.7,57.9],c:'#096e37',w:2.6,end:'58 °C'}],
     [[0,'y1'],[4,'y5'],[9,'y10']],'water °C');
-  // solar anti-phase (schematic monthly)
   (function(){
     const pv=[6,9,13,20,29,32,26,15,7,4,3,4], hd=[16,14,11,6,2,0,0,0,3,8,13,17];
     const s=$('chart-solar'),W=360,H=180,L=28,R=8,T=10,B=26,mo=['J','F','M','A','M','J','J','A','S','O','N','D'];
@@ -268,16 +276,15 @@
     for(let i=0;i<12;i++){
       s.appendChild(E('rect',{x:x(i)+bw*0.14,y:y(pv[i]),width:bw*0.36,height:y(0)-y(pv[i]),fill:'#d9791f',rx:1}));
       s.appendChild(E('rect',{x:x(i)+bw*0.5,y:y(hd[i]),width:bw*0.36,height:y(0)-y(hd[i]),fill:'#3f6f9e',rx:1}));
-      const tx=E('text',{x:x(i)+bw/2,y:H-9,'text-anchor':'middle','font-size':'8.5'}); tx.textContent=mo[i]; s.appendChild(tx);
-    }
+      const tx=E('text',{x:x(i)+bw/2,y:H-9,'text-anchor':'middle','font-size':'8.5'}); tx.textContent=mo[i]; s.appendChild(tx); }
     const yl=E('text',{x:-(H/2)+6,y:10,transform:'rotate(-90)','text-anchor':'middle'}); yl.textContent='% of yr'; s.appendChild(yl);
   })();
 
-  // ── interactive screening tool ──
+  /* interactive screening tool — master curve (Fo,RF), gneiss k=5, first cycle */
   (function(){
     const M=[[0.05,0.89961],[0.06655,0.88402],[0.08859,0.86602],[0.11792,0.84524],[0.15697,0.82127],[0.20894,0.79365],[0.27811,0.7619],[0.3702,0.72548],[0.49277,0.68385],[0.65592,0.6365],[0.87309,0.58302],[1.16217,0.52324],[1.54695,0.45751],[2.05914,0.38718],[2.74091,0.31497],[3.64842,0.24502],[4.85639,0.18199],[6.46431,0.12968],[8.60461,0.08974],[11.45356,0.06143],[13.664,0.04875],[15.24577,0.04234],[20.29356,0.02967],[27.01265,0.02117],[35.9564,0.01531],[47.86137,0.01119],[63.70802,0.00824],[84.80142,0.00609],[112.87872,0.00452],[150.25227,0.00337],[200,0.00251]];
-    const ATP=14.946, foOf=lc=>ATP/(lc*lc);
-    const rfOf=lc=>{ const fo=foOf(lc); if(fo<=M[0][0])return M[0][1]; if(fo>=M[M.length-1][0])return M[M.length-1][1];
+    const ATP=14.946;                                   // alpha_rock * t_store [m^2] -> Fo = ATP / Lc^2
+    const rfOf=lc=>{ const fo=ATP/(lc*lc); if(fo<=M[0][0])return M[0][1]; if(fo>=M[M.length-1][0])return M[M.length-1][1];
       for(let i=1;i<M.length;i++){ if(fo<=M[i][0]){ const[f0,r0]=M[i-1],[f1,r1]=M[i];
         const u=(Math.log(fo)-Math.log(f0))/(Math.log(f1)-Math.log(f0)); return r0+(r1-r0)*u; } } return 0; };
     const s=$('chart-master'),W=360,H=200,L=34,R=14,T=12,B=28,LMIN=0.5,LMAX=5;
@@ -285,20 +292,21 @@
     [0,0.25,0.5,0.75,1].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:y(g),y2:y(g)}));
       const tx=E('text',{x:L-6,y:y(g)+4,'text-anchor':'end'}); tx.textContent=(g*100); s.appendChild(tx); });
     [1,2,3,4,5].forEach(v=>{ const tx=E('text',{x:x(v),y:H-9,'text-anchor':'middle'}); tx.textContent=v+'m'; s.appendChild(tx); });
-    s.appendChild(E('rect',{x:L,y:y(1),width:W-L-R,height:y(0.5)-y(1),fill:'#00824a','fill-opacity':'.08'}));
-    s.appendChild(E('line',{x1:L,x2:W-R,y1:y(0.5),y2:y(0.5),stroke:'#00824a','stroke-width':'1','stroke-dasharray':'4 3'}));
-    const bl=E('text',{x:W-R,y:y(0.5)-4,'text-anchor':'end',fill:'#00824a','font-size':'9.5'}); bl.textContent='viable · 50%'; s.appendChild(bl);
+    s.appendChild(E('rect',{x:L,y:y(1),width:W-L-R,height:y(0.5)-y(1),fill:'#20c267','fill-opacity':'.10'}));
+    s.appendChild(E('line',{x1:L,x2:W-R,y1:y(0.5),y2:y(0.5),stroke:'#096e37','stroke-width':'1','stroke-dasharray':'4 3'}));
+    const bl=E('text',{x:W-R,y:y(0.5)-4,'text-anchor':'end',fill:'#096e37','font-size':'9.5'}); bl.textContent='viable · 50%'; s.appendChild(bl);
     const pts=[]; for(let i=0;i<=80;i++){ const lc=LMIN+(LMAX-LMIN)*i/80; pts.push([lc,rfOf(lc)]); }
-    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+x(p[0]).toFixed(1)+' '+y(p[1]).toFixed(1)).join(' '),fill:'none',stroke:'#8a908d','stroke-width':'2'}));
-    s.appendChild(E('line',{x1:x(3.4),x2:x(3.4),y1:T,y2:y(0),stroke:'#00824a','stroke-width':'1','stroke-dasharray':'2 3','stroke-opacity':'.6'}));
-    const mk=E('circle',{r:5.5,fill:'#fff',stroke:'#00824a','stroke-width':'3'}); s.appendChild(mk);
+    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+x(p[0]).toFixed(1)+' '+y(p[1]).toFixed(1)).join(' '),fill:'none',stroke:'#8c9199','stroke-width':'2'}));
+    s.appendChild(E('line',{x1:x(3.4),x2:x(3.4),y1:T,y2:y(0),stroke:'#096e37','stroke-width':'1','stroke-dasharray':'2 3','stroke-opacity':'.6'}));
+    const mk=E('circle',{r:5.5,fill:'#fff',stroke:'#096e37','stroke-width':'3'}); s.appendChild(mk);
     const yl=E('text',{x:-(H/2)+6,y:11,transform:'rotate(-90)','text-anchor':'middle'}); yl.textContent='recovered %'; s.appendChild(yl);
     const lcIn=$('lc'),lcVal=$('lcval'),rfVal=$('rfval'),vd=$('verdict');
-    const upd=()=>{ const lc=+lcIn.value,rf=rfOf(lc); lcVal.textContent=lc.toFixed(2)+' m'; rfVal.textContent=(rf*100).toFixed(rf<0.1?1:0)+'%';
-      mk.setAttribute('cx',x(lc)); mk.setAttribute('cy',y(rf));
-      const pass=rf>=0.5,mar=rf>=0.25; rfVal.style.color=pass?'#00824a':(mar?'#d9791f':'#c0392b');
-      mk.setAttribute('stroke',pass?'#00824a':(mar?'#d9791f':'#c0392b'));
-      vd.className='verdict '+(pass?'pass':(mar?'marginal':'fail')); vd.textContent=pass?'✓ stores it':(mar?'△ marginal':'✕ loses it'); };
+    const upd=()=>{ const lc=+lcIn.value,rf=rfOf(lc); lcVal.textContent=lc.toFixed(2)+' m';
+      rfVal.textContent=(rf*100).toFixed(rf<0.1?1:0)+'%'; mk.setAttribute('cx',x(lc)); mk.setAttribute('cy',y(rf));
+      const pass=rf>=0.5,mar=rf>=0.25; rfVal.style.color=pass?'#096e37':(mar?'#d9791f':'#c0392b');
+      mk.setAttribute('stroke',pass?'#096e37':(mar?'#d9791f':'#c0392b'));
+      vd.className='verdict '+(pass?'pass':(mar?'marginal':'fail'));
+      vd.textContent=pass?'✓ stores it':(mar?'△ marginal':'✕ loses it'); };
     lcIn.addEventListener('input',upd);
     const P=[['as-built drift',1.05],['2× radius',2.06],['chamber',3.5],['flooded shaft',5.0]], box=$('presets');
     P.forEach(([lab,lc])=>{ const b=document.createElement('button'); b.className='preset'; b.textContent=lab;
