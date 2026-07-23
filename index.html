@@ -1513,8 +1513,12 @@ function main() {
                  mode:'material', repr:'2', parallel:1, labels:1, key:1, wells:1, bare:1, nodeck:1,
                  slab:3.87,                                     // the figure renders "a >= 3.87 m rock slab around the water body"
                  layers:{ rock:[0,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.28] },
-                 pal:{ rock:[0.541,0.490,0.427], water:[0.122,0.478,0.722],       // config.PV_MATERIALS, exactly
-                       concrete:[0.788,0.761,0.706], air:[0.843,0.902,0.949] },
+                 // sampled from the printed panel itself: water renders #73b5d3, the slab #bec0c4.
+                 // These are pre-divided by this renderer's mean shading factor (~0.85) so the
+                 // shaded average matches the panel instead of the far darker base colour.
+                 pal:{ water:[0.533,0.839,0.976], concrete:[0.878,0.847,0.784], air:[0.980,0.988,1.0] },
+                 shade:{ water:[0.52,0.52,0.34,42], concrete:[0.50,0.52,0.10,8], air:[0.72,0.30,0.05,6] },
+                 slabCol:[0.878,0.887,0.906],
                  cam:{ dir:[-0.62,0.78,-0.55], zoom:1.10 } },
       plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
                  mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
@@ -1574,10 +1578,14 @@ function main() {
       if (F.layers && F.mode !== 'flow') Object.keys(F.layers).forEach(nm => figLayer(nm, F.layers[nm][0], F.layers[nm][1]));
       if (F.pal) Object.keys(F.pal).forEach(nm => { const o = objs[nm], c = F.pal[nm];   // the printed panel's own material colours
         if (o) { o.mapper.setScalarVisibility(false); o.actor.getProperty().setColor(c[0], c[1], c[2]); } });
+      if (F.shade) Object.keys(F.shade).forEach(nm => { const o = objs[nm], h = F.shade[nm];
+        if (o) { const pr = o.actor.getProperty(); pr.setLighting(true);
+          pr.setAmbient(h[0]); pr.setDiffuse(h[1]); pr.setSpecular(h[2]); pr.setSpecularPower(h[3]);
+          pr.setAmbientColor(1, 1, 1); } });
       if (F.parallel) renderer.getActiveCamera().setParallelProjection(true);            // the panel is a parallel projection
       if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom);
       if (F.wells) wellActors.forEach(a => a.setVisibility(true));
-      if (F.slab) buildFigSlab(F.slab); else removeFigSlab();
+      if (F.slab) buildFigSlab(F.slab, F.slabCol); else removeFigSlab();
       document.body.classList.toggle('figbare', !!F.bare);
       document.body.classList.toggle('fignodeck', !!F.nodeck);
       document.body.classList.toggle('figkey', !!F.key);
@@ -1600,7 +1608,7 @@ function main() {
        so build exactly that and hide the far-field block. */
     let figSlab = null;
     function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; } }
-    function buildFigSlab(margin) {
+    function buildFigSlab(margin, col) {
       removeFigSlab();
       // the union of every region inside the rock — water, the plugs and the air-filled ends,
       // which reach well past the water body and were poking out of the first slab
@@ -1617,8 +1625,10 @@ function main() {
         const m = vtk.Rendering.Core.vtkMapper.newInstance(); m.setInputConnection(src.getOutputPort());
         const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
         const pr = a.getProperty();
-        pr.setColor(0.541, 0.490, 0.427); pr.setOpacity(0.17);      // config.PV_MATERIALS rock
-        pr.setEdgeVisibility(true); pr.setEdgeColor(0.42, 0.40, 0.37); pr.setLineWidth(1);
+        const c = col || [0.746, 0.754, 0.770];                     // the panel's slab reads #bec0c4
+        pr.setColor(c[0], c[1], c[2]); pr.setOpacity(0.22);
+        pr.setAmbient(0.62); pr.setDiffuse(0.40); pr.setSpecular(0.03);
+        pr.setEdgeVisibility(true); pr.setEdgeColor(0.46, 0.47, 0.49); pr.setLineWidth(1);
         renderer.addActor(a); figSlab = a;
       } catch (e) { console.warn('slab unavailable', e); }
     }
@@ -2377,7 +2387,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-23d · FIG 2: slab contains the air ends, camera un-mirrored');
+console.log('%c● GEOBATTERY build 2026-07-23e · FIG 2: colours matched to the printed render, not the base material');
 main();
 </script>
 
