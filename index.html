@@ -1519,7 +1519,7 @@ function main() {
                  // sampled from the printed panel itself: water renders #73b5d3, the slab #bec0c4.
                  // These are pre-divided by this renderer's mean shading factor (~0.85) so the
                  // shaded average matches the panel instead of the far darker base colour.
-                 pal:{ water:[0.453,0.713,0.830], concrete:[0.836,0.806,0.746], air:[0.968,0.976,0.992] },
+                 pal:{ water:[0.392,0.617,0.719], concrete:[0.836,0.806,0.746], air:[0.968,0.976,0.992] },
                  shade:{ water:[0.60,0.46,0.32,42], concrete:[0.56,0.46,0.10,8], air:[0.74,0.28,0.05,6] },
                  slabCol:[0.878,0.887,0.906],
                  cam:{ dir:[-0.62,0.78,-0.55], zoom:1.10 } },
@@ -2391,7 +2391,7 @@ function main() {
     document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
-console.log('%c● GEOBATTERY build 2026-07-23f · FIG 2: palette survives late loads; poster links cache-busted');
+console.log('%c● GEOBATTERY build 2026-07-23g · FIG 2: water a step darker');
 main();
 </script>
 
