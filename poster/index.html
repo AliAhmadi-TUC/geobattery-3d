@@ -664,7 +664,7 @@ function openModal(id,arg){
   document.querySelectorAll('.modal').forEach(m=>m.hidden=(m.id!=='m-'+id));
   scrim.classList.add('open'); document.body.style.overflow='hidden';
   if(id==='num'&&arg) numTab(arg);
-  if(id==='num') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); numWake(); });
+  if(id==='num') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); numWake(); numHint(); });
   // canvases can only size themselves once their modal is actually laid out
   if(id==='solar') requestAnimationFrame(()=>{ if(window.figSolarRedraw) window.figSolarRedraw(); });
   if(id==='screening') requestAnimationFrame(()=>{ if(window.fig4Redraw) window.fig4Redraw(); });
@@ -1629,8 +1629,28 @@ const lerp=(a,b,t)=>a+(b-a)*t;
    appears mid-loop would read as a zoom. An unpainted cage pins the box. */
 const cage=b=>({type:'line',pts:[[b[0],b[2],b[4]],[b[1],b[2],b[4]],[b[1],b[3],b[4]],[b[0],b[3],b[4]],
                                  [b[0],b[2],b[5]],[b[1],b[2],b[5]],[b[1],b[3],b[5]],[b[0],b[3],b[5]]]});
+/* a drag hint that comes and goes: shown when a pane opens, killed the
+   moment the viewer actually drags, never shown again on that canvas. */
+function dragHint(ctx,w,h,a,e){
+  const pw=152, ph=25, r=ph/2, px=w-pw-14, py=h-ph-13, cy=py+r;
+  ctx.save(); ctx.globalAlpha=a;
+  ctx.beginPath(); ctx.moveTo(px+r,py);
+  ctx.arcTo(px+pw,py,px+pw,py+ph,r); ctx.arcTo(px+pw,py+ph,px,py+ph,r);
+  ctx.arcTo(px,py+ph,px,py,r);       ctx.arcTo(px,py,px+pw,py,r);
+  ctx.closePath();
+  ctx.fillStyle='rgba(18,24,30,.88)'; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle='rgba(228,236,244,.96)'; ctx.font='600 11px "IBM Plex Mono", monospace';
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('drag to rotate', px+36, cy+0.5);
+  const gx=px+19+Math.sin(e*3.6)*7.5;                 // a fingertip swiping
+  ctx.beginPath(); ctx.arc(gx,cy,7.4,0,7);
+  ctx.strokeStyle='rgba(242,193,78,.42)'; ctx.lineWidth=1.4; ctx.stroke();
+  ctx.beginPath(); ctx.arc(gx,cy,4.4,0,7); ctx.fillStyle='rgba(242,193,78,.95)'; ctx.fill();
+  ctx.restore();
+}
 function mini3d(canvas,build,yaw0,pitch0){
-  const st={yaw:yaw0,pitch:pitch0,dpr:1,w:0,h:0};
+  const st={yaw:yaw0,pitch:pitch0,dpr:1,w:0,h:0,hintAt:0,dragged:false};
   const ctx=canvas.getContext('2d');
   function resize(){
     const r=canvas.getBoundingClientRect(); if(!r.width) return;
@@ -1694,9 +1714,13 @@ function mini3d(canvas,build,yaw0,pitch0){
         ctx.closePath(); ctx.fillStyle=it.stroke; ctx.fill();
       }
     });
+    if(st.hintAt){ const e=(performance.now()-st.hintAt)/1000;
+      const a=e<0.45?e/0.45:e<2.7?1:e<3.3?1-(e-2.7)/0.6:0;
+      if(a<=0) st.hintAt=0; else dragHint(ctx,st.w,st.h,a,e); }
   }
   let drag=null;
-  const down=e=>{ drag={x:(e.touches?e.touches[0]:e).clientX,y:(e.touches?e.touches[0]:e).clientY,
+  const down=e=>{ st.dragged=true; st.hintAt=0;
+    drag={x:(e.touches?e.touches[0]:e).clientX,y:(e.touches?e.touches[0]:e).clientY,
     yaw:st.yaw,pitch:st.pitch}; };
   const move=e=>{ if(!drag)return; e.preventDefault();
     const p=e.touches?e.touches[0]:e;
@@ -1708,7 +1732,7 @@ function mini3d(canvas,build,yaw0,pitch0){
   window.addEventListener('mousemove',move); canvas.addEventListener('touchmove',move,{passive:false});
   window.addEventListener('mouseup',up); window.addEventListener('touchend',up);
   window.addEventListener('resize',resize);
-  const api={draw,resize};
+  const api={draw,resize,hint(){ if(!st.dragged&&!REDUCED) st.hintAt=performance.now(); }};
   MINI.push(api); setTimeout(resize,60); return api;
 }
 function box3(o,s,fill,stroke,lw){
@@ -1722,8 +1746,10 @@ function box3(o,s,fill,stroke,lw){
 function numTab(t){
   document.querySelectorAll('#n-tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('.npane').forEach(p=>p.hidden=(p.dataset.p!==t));
-  requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); numWake(); });
+  requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); numWake(); numHint(); });
 }
+function numHint(){ const p=document.querySelector('.npane:not([hidden])'),
+  api=p&&NUM3D[p.dataset.p]; if(api&&api.hint) api.hint(); }
 document.querySelectorAll('#n-tabs .tab').forEach(b=>b.onclick=()=>numTab(b.dataset.t));
 
 /* ═════════════════════════════════════════════════════════════════════════
@@ -2059,7 +2085,7 @@ const FEM_A=(function(){
 })();
 
 
-console.log('%c● GEOBATTERY poster build 2026-07-24f · label bands separated, equation strips no longer scroll','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24g · a drag hint that comes and goes','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
