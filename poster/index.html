@@ -1650,7 +1650,8 @@ function dragHint(ctx,w,h,a,e){
   ctx.restore();
 }
 function mini3d(canvas,build,yaw0,pitch0){
-  const st={yaw:yaw0,pitch:pitch0,dpr:1,w:0,h:0,hintAt:0,dragged:false};
+  const st={yaw:yaw0,pitch:pitch0,dpr:1,w:0,h:0,hintAt:0,dragged:false,
+            introAt:0,dyaw:0,dpit:0};
   const ctx=canvas.getContext('2d');
   function resize(){
     const r=canvas.getBoundingClientRect(); if(!r.width) return;
@@ -1659,14 +1660,23 @@ function mini3d(canvas,build,yaw0,pitch0){
     canvas.width=Math.round(r.width*st.dpr); canvas.height=Math.round(r.height*st.dpr);
     ctx.setTransform(st.dpr,0,0,st.dpr,0,0); draw();
   }
+  function intro(){                         // an opening move: turn, then settle
+    if(!st.introAt) return;
+    const e=(performance.now()-st.introAt)/1000, eo=x=>1-Math.pow(1-x,3);
+    if(e>=2.4){ st.introAt=0; st.dyaw=0; st.dpit=0; return; }
+    st.dyaw = e<1.5 ? lerp(0.46,-0.15,eo(e/1.5)) : lerp(-0.15,0,eo((e-1.5)/0.9));
+    st.dpit = lerp(0.14,0,eo(Math.min(1,e/1.7)));
+  }
   function proj(p){
-    const cy=Math.cos(st.yaw), sy=Math.sin(st.yaw);
+    const yw=st.yaw+st.dyaw, pt=Math.max(-1.35,Math.min(1.35,st.pitch+st.dpit));
+    const cy=Math.cos(yw), sy=Math.sin(yw);
     const X=p[0]*cy-p[1]*sy, Yr=p[0]*sy+p[1]*cy, Z=p[2];
-    const cp=Math.cos(st.pitch), sp=Math.sin(st.pitch);
+    const cp=Math.cos(pt), sp=Math.sin(pt);
     return [X, Yr*sp+Z*cp, -Yr*cp+Z*sp];            // [screen x, screen up, depth]
   }
   function draw(){
     if(!st.w) return;
+    intro();
     ctx.clearRect(0,0,st.w,st.h);
     let items;
     try { items=build(); }
@@ -1720,6 +1730,8 @@ function mini3d(canvas,build,yaw0,pitch0){
   }
   let drag=null;
   const down=e=>{ st.dragged=true; st.hintAt=0;
+    if(st.introAt){ st.yaw+=st.dyaw; st.pitch=Math.max(-1.35,Math.min(1.35,st.pitch+st.dpit));
+      st.dyaw=0; st.dpit=0; st.introAt=0; }
     drag={x:(e.touches?e.touches[0]:e).clientX,y:(e.touches?e.touches[0]:e).clientY,
     yaw:st.yaw,pitch:st.pitch}; };
   const move=e=>{ if(!drag)return; e.preventDefault();
@@ -1732,7 +1744,9 @@ function mini3d(canvas,build,yaw0,pitch0){
   window.addEventListener('mousemove',move); canvas.addEventListener('touchmove',move,{passive:false});
   window.addEventListener('mouseup',up); window.addEventListener('touchend',up);
   window.addEventListener('resize',resize);
-  const api={draw,resize,hint(){ if(!st.dragged&&!REDUCED) st.hintAt=performance.now(); }};
+  const api={draw,resize,
+    hint(){ if(st.dragged||REDUCED) return;
+      st.hintAt=performance.now(); st.introAt=performance.now(); }};
   MINI.push(api); setTimeout(resize,60); return api;
 }
 function box3(o,s,fill,stroke,lw){
@@ -2085,7 +2099,7 @@ const FEM_A=(function(){
 })();
 
 
-console.log('%c● GEOBATTERY poster build 2026-07-24g · a drag hint that comes and goes','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24h · the camera opens with a move, then settles','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
