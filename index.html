@@ -894,6 +894,17 @@ function main() {
      lab's surfaces instead renders the whole 236 x 294 x 206 m far-field block,
      which at 10 C is one flat slab of colour with the drift a thread across it. */
   let panel3a = null, panel3aLoading = false;
+  /* figbare hides #status, so a load failure here would be silent and the figure
+     would just quietly show the ordinary scene. Report into the figure chip, which
+     stays visible, so the next look says what happened instead of needing a guess. */
+  function panelNote(msg) {
+    const el = document.getElementById('figTxt'); if (!el) return;
+    let tag = document.getElementById('panelNote');
+    if (!tag) { tag = document.createElement('span'); tag.id = 'panelNote';
+      tag.style.cssText = 'display:block;font:600 10.5px/1.4 var(--mono);color:#8a6d00;margin-top:3px';
+      el.appendChild(tag); }
+    tag.textContent = msg;
+  }
   const PANEL3A_PARTS = ['face', 'rock_body', 'conc_body', 'water', 'outline'];
   function loadPanel3A(done) {
     if (panel3a) { if (done) done(); return; }
@@ -938,8 +949,12 @@ function main() {
       panel3a = { meta, actors, phase: ph };
       panel3aLoading = false;
       setStatus('ready');
+      panelNote(PANEL3A_PARTS.map(k => actors[k]
+        ? k + ' ' + pd[k].getNumberOfPoints() + 'p' : k + ' MISSING').join(' · '));
       if (done) done();
-    }).catch(err => { panel3aLoading = false; setStatus('panel load failed: ' + err, true); });
+    }).catch(err => { panel3aLoading = false;
+      setStatus('panel load failed: ' + err, true);
+      panelNote('panel load FAILED: ' + (err && err.message || err)); });
   }
   function panel3aPhase(name) {
     if (!panel3a || !panel3a.meta.phases || panel3a.meta.phases.indexOf(name) < 0) return;
@@ -1823,20 +1838,6 @@ function main() {
         const so = document.getElementById('sliceOn');
         if (so && so.checked) { so.checked = false; so.dispatchEvent(new Event('change')); }
       }
-      if (F.panel === 'fig3a') {
-        Object.values(objs).forEach(o => o.actor.setVisibility(false));   // the panel replaces them
-        if (objs.wire) objs.wire.actor.setVisibility(false);
-        wellActors.forEach(a => a.setVisibility(false));
-        loadPanel3A(() => {
-          panel3aShow(true);
-          const m = panel3a.meta, b2 = m.bounds, cn = [];
-          [b2[0],b2[1]].forEach(x => [b2[2],b2[3]].forEach(y =>
-            [m.z_open - m.depth_m, m.z_open].forEach(z => cn.push([x,y,z]))));
-          renderer.getActiveCamera().setParallelProjection(true);
-          figCam(figViewDir(m.yaw_deg, m.elev_deg) || F.cam.dir, 1.0, cn);
-          renderWindow.render();
-        });
-      } else if (panel3a) panel3aShow(false);
       if (F.repr) { const r = document.getElementById('repr');   // printed panels are solid surfaces, not the lattice the clip defaults to
         if (r && r.value !== F.repr) { r.value = F.repr; r.dispatchEvent(new Event('change')); } }
       if (F.move) {                               // the glyphs travel, and carry the speed ramp
@@ -1883,6 +1884,31 @@ function main() {
         const hp = document.getElementById('heatPlayOn');
         if (hp && !hp.checked) { hp.checked = true; hp.dispatchEvent(new Event('change')); }
       }, 500);
+      /* LAST, deliberately. Everything above re-shows the ordinary scene as a side
+         effect — the colour-mode change alone re-runs the visibility sync — so hiding
+         the lab's bodies any earlier is undone before the frame is drawn. */
+      if (F.panel === 'fig3a') {
+        const hideScene = () => {
+          Object.values(objs).forEach(o => o.actor.setVisibility(false));
+          if (objs.wire) objs.wire.actor.setVisibility(false);
+          wellActors.forEach(a => a.setVisibility(false));
+          if (figSlab) figSlab.setVisibility(false);
+          if (imgSlice) imgSlice.setVisibility(false);
+          if (flowActor) flowActor.setVisibility(false);
+          if (pActor) pActor.setVisibility(false);
+        };
+        hideScene();
+        loadPanel3A(() => {
+          hideScene();                                   // the load is async; re-assert
+          panel3aShow(true);
+          const m = panel3a.meta, b2 = m.bounds, cn = [];
+          [b2[0],b2[1]].forEach(x => [b2[2],b2[3]].forEach(y =>
+            [m.z_open - m.depth_m, m.z_open].forEach(z => cn.push([x,y,z]))));
+          renderer.getActiveCamera().setParallelProjection(true);
+          figCam(figViewDir(m.yaw_deg, m.elev_deg) || F.cam.dir, 1.0, cn);
+          renderWindow.render();
+        });
+      } else if (panel3a) panel3aShow(false);
       figApplied = true;
       renderWindow.render();
     }
