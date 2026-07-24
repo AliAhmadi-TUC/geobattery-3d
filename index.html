@@ -911,10 +911,13 @@ function main() {
     if (panel3aLoading) return;
     panel3aLoading = true;
     setStatus('loading the printed panel…');
-    const jobs = [fetch(DATA + 'fig3a/meta.json').then(r => r.json())].concat(
+    // DATA is 'data/<scene>/'; the panel sits beside the scenes, not inside one
+    const PDIR = DATA.replace(/data\/[^/]*\/$/, 'data/') + 'fig3a/';
+    const jobs = [fetch(PDIR + 'meta.json').then(r => {
+        if (!r.ok) throw new Error('meta.json ' + r.status + ' at ' + PDIR); return r.json(); })].concat(
       PANEL3A_PARTS.map(nm => {
         const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
-        return rd.setUrl(DATA + 'fig3a/' + nm + '.vtp')
+        return rd.setUrl(PDIR + nm + '.vtp')
                  .then(() => ({ nm, pd: rd.getOutputData(0) }));
       }));
     Promise.all(jobs).then(res => {
