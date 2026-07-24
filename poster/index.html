@@ -138,11 +138,32 @@
     background:var(--line); outline:none; margin:8px 0 2px; }
   input[type=range].heat{ background:linear-gradient(90deg,#C0392B,#E0A04A,#E0B93A,var(--grn)); }
   input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:21px; height:21px; border-radius:50%;
-    background:#fff; border:3px solid var(--grn-d); cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.28); }
+    background:#fff; border:3px solid var(--grn-d); cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,.28), 0 0 0 3px rgba(10,110,56,.16), 0 0 11px rgba(10,110,56,.38); }
   input[type=range]::-moz-range-thumb{ width:19px; height:19px; border-radius:50%; background:#fff;
     border:3px solid var(--grn-d); cursor:pointer; }
   .ticks{ display:flex; justify-content:space-between; font:9.5px var(--mono); color:#A7ACA6; }
   .chips{ display:flex; flex-wrap:wrap; gap:6px; margin:9px 0 2px; }
+  /* ── the interactive halo ───────────────────────────────────────────────
+     Green in this poster means "geobattery", not "touch me" — it is the section
+     rule and the brand as much as the control. So affordance gets its own
+     signal: a soft halo that NOTHING static carries. Once the eye has learned it
+     on one figure it transfers to all of them, with no legend to read. */
+  .chip, .tab, table.tb tr.clk td:first-child, .story button{ position:relative; }
+  .chip{ box-shadow:0 0 0 2.5px rgba(10,110,56,.10), 0 0 8px rgba(10,110,56,.16); }
+  .chip:hover{ box-shadow:0 0 0 3px rgba(10,110,56,.18), 0 0 12px rgba(10,110,56,.30); }
+  .chip.on{ box-shadow:0 0 0 3px rgba(10,110,56,.22), 0 0 13px rgba(10,110,56,.42); }
+  input[type=range]{ filter:drop-shadow(0 0 5px rgba(10,110,56,.30)); }
+  .tab{ border-radius:7px 7px 0 0; }
+  .tab:hover{ box-shadow:0 0 9px rgba(10,110,56,.22); }
+  .tab.on{ box-shadow:0 0 11px rgba(10,110,56,.30); }
+  table.tb tr.clk td:first-child::before{ content:''; position:absolute; left:0; top:18%; bottom:18%;
+    width:2.5px; border-radius:2px; background:var(--grn-d); opacity:.45;
+    box-shadow:0 0 7px rgba(10,110,56,.55); }
+  table.tb tr.clk:hover td:first-child::before, table.tb tr.clk.sel td:first-child::before{ opacity:1; }
+  canvas.mini{ box-shadow:0 0 0 1px rgba(70,201,126,.22), 0 0 14px rgba(70,201,126,.16); }
+  canvas.mini:hover{ box-shadow:0 0 0 1px rgba(70,201,126,.40), 0 0 20px rgba(70,201,126,.28); }
+  .story button{ box-shadow:0 0 8px rgba(10,110,56,.20); }
   .chip{ font:600 11px var(--sans); padding:6px 10px; border-radius:7px; cursor:pointer; color:var(--ink-3);
     background:#F5F4F0; border:1px solid var(--line); }
   .chip:hover{ color:var(--ink); border-color:var(--grn-d); }
@@ -1195,10 +1216,17 @@ const DEC=[
     g(T(tx+4,ty0-10,'TARGET',{'text-anchor':'middle','font-size':'8','font-weight':'700',fill:'#0C1015'}));
     g(T(-(ty0+ty1)/2,tx+48,'minimum retention you accept',{transform:'rotate(-90)','text-anchor':'middle','font-size':'8.5',fill:'#565D62'}));
 
-    /* the puck */
+    /* the puck — draggable, so it wears the halo and says which ways it goes */
     const ux=px(ST.a), uy=py(ST.t), th=rf1(FoOf(ST.a,ST.t,k),k);
     const col=th>=ST.tgt?'#0A6E38':th>=ST.tgt*0.5?'#C97A10':'#C0392B';
-    g(E('circle',{cx:ux,cy:uy,r:11,fill:'#fff',stroke:col,'stroke-width':'3.4'}));
+    const gd=E('defs',{}); const gf=E('filter',{id:'glpuck',x:'-120%',y:'-120%',width:'340%',height:'340%'});
+    gf.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'3.6','flood-color':col,'flood-opacity':'0.95'}));
+    gd.appendChild(gf); g(gd);
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy])=>{        // it moves in both a and t
+      const bx=ux+dx*17, by=uy+dy*17;
+      g(E('path',{d:'M'+bx+' '+by+' l'+(dx*4.6-dy*3.2)+' '+(dy*4.6+dx*3.2)+
+        ' l'+(dy*6.4)+' '+(-dx*6.4)+' z',fill:col,'fill-opacity':'.85'})); });
+    g(E('circle',{cx:ux,cy:uy,r:11,fill:'#fff',stroke:col,'stroke-width':'3.4',filter:'url(#glpuck)'}));
     g(T(ux,uy+4,th>=ST.tgt?'✓':th>=ST.tgt*0.5?'△':'✕',{'text-anchor':'middle',fill:col,'font-size':'11','font-weight':'700'}));
     if(hover) g(E('circle',{cx:px(hover[0]),cy:py(hover[1]),r:3,fill:'#0C1015','fill-opacity':'.5'}));
   }
@@ -1348,6 +1376,9 @@ const DEC=[
     hp.appendChild(E('rect',{width:5,height:5,fill:'#F6D9D4'}));
     hp.appendChild(E('line',{x1:0,y1:0,x2:0,y2:5,stroke:'#C0392B','stroke-width':2,'stroke-opacity':'.8'}));
     defs.appendChild(hp);
+    S.forEach((sc,k)=>{ const f=E('filter',{id:'glcell'+k,x:'-40%',y:'-40%',width:'180%',height:'180%'});
+      f.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'2.8',
+        'flood-color':COL[k],'flood-opacity':'0.8'})); defs.appendChild(f); });
 
     /* ── shelf ── */
     S.forEach((sc,k)=>{
@@ -1365,6 +1396,10 @@ const DEC=[
       g(T(x+100,zy+3,(rr.pct>=0?'+':'−')+fmt(Math.abs(rr.pct),2)+'%',
         {'text-anchor':'end','font-size':'8.5','font-weight':'800',fill:neg?'#C0392B':(on?COL[k]:'#9AA0A6')}));
       g(T(x+100,zy+12,'of heat injected',{'text-anchor':'end','font-size':'5.6',fill:'#9AA0A6'}));
+      // a selectable cell: the halo marks the whole strip as choosable
+      g(E('rect',{x:x+1,y:3,width:106,height:58,rx:5,fill:'none',
+        stroke:on?COL[k]:'#B9BEC4','stroke-width':on?1.6:1,
+        'stroke-opacity':on?0.95:0.5,filter:on?('url(#glcell'+k+')'):null}));
       hitS.push({x,y:2,w:108,h:60,k});
     });
 
@@ -1516,6 +1551,9 @@ const DEC=[
     pat.appendChild(el('rect',{width:5,height:5,fill:'#F6E7CB'}));
     pat.appendChild(el('line',{x1:0,y1:0,x2:0,y2:5,stroke:'#C97A10','stroke-width':2,'stroke-opacity':'.75'}));
     defs.appendChild(pat);
+    DEC.forEach((sc,k)=>{ const f=E('filter',{id:'glcell5'+k,x:'-40%',y:'-40%',width:'180%',height:'180%'});
+      f.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'2.8',
+        'flood-color':sc.c,'flood-opacity':'0.8'})); defs.appendChild(f); });
 
     /* ── shelf: the selector, and the grade comparison that never moves ── */
     DEC.forEach((sc,k)=>{
@@ -1537,6 +1575,9 @@ const DEC=[
       g(T(tx,SH+38,(v*100).toFixed(1)+'%',{'font-size':'11','font-weight':'800',fill:on?sc.c:'#9AA0A6'}));
       g(T(tx,SH+47,'tap '+fmt(sc.to[9],1)+'°C',{'font-size':'6',fill:cold?'#C0392B':'#8A8F86'}));
       if(cold) g(T(tx,SH+56,'below its rock',{'font-size':'5.8','font-weight':'700',fill:'#C0392B'}));
+      g(el('rect',{x:x+1,y:SH+1,width:106,height:SHH-2,rx:5,fill:'none',
+        stroke:on?sc.c:'#B9BEC4','stroke-width':on?1.6:1,
+        'stroke-opacity':on?0.95:0.5,filter:on?('url(#glcell5'+k+')'):null}));
       hit.push({x,y:SH,w:108,h:SHH,kind:'sc',i:k});
     });
 
@@ -2126,7 +2167,7 @@ const FEM_A=(function(){
 })();
 
 
-console.log('%c● GEOBATTERY poster build 2026-07-24ag · FIG 1: glowing handles, travel arrows, less crowding','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24ah · the interactive halo, every figure','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
