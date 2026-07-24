@@ -1343,6 +1343,27 @@ function main() {
     let pLines = null, pList = null, pCoords = null, pSpd = null, pDir = null, pScl = null, pPts = null, pScal = null, pDirArr = null, pSclArr = null, pPoly = null;
     const PPL_BASE = 4, PPL_MIN = 3, CURV_GAIN = 1.8, P_SPEED = 6.0, P_SIZE = 7;
 
+    /* The moving glyphs already carry a per-particle 'spd' scalar — it is set every
+       frame in stepParticles and is the polydata's active scalars — but the mapper had
+       scalarVisibility off, so they drew in flat water blue. The printed FIG 3B colours
+       its arrows by |u| on the 0..clip ramp, so the moving ones do the same. The tour
+       still wants flat colours it can drive (red hot / blue cold), so this is a switch
+       and leaving figure mode turns it back off. */
+    let pSpeedColored = false;
+    function setParticleSpeedColor(on) {
+      pSpeedColored = !!on;
+      if (!pActor) return;                       // re-applied by loadParticles when it lands
+      const m = pActor.getMapper(); if (!m) return;
+      try {
+        if (pSpeedColored && speedLUT && flowMeta) {
+          m.setLookupTable(speedLUT);
+          if (m.setScalarModeToUsePointFieldData) m.setScalarModeToUsePointFieldData();
+          if (m.setColorByArrayName) m.setColorByArrayName('spd');
+          m.setScalarRange(0, flowMeta.clip);
+          m.setScalarVisibility(true);
+        } else m.setScalarVisibility(false);
+      } catch (e) { console.warn('speed colouring unavailable', e); }
+    }
     function syncFlowVis() {                 // flow actors follow the "water velocity" mode
       if (touring) return;                   // the tour drives the glyphs directly
       const on = colMode === 'flow' && !!flowMeta;
@@ -1486,8 +1507,9 @@ function main() {
           mapper = m;
         }
         pActor = vtk.Rendering.Core.vtkActor.newInstance(); pActor.setMapper(mapper);
-        pActor.getProperty().setColor(0.32, 0.62, 0.95);   // water blue
+        pActor.getProperty().setColor(0.32, 0.62, 0.95);   // water blue, unless speed-coloured
         pActor.getProperty().setPointSize(P_SIZE);
+        setParticleSpeedColor(pSpeedColored);              // a figure may have asked before this landed
         renderer.addActor(pActor);
         pActor.setVisibility(pOn);
         pLoading = false; if (pOn) startParticleAnim();
@@ -1506,7 +1528,7 @@ function main() {
       renderWindow.render();
       document.getElementById('flowOn').onchange = e => { if (e.target.checked) { const m = document.getElementById('flowMove'); if (m.checked) m.checked = false; } syncFlowVis(); renderWindow.render(); };
       document.getElementById('flowMove').onchange = e => { if (e.target.checked) { const s = document.getElementById('flowOn'); if (s.checked) s.checked = false; } syncFlowVis(); renderWindow.render(); };
-      syncFlowVis(); updateColorbar();
+      syncFlowVis(); setParticleSpeedColor(pSpeedColored); updateColorbar();
     }).catch(() => {
       const o = document.querySelector('#colMode option[value="flow"]'); if (o) o.remove();
       if (colMode === 'flow') { document.getElementById('colMode').value = 'material'; setColorMode('material'); }
@@ -1548,8 +1570,8 @@ function main() {
       plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
                  mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', play:1, cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
-      flow:    { bare:1, kick:'FIG 3B', txt:'The charge flow as arrows — colour is speed, on the poster’s scale. Green marker = inlet, red = outlet.',
-                 mode:'flow', repr:'2', cam:{ dir:[0.20,0.96,-0.20], zoom:1.45 } },
+      flow:    { bare:1, kick:'FIG 3B', txt:'The charge flow as <b>moving</b> arrows, coloured by |u| on the poster’s own scale. Green marker = inlet, red = outlet.',
+                 mode:'flow', repr:'2', move:1, cam:{ dir:[0.20,0.96,-0.20], zoom:1.45 } },
       stress:  { bare:1, kick:'FIG 6', txt:'Von Mises stress at end of charge, sliced at the crown — the poster’s panel (a), live.',
                  mode:'vm', layers:{ rock:[1,1.0], water:[1,0.9], concrete:[1,1.0], air:[0,0.3] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', cam:{ dir:[0.10,0.55,-0.83], zoom:1.35 } },
@@ -1632,6 +1654,12 @@ function main() {
       }
       if (F.repr) { const r = document.getElementById('repr');   // printed panels are solid surfaces, not the lattice the clip defaults to
         if (r && r.value !== F.repr) { r.value = F.repr; r.dispatchEvent(new Event('change')); } }
+      if (F.move) {                               // the glyphs travel, and carry the speed ramp
+        const st = document.getElementById('flowOn'), mv = document.getElementById('flowMove');
+        if (st) st.checked = false;
+        if (mv) mv.checked = true;
+        setParticleSpeedColor(true);
+      }
       const o = cm.querySelector('option[value="' + F.mode + '"]');
       if (o) { cm.value = F.mode; cm.dispatchEvent(new Event('change')); }
       if (F.layers && F.mode !== 'flow') Object.keys(F.layers).forEach(nm => figLayer(nm, F.layers[nm][0], F.layers[nm][1]));
@@ -1982,6 +2010,7 @@ function main() {
     document.getElementById('figFree').onclick = () => {          // back to the lab's own dark void, controls untouched
       window._figLock = false; window._figPal = null;
       document.body.classList.remove('figmode', 'figlabels', 'figkey', 'figbare', 'fignodeck', 'figtitle');
+      setParticleSpeedColor(false);        // the tour drives the glyph colour itself
       removeFigSlab();
       renderer.getActiveCamera().setParallelProjection(false);
       renderer.setBackground(voidRGB[0], voidRGB[1], voidRGB[2]);
