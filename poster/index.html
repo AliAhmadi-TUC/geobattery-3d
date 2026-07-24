@@ -220,6 +220,10 @@
   .projn{ border-left:3px solid var(--grn-d); padding:2px 0 2px 12px; margin:12px 2px 2px;
     font:400 12.5px/1.55 var(--sans); color:var(--ink-2); }
   .projn b{ color:var(--ink); }
+  a.labbtn2{ display:inline-block; margin-top:6px; font:700 11px var(--mono); color:#fff;
+    background:var(--grn-d); padding:5px 10px; border-radius:7px; text-decoration:none;
+    box-shadow:0 0 0 2.5px rgba(10,110,56,.12), 0 0 9px rgba(10,110,56,.30); }
+  a.labbtn2:hover{ background:var(--dark); }
   .capt{ font:400 11px/1.4 var(--sans); color:var(--ink-3); margin:5px 2px 0; }
   .capt b{ color:var(--gold); font-weight:600; }
   .split{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
@@ -496,6 +500,67 @@
     </div>
   </div>
 
+  <!-- ══════════ FIX · why one box is the whole array ══════════ -->
+  <div class="modal wide" id="m-array" role="dialog" aria-modal="true" hidden>
+    <div class="mh"><h2><span class="k">08 · the array</span>Why one box is the whole field</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mb">
+      <p class="lead">A decade in 3-D on a whole array is not affordable — and it is also not necessary. Space the
+        drifts evenly and the field becomes <b>periodic</b>: every mid-plane between two neighbours has identical
+        rock, identical heating and identical timing on both sides, so by symmetry <b>no heat can cross it</b>.
+        A plane no heat crosses is an adiabatic boundary. So one 10&nbsp;×&nbsp;10&nbsp;m box with adiabatic sides is
+        not an approximation of the array — for an infinite array it is <b>exact</b>.</p>
+      <canvas class="mini dk" id="a3d"></canvas>
+      <p class="capt">Drag to rotate — the loop keeps playing. Five drifts at 10 m pitch, the mid-planes between
+        them, and the one cell that stands for all of it.</p>
+      <div class="mth">neighbours identical ⟹ ∂T/∂n = 0 on every mid-plane ⟹ <b>one unit cell is exact</b></div>
+      <p class="projn"><b>What it bought&nbsp;·</b> the whole decade — ten charge–store–discharge cycles — was solved
+        on this one box. Its adiabatic faces are the reason the annual return climbs to <b>98.5&nbsp;%</b>: with no
+        far-field sink, the rock between drifts saturates and stops taking heat away.
+        <a class="labbtn2" id="a-lab" href="../?scene=array&amp;fig=arraydomain">open the real cell in the 3-D lab ↗</a></p>
+      <p class="mut">The same statement as §07&nbsp;B, arrived at from the other side: a symmetry plane is a
+        <b>natural</b> boundary condition. It is imposed by writing nothing — put a value on it and you would be
+        replacing the physics, not enforcing the symmetry.</p>
+    </div>
+  </div>
+
+  <!-- ══════════ RESULT · ten cycles to saturation ══════════ -->
+  <div class="modal wide" id="m-cell" role="dialog" aria-modal="true" hidden>
+    <div class="mh"><h2><span class="k">08 · the array result</span>Ten cycles to saturation</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mb">
+      <p class="lead">A lone drift loses heat outward forever. Inside the array it cannot: the mid-planes are sealed,
+        so every joule that leaves the water is still <b>in the cell</b>, warming the rock that will hand it back next
+        time. Each cycle leaves the rock warmer, so each cycle loses less — until the cell is full and almost
+        everything comes back. Scrub the decade and watch the return climb while the <b>gain per cycle collapses</b>.</p>
+      <div class="split">
+        <div>
+          <canvas class="mini dk" id="c3d"></canvas>
+          <p class="capt">Drag to rotate. The rock shell carries the cell's measured mean water temperature for the
+            cycle you have selected.</p>
+        </div>
+        <div>
+          <div class="card2" style="margin:0 0 9px">
+            <h3>What comes back, cycle by cycle</h3>
+            <p class="sc">Bars = what that single cycle added over the one before. The line is the cumulative return.</p>
+            <svg class="chart" id="c-cell" viewBox="0 0 300 178"></svg>
+          </div>
+        </div>
+      </div>
+      <div class="row2"><label>cycle · year of the decade</label><span class="v" id="cl-n">10</span></div>
+      <input type="range" id="cl-cyc" min="1" max="10" step="1" value="10" aria-label="cycle">
+      <div class="ticks"><span>1 — cold rock</span><span>the rock between drifts fills up</span><span>10 — saturated</span></div>
+      <div class="stats">
+        <div class="st"><b id="cl-ret">—</b><span>returned this cycle · of what was injected</span></div>
+        <div class="st"><b id="cl-mar">—</b><span>gained over the cycle before</span></div>
+        <div class="st"><b id="cl-tw">—</b><span>mean water temperature in store</span></div>
+        <div class="st"><b id="cl-to">—</b><span>delivered at the outlet</span></div>
+      </div>
+      <p class="mut" id="cl-say"></p>
+      <p class="projn"><b>Read it with FIG 5&nbsp;·</b> that figure weighs the same decade as energy; this one says
+        <em>where</em> the energy went — into the rock between the drifts, which is exactly why it comes back.
+        <a class="labbtn2" id="c-lab" href="../?scene=array&amp;fig=arrayresult">open the year-10 field in the 3-D lab ↗</a></p>
+    </div>
+  </div>
+
   <!-- ══════════ §07 · the numerical challenges ══════════ -->
   <div class="modal wide" id="m-num" role="dialog" aria-modal="true" hidden>
     <div class="mh"><h2><span class="k">07 · numerical challenges</span>Three theorems every Galerkin code lives with</h2><button class="x" data-close aria-label="close">✕</button></div>
@@ -653,14 +718,16 @@ const HOT=[
  {l:75.03,t:18.88,w:22.06,h:11.52, k:'FIG 4b', lab:'What the heat is actually worth',       m:'grade'},
  {l:50.85,t:41.09,w:46.80,h:21.56, k:'FIG 5',  lab:'Whose heat was it, really?',               m:'decade'},
  {l:51.66,t:69.18,w:45.06,h:7.74,  k:'FIG 6',  lab:'See the stress in 3-D',             href:'../?fig=stress&b='+LABV},
- {l:61.41,t:81.46,w:9.87, h:4.88,  k:'FIX',    lab:'Open the array cell in 3-D',        href:'../?scene=array&fig=arraydomain&b='+LABV},
- {l:73.06,t:81.46,w:9.87, h:4.88,  k:'RESULT', lab:'Open the year-10 cell in 3-D',      href:'../?scene=array&fig=arrayresult&b='+LABV},
+ {l:61.41,t:81.46,w:9.87, h:4.88,  k:'FIX',    lab:'Why one box is the whole array',     m:'array'},
+ {l:73.06,t:81.46,w:9.87, h:4.88,  k:'RESULT', lab:'Ten cycles to saturation',           m:'cell'},
  {l:2.38, t:90.35,w:31.15,h:7.40,  k:'A',      lab:'Re-solve it: nodal flux vs reaction', m:'num', arg:'a'},
  {l:34.42,t:90.35,w:31.16,h:7.40,  k:'B',      lab:'Re-solve it: pin vs weak no-flux',  m:'num', arg:'b'},
  {l:66.47,t:90.35,w:31.15,h:7.40,  k:'C',      lab:'The saddle point, measured',        m:'num', arg:'c'},
 ];
 const CNR='<span class="cnr"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4h4M4 4v4M14 14h-4M14 14v-4M4 14v-4M4 14h4M14 4h-4M14 4v4"/></svg></span>';
 const poster=$('poster'), tip=$('tip');
+['a-lab','c-lab'].forEach(id=>{ const a=document.getElementById(id);
+  if(a) a.href=a.getAttribute('href')+'&b='+LABV; });
 HOT.forEach(h=>{
   const el=document.createElement(h.href?'a':'button');
   el.className='hot';
@@ -698,6 +765,10 @@ function openModal(id,arg){
   if(id==='screening') requestAnimationFrame(()=>{ if(window.fig4Redraw) window.fig4Redraw(); });
   if(id==='grade') requestAnimationFrame(()=>{ if(window.fig4bRedraw) window.fig4bRedraw(); });
   if(id==='decade') requestAnimationFrame(()=>{ if(window.fig5Redraw) window.fig5Redraw(); });
+  if(id==='array') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); arrWake();
+    if(ARR3D&&ARR3D.hint) ARR3D.hint(); });
+  if(id==='cell') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize());
+    if(window.cellRedraw) window.cellRedraw(); if(CELL3D&&CELL3D.hint) CELL3D.hint(); });
 }
 function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
 scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
@@ -2167,7 +2238,140 @@ const FEM_A=(function(){
 })();
 
 
-console.log('%c● GEOBATTERY poster build 2026-07-24ah · the interactive halo, every figure','color:#009640;font-weight:bold');
+/* ═════════════════════════════════════════════════════════════════════════
+   §08 — the array. Two figures, and neither invents a number.
+
+   FIX is a SYMMETRY argument, not a parameter study: I tried to drive a pitch
+   slider off the 1-D retention table and it will not carry it. Fitting that
+   table to the measured 3-D array decade pins it at the table's own edge
+   (R_far/L_c = 2.500, the minimum) and still misses by up to 6.6 percentage
+   points — 1-D says 61.4 % at cycle 3 where the 3-D run measured 67.2 %. So the
+   figure shows the thing that IS exact: periodicity makes the mid-planes
+   adiabatic, and one cell stands for the whole array.
+
+   RESULT uses only the measured decade already in DEC's array scenario.
+   ═════════════════════════════════════════════════════════════════════════ */
+const ARR=DEC.find(d=>d.k==='array');
+const ARRP=ARR.rc.map((v,i)=>v/ARR.st[i]);          // cumulative return, cycle by cycle
+
+/* ---- FIX: five drifts, their mid-planes, and the one cell ---- */
+let ARR3D=null, ARR_RAF=null;
+function arrAnim(){ ARR_RAF=null;
+  if($('m-array').hidden||document.hidden) return;
+  if(ARR3D) ARR3D.draw();
+  if(!REDUCED) ARR_RAF=requestAnimationFrame(arrAnim); }
+function arrWake(){ if(!ARR_RAF) ARR_RAF=requestAnimationFrame(arrAnim); }
+(function(){
+  const P=1.0, HL=1.9, RW=0.30, RH=0.26;             // pitch, drift half-length, tunnel size
+  ARR3D=mini3d($('a3d'),()=>{
+    const t=numTime()%13, it=[];
+    it.push(cage([-2.9,2.9,-2.2,2.2,-0.95,1.15]));
+    const plane=seg(t,3.6,5.4)*(1-seg(t,11.4,12.6));      // the mid-planes appear
+    const only =seg(t,7.2,8.8)*(1-seg(t,11.4,12.6));      // ...then all but one cell fades
+    for(let i=-2;i<=2;i++){
+      const x=i*P, live=1-only*(i===0?0:1)*0.86;
+      box3([x-P/2,-HL,-0.55],[P,2*HL,0.92],
+        'rgba(120,132,146,'+(0.10*live).toFixed(2)+')',
+        'rgba(168,178,190,'+(0.30*live).toFixed(2)+')',1).forEach(q=>it.push(q));
+      box3([x-RW/2,-HL,-0.10],[RW,2*HL,RH],
+        'rgba(95,168,232,'+(0.72*live).toFixed(2)+')',
+        'rgba(140,196,240,'+(0.85*live).toFixed(2)+')',1).forEach(q=>it.push(q));
+    }
+    // the mid-planes, and why nothing crosses them
+    if(plane>0.02){
+      for(let i=-2;i<=1;i++){
+        const x=i*P+P/2, a=(0.30+0.34*plane)*(1-only*0.55);
+        it.push({type:'poly',pts:[[x,-HL,-0.55],[x,HL,-0.55],[x,HL,0.37],[x,-HL,0.37]],
+          fill:'rgba(70,201,126,'+(0.13*a).toFixed(2)+')',
+          stroke:'rgba(70,201,126,'+a.toFixed(2)+')',lw:1.6,dash:[6,4]});
+        // one arrow from each side, meeting and cancelling
+        const g=seg(t,4.4,6.4)*(1-only*0.7), L=0.30*g;
+        if(L>0.03){ [-1,1].forEach(s=>it.push({type:'arrow',
+          pts:[[x-s*0.34,0,0.13],[x-s*(0.34-L),0,0.13]],
+          stroke:'rgba(242,193,78,'+(0.9*g).toFixed(2)+')',lw:2.2,head:6})); }
+      }
+      const la=seg(t,5.6,6.6)*(1-seg(t,7.4,8.2));
+      if(la>0.03) it.push({type:'text',pts:[[P/2,0,0.62]],text:'equal on both sides\n→ nothing crosses',
+        color:'rgba(70,201,126,'+la.toFixed(2)+')',font:MONO('700')});
+    }
+    // the unit cell
+    if(only>0.02){
+      const e=[[-P/2,-HL,-0.55],[P/2,-HL,-0.55],[P/2,HL,-0.55],[-P/2,HL,-0.55]];
+      const u=e.map(p=>[p[0],p[1],0.37]);
+      const c='rgba(228,87,46,'+(0.95*only).toFixed(2)+')';
+      [e,u].forEach(r=>it.push({type:'poly',pts:r,fill:'none',stroke:c,lw:2.2}));
+      for(let k=0;k<4;k++) it.push({type:'line',pts:[e[k],u[k]],stroke:c,lw:2.2});
+      it.push({type:'text',pts:[[0,0,0.74]],text:'ONE CELL = THE WHOLE ARRAY',
+        color:c,font:'700 12px "IBM Plex Mono",monospace'});
+      it.push({type:'text',pts:[[0,-HL-0.55,-0.20]],text:'10 m pitch',
+        color:'rgba(154,164,174,'+(0.9*only).toFixed(2)+')',font:MONO()});
+    }
+    return it;
+  },-44*Math.PI/180,20*Math.PI/180);
+})();
+
+/* ---- RESULT: the measured decade of that cell ---- */
+let CELL3D=null, CL=10;
+(function(){
+  const HL=1.85, RW=0.30, RH=0.26, P=1.0;
+  const warm=c=>{ const f=clamp01((ARR.tw[c-1]-10)/(60-10)); return f; };   // measured mean water T
+  CELL3D=mini3d($('c3d'),()=>{
+    const it=[], f=warm(CL);
+    it.push(cage([-1.15,1.15,-2.15,2.15,-0.95,1.05]));
+    // the rock of the cell, tinted by how warm the store actually got
+    const r=Math.round(lerp(46,214,f)), g2=Math.round(lerp(56,96,f)), b=Math.round(lerp(74,58,f));
+    box3([-P/2,-HL,-0.55],[P,2*HL,0.92],
+      'rgba('+r+','+g2+','+b+',.72)','rgba(190,198,208,.45)',1).forEach(q=>it.push(q));
+    box3([-RW/2,-HL,-0.10],[RW,2*HL,RH],
+      'rgba(255,'+Math.round(lerp(210,150,f))+',120,.95)','rgba(255,225,170,.9)',1).forEach(q=>it.push(q));
+    // the sealed sides
+    [-P/2,P/2].forEach(x=>it.push({type:'poly',pts:[[x,-HL,-0.55],[x,HL,-0.55],[x,HL,0.37],[x,-HL,0.37]],
+      fill:'none',stroke:'rgba(70,201,126,.55)',lw:1.5,dash:[6,4]}));
+    it.push({type:'text',pts:[[P/2+0.42,0,0.52]],text:'sealed\nby symmetry',color:PAL7.grn,font:MONO('700')});
+    it.push({type:'text',pts:[[0,0,0.66]],text:'cycle '+CL+' · water '+fmt(ARR.tw[CL-1],1)+' °C',
+      color:'#EAF0F6',font:'700 12px "IBM Plex Mono",monospace'});
+    return it;
+  },-40*Math.PI/180,22*Math.PI/180);
+
+  function cellChart(){
+    const s=$('c-cell'),W=300,H=178,L=42,R=12,Tp=12,B=32; clear(s);
+    const X=c=>L+(W-L-R)*(c-0.5)/10, Y=v=>Tp+(H-Tp-B)*(1-v);
+    [0,0.25,0.5,0.75,1].forEach(v=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(v),y2:Y(v)}));
+      s.appendChild(T(L-5,Y(v)+4,Math.round(v*100)+'%',{'text-anchor':'end','font-size':'9'})); });
+    const bw=(W-L-R)/10*0.56;
+    ARRP.forEach((v,i)=>{ const mgain=i?v-ARRP[i-1]:v, on=(i+1)===CL;
+      s.appendChild(E('rect',{x:X(i+1)-bw/2,y:Y(mgain),width:bw,height:Math.max(0.6,Y(0)-Y(mgain)),
+        rx:1.5,fill:on?'#C97A10':'#DCD6C6'})); });
+    s.appendChild(E('path',{d:ARRP.map((v,i)=>(i?'L':'M')+X(i+1).toFixed(1)+' '+Y(v).toFixed(1)).join(' '),
+      fill:'none',stroke:'#0A6E38','stroke-width':'2.4'}));
+    ARRP.forEach((v,i)=>s.appendChild(E('circle',{cx:X(i+1),cy:Y(v),r:(i+1)===CL?4.5:2.4,
+      fill:(i+1)===CL?'#fff':'#0A6E38',stroke:'#0A6E38','stroke-width':(i+1)===CL?2.6:0})));
+    [1,4,7,10].forEach(c=>s.appendChild(T(X(c),H-13,c,{'text-anchor':'middle','font-size':'9'})));
+    s.appendChild(T((L+W-R)/2,H-2,'cycle',{'text-anchor':'middle','font-size':'9'}));
+    s.appendChild(T(W-R-2,Y(ARRP[9])-8,'cumulative',{'text-anchor':'end',fill:'#0A6E38','font-size':'9','font-weight':'700'}));
+  }
+  function updCell(){
+    const i=CL-1, ret=ARRP[i], mar=i?ret-ARRP[i-1]:ret;
+    $('cl-n').textContent=CL;
+    $('cl-ret').textContent=(100*ret).toFixed(1)+'%';
+    $('cl-mar').textContent=(mar>=0?'+':'')+(100*mar).toFixed(1)+' pt';
+    $('cl-tw').textContent=fmt(ARR.tw[i],1)+' °C';
+    $('cl-to').textContent=fmt(ARR.to[i],1)+' °C';
+    $('cl-say').innerHTML = CL===1
+      ? 'First cycle into cold rock: <b>'+(100*ret).toFixed(1)+'&thinsp;%</b> comes back, and the rest is not lost — '+
+        'it is sitting in the cell, warming the rock for next time.'
+      : 'Cycle '+CL+' returns <b>'+(100*ret).toFixed(1)+'&thinsp;%</b>, only <b>'+(100*mar).toFixed(1)+
+        '&thinsp;points</b> more than cycle '+(CL-1)+'. '+(mar<0.032
+          ? 'The rock between the drifts is effectively full — further cycles have almost nothing left to gain.'
+          : 'The rock is still filling, so each cycle still buys a real improvement.');
+    cellChart(); if(CELL3D) CELL3D.draw();
+  }
+  $('cl-cyc').addEventListener('input',e=>{ CL=+e.target.value; updCell(); });
+  window.cellRedraw=updCell;
+  updCell();
+})();
+
+console.log('%c● GEOBATTERY poster build 2026-07-24ai · the array: one cell is exact, and its measured decade','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
