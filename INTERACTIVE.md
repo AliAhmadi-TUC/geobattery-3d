@@ -60,20 +60,28 @@ LaserControl (preprocessing → trajectory optimisation → 3-D filtering), regi
 (Besl & McKay 1992) minimising Σ‖R·p_i + t − q_i‖², then subsampled to **1 cm**.
 
 **Surface.** Screened Poisson reconstruction (Kazhdan & Hoppe 2013) in MeshLab at **octree depth
-10**, then isotropic remeshing to uniform edge lengths of **5, 9, 20 and 50 cm**. A structured
-hexahedral mesh exists too but is used *only* for round-trip transfer-error analysis — it is a
-geometrically distinct mesh, not a coarser variant.
+10**, then isotropic remeshing. The Graz paper remeshes at four edge lengths — 5, 9, 20 and 50 cm
+— because resolution is *its* subject. **This project uses the 20 cm surface only**; the other
+three are that study's convergence ladder and appear nowhere here. The structured hexahedral mesh
+is likewise theirs alone, used only for round-trip transfer-error analysis, and is a
+geometrically distinct mesh rather than a coarser variant.
 
 **Volume.** Gmsh, each surface embedded in a cuboidal host-rock domain **expanded by 100 m**,
 constrained Delaunay tetrahedralisation with Netgen optimisation. That 100 m is the same
 far-field buffer the poster's KEY QUANTITIES card quotes.
 
-| edge length | nodes | elements |
-|---|---|---|
-| 5 cm | 296,019 | 1,471,842 |
-| 9 cm | 75,171 | 379,254 |
-| 20 cm | 20,307 | 103,489 |
-| 50 cm | 3,664 | 19,320 |
+The Graz volumetric counts, for the record — again, only the 20 cm row is this project's lineage:
+
+| edge length | nodes | elements | |
+|---|---|---|---|
+| 5 cm | 296,019 | 1,471,842 | Graz only |
+| 9 cm | 75,171 | 379,254 | Graz only |
+| **20 cm** | **20,307** | **103,489** | **the surface this project uses** |
+| 50 cm | 3,664 | 19,320 | Graz only |
+
+This project's own mesh, `volume_mesh_with_mountain_retagged_named.msh`, reads **40,679 nodes /
+273,794 elements** — larger than the 20 cm row above, which is what you would expect once the
+mirrored air and concrete regions are carried alongside the surveyed water body.
 
 **The one caveat that matters for the figures.** In the Graz work the *original* mesh is used —
 water region only. In this project's mesh the **air and concrete regions are produced by
