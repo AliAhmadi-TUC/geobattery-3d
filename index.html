@@ -1536,14 +1536,9 @@ function main() {
                  // These are pre-divided by this renderer's mean shading factor (~0.85) so the
                  // shaded average matches the panel instead of the far darker base colour.
                  pal:{ water:[0.484,0.831,0.987], concrete:[0.836,0.806,0.746], air:[0.843,0.902,0.949] },  // #d7e6f2
-                 // The air is a VOID, and the outward face of a void can never look like one —
-                 // that is a surface bulging towards you. Cull the front faces instead and only
-                 // the far, INNER wall draws, lit from within and curving away: the standard way
-                 // a cavity reads. The panel's own air material then applies unchanged
-                 // (ambient 0.25 / diffuse 0.65 / specular 0.02, #d7e6f2 at AIR_OPACITY) — and
-                 // the darkening this renderer gives it is right for a hole, not a defect.
-                 shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.28,0.62,0.02,6] },
-                 hollow:['air'],
+                 // the air keeps its whole surface at the panel's #d7e6f2 / AIR_OPACITY; the
+                 // cavity comes from the excavated block, not from hiding faces
+                 shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.55,0.42,0.02,6] },
                  slabCol:[0.878,0.887,0.906],
                  cam:{ dir:[-0.62,0.78,-0.55], zoom:1.0 } },   // framed on the slab's projected extents
       plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
@@ -1642,15 +1637,12 @@ function main() {
       if (F.shade) Object.keys(F.shade).forEach(nm => { const o = objs[nm], h = F.shade[nm];
         if (o) { const pr = o.actor.getProperty(); pr.setLighting(true);
           pr.setAmbient(h[0]); pr.setDiffuse(h[1]); pr.setSpecular(h[2]); pr.setSpecularPower(h[3]); } });
-      // A cavity is read from the INSIDE. Drawing a void's outward face just makes a
-      // lump that bulges towards the viewer, whichever way it is shaded — so for a
-      // hollow body cull the FRONT faces and let only the far inner wall draw. It is
-      // concave, it is lit from within, and the clip planes leave the ends open, so a
-      // section looks straight down the drift.
+      // Both faces of every body draw. Culling the air's front faces hid half the
+      // mesh and left its labels pointing at nothing; the cavity is made by
+      // EXCAVATING the block, which is where a void belongs, not by deleting surface.
       ['water', 'concrete', 'air'].forEach(nm => { const o = objs[nm]; if (!o) return;
-        const hollow = !!(F.hollow && F.hollow.indexOf(nm) >= 0);
         const pr = o.actor.getProperty();
-        pr.setFrontfaceCulling(hollow); pr.setBackfaceCulling(false); });
+        pr.setFrontfaceCulling(false); pr.setBackfaceCulling(false); });
       if (F.parallel) renderer.getActiveCamera().setParallelProjection(true);            // the panel is a parallel projection
       if (F.slab) buildFigSlab(F.slab, F.slabCol, F.slabOp, F.sMargin); else removeFigSlab();
       if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom, figSlabBox && figSlabBox.corners);
@@ -1741,6 +1733,32 @@ function main() {
       }
       const s0 = sLo - sMargin, s1 = sHi + sMargin, w1 = wHi + delta, z0 = zLo - delta;
       const sM = (s0 + s1) / 2, wM = (wFar + w1) / 2;
+      /* Where does the drift cross the cut plane? Rasterise every cavity point
+         within a slice of z_open into the top face's own grid; those cells are
+         void, not rock, and the top face simply omits them. Dilated by one cell
+         so a sparse surface sampling cannot leave rock bridging the groove. */
+      const dx = 0.45, dy = 0.45, band = 0.55;
+      const nx = Math.max(1, Math.ceil((w1 - wFar) / dx)), ny = Math.max(1, Math.ceil((s1 - s0) / dy));
+      const hit = new Uint8Array(nx * ny);
+      [figPoints('water'), figPoints('air')].forEach(Q => {
+        if (!Q) return;
+        for (let i = 0; i < Q.length; i += 3) {
+          if (Math.abs(Q[i+2] - zOpen) > band) continue;
+          const sv = (Q[i]-cx)*ax + (Q[i+1]-cy)*ay, wv = (Q[i]-cx)*sx + (Q[i+1]-cy)*sy;
+          const gi = Math.floor((wv - wFar) / dx), gj = Math.floor((sv - s0) / dy);
+          if (gi >= 0 && gi < nx && gj >= 0 && gj < ny) hit[gj * nx + gi] = 1;
+        }
+      });
+      const grown = new Uint8Array(hit);
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+        if (!hit[j*nx+i]) continue;
+        for (let b = -1; b <= 1; b++) for (let c2 = -1; c2 <= 1; c2++) {
+          const jj = j + b, ii = i + c2;
+          if (jj >= 0 && jj < ny && ii >= 0 && ii < nx) grown[jj*nx+ii] = 1;
+        }
+      }
+      let opened = 0; for (let k = 0; k < grown.length; k++) opened += grown[k];
+      const mask = opened ? { nx, ny, dx, dy, a: grown } : null;
       const corners = [];
       [s0, s1].forEach(sv => [wFar, w1].forEach(wv => [z0, zOpen].forEach(zv =>
         corners.push([cx + ax*sv + sx*wv, cy + ay*sv + sy*wv, zv]))));
@@ -1756,9 +1774,47 @@ function main() {
         { n: [0, 0, -1],    o: [0, 0, zOpen] },    // above the opening cut
         { n: [0, 0,  1],    o: [0, 0, z0] }        // below the floor
       ];
-      return { len: s1 - s0, wid: w1 - wFar, hgt: zOpen - z0, corners, planes,
+      return { len: s1 - s0, wid: w1 - wFar, hgt: zOpen - z0, corners, planes, mask,
                ctr: [cx + ax*sM + sx*wM, cy + ay*sM + sy*wM, (z0 + zOpen) / 2],
                yawDeg: -Math.atan2(ax, ay) * 180 / Math.PI };
+    }
+    /* The slab is EXCAVATED, not a solid brick. The printed panel cuts the rock at
+       z_open, and the rock grid has the drift as a real void, so the cut plane is
+       rock everywhere EXCEPT where the drift crosses it. Reproduced here by
+       rasterising the cavity's cross-section at z_open into the top face and
+       dropping those cells — the water then lies in an actual groove and the
+       air-filled drift is seen through an actual opening. Every face carries its
+       own points and a flat normal, so lighting is correct without a normals pass. */
+    function buildSlabPolyData(B) {
+      const hx = B.wid / 2, hy = B.len / 2, hz = B.hgt / 2;
+      const pts = [], nrm = [], polys = [];
+      function face(q, n) {
+        const b = pts.length / 3;
+        q.forEach(p => { pts.push(p[0], p[1], p[2]); nrm.push(n[0], n[1], n[2]); });
+        polys.push(4, b, b + 1, b + 2, b + 3);
+      }
+      face([[-hx,-hy,-hz],[-hx,hy,-hz],[hx,hy,-hz],[hx,-hy,-hz]], [0,0,-1]);   // floor
+      face([[-hx,-hy,-hz],[hx,-hy,-hz],[hx,-hy,hz],[-hx,-hy,hz]], [0,-1,0]);
+      face([[hx,-hy,-hz],[hx,hy,-hz],[hx,hy,hz],[hx,-hy,hz]],     [1,0,0]);
+      face([[hx,hy,-hz],[-hx,hy,-hz],[-hx,hy,hz],[hx,hy,hz]],     [0,1,0]);
+      face([[-hx,hy,-hz],[-hx,-hy,-hz],[-hx,-hy,hz],[-hx,hy,hz]], [-1,0,0]);
+      const m = B.mask, up = [0, 0, 1];
+      if (m) {
+        for (let j = 0; j < m.ny; j++) for (let i = 0; i < m.nx; i++) {
+          if (m.a[j * m.nx + i]) continue;                    // the drift crosses here
+          const x0 = -hx + i * m.dx, x1 = Math.min(hx, x0 + m.dx);
+          const y0 = -hy + j * m.dy, y1 = Math.min(hy, y0 + m.dy);
+          face([[x0,y0,hz],[x1,y0,hz],[x1,y1,hz],[x0,y1,hz]], up);
+        }
+      } else {
+        face([[-hx,-hy,hz],[hx,-hy,hz],[hx,hy,hz],[-hx,hy,hz]], up);
+      }
+      const pd = vtk.Common.DataModel.vtkPolyData.newInstance();
+      pd.getPoints().setData(Float32Array.from(pts), 3);
+      pd.getPolys().setData(Uint32Array.from(polys));
+      pd.getPointData().setNormals(vtk.Common.Core.vtkDataArray.newInstance({
+        name: 'Normals', numberOfComponents: 3, values: Float32Array.from(nrm) }));
+      return pd;
     }
     let figSlab = null, figSlabBox = null;
     /* fig01_geometry_v2.render_hero cuts every body to the slab:
@@ -1786,9 +1842,8 @@ function main() {
       const B = driftSlabBox(margin, sMargin == null ? 5.0 : sMargin);
       if (!B) return;
       try {
-        const src = vtk.Filters.Sources.vtkCubeSource.newInstance({
-          xLength: B.wid, yLength: B.len, zLength: B.hgt, center: [0, 0, 0] });
-        const m = vtk.Rendering.Core.vtkMapper.newInstance(); m.setInputConnection(src.getOutputPort());
+        const m = vtk.Rendering.Core.vtkMapper.newInstance();
+        m.setInputData(buildSlabPolyData(B));
         const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
         a.setPosition(B.ctr[0], B.ctr[1], B.ctr[2]);
         a.setOrientation(0, 0, B.yawDeg);                  // the block runs with the drift
@@ -1800,7 +1855,7 @@ function main() {
         // translucent one needs the flat ambient look, or the whole box goes muddy
         if (op > 0.9) { pr.setAmbient(0.52); pr.setDiffuse(0.54); pr.setSpecular(0.02); }
         else { pr.setAmbient(0.62); pr.setDiffuse(0.40); pr.setSpecular(0.03); }
-        pr.setEdgeVisibility(true); pr.setEdgeColor(0.46, 0.47, 0.49); pr.setLineWidth(1);
+        pr.setBackfaceCulling(false);                      // the excavation is seen from inside
         renderer.addActor(a); figSlab = a; figSlabBox = B;
         clearSlabClip(); applySlabClip();
       } catch (e) { console.warn('slab unavailable', e); }
