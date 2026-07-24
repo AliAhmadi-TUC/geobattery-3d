@@ -1529,7 +1529,7 @@ function main() {
                  mode:'material', repr:'2', parallel:1, labels:1, key:1, wells:1, bare:1, nodeck:1,
                  slab:3.87,                                     // the figure renders "a >= 3.87 m rock slab around the water body"
                  slabOp:1.0,                                    // closed and opaque, as printed
-                 slabTop:0.15,                                  // cut this far up the water body's z-range
+                 sMargin:5.0,                                   // ...plus 5 m of drift beyond each end
                  layers:{ rock:[0,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.28] },
                  // sampled from the printed panel itself: water renders #73b5d3, the slab #bec0c4.
                  // These are pre-divided by this renderer's mean shading factor (~0.85) so the
@@ -1603,7 +1603,7 @@ function main() {
       if (F.parallel) renderer.getActiveCamera().setParallelProjection(true);            // the panel is a parallel projection
       if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom);
       if (F.wells) wellActors.forEach(a => a.setVisibility(true));
-      if (F.slab) buildFigSlab(F.slab, F.slabCol, F.slabOp, F.slabTop); else removeFigSlab();
+      if (F.slab) buildFigSlab(F.slab, F.slabCol, F.slabOp, F.sMargin); else removeFigSlab();
       document.body.classList.toggle('figbare', !!F.bare);
       document.body.classList.toggle('fignodeck', !!F.nodeck);
       document.body.classList.toggle('figkey', !!F.key);
@@ -1626,38 +1626,93 @@ function main() {
        so clipping it cannot produce the printed panel's slab. The figure states
        what it actually rendered — "a >= 3.87 m rock slab around the water body" —
        so build exactly that and hide the far-field block. */
+    function figPoints(nm) {
+      const o = objs[nm]; if (!o) return null;
+      const pd = o.mapper.getInputData();
+      return (pd && pd.getPoints) ? pd.getPoints().getData() : null;
+    }
+    /* The printed slab, rebuilt from the figure script's own definition
+       (fig01_geometry.slab_planes + render_common.drift_frame):
+         along the drift axis : the water body, plus s_margin = 5 m
+         laterally, near      : the water body, plus one penetration depth delta
+         laterally, far       : far enough to bury the air chambers, which swing
+                                away from the centreline — this is why the printed
+                                block is WIDE, and asymmetric about the drift
+         below                : the water invert, minus delta
+         above                : z_open, the horizontal cut that opens the drift
+                                end to end = crown - 0.20 (crown - invert)
+       It is an ORIENTED box: the drift runs 20.5 deg off +y, so an axis-aligned
+       block cannot reproduce it. Verified against the shipped geometry:
+       58.77 m x 20.81 m x 5.44 m, which is the script's own "60 x 21 x 5 m". */
+    function driftSlabBox(delta, sMargin) {
+      const W = figPoints('water'); if (!W || W.length < 9) return null;
+      let cx = 0, cy = 0, N = W.length / 3;
+      for (let i = 0; i < W.length; i += 3) { cx += W[i]; cy += W[i+1]; }
+      cx /= N; cy /= N;
+      let sxx = 0, sxy = 0, syy = 0;                       // horizontal PCA = the drift's heading
+      for (let i = 0; i < W.length; i += 3) {
+        const dx = W[i] - cx, dy = W[i+1] - cy; sxx += dx*dx; sxy += dx*dy; syy += dy*dy;
+      }
+      const th = 0.5 * Math.atan2(2*sxy, sxx - syy);
+      let ax = Math.cos(th), ay = Math.sin(th);
+      if (ay < 0) { ax = -ax; ay = -ay; }                  // the +y convention of drift_frame
+      const sx = ay, sy = -ax;                             // side = axis x up
+      let sLo = Infinity, sHi = -Infinity, wHi = -Infinity, zLo = Infinity;
+      const sOf = i => (W[i]-cx)*ax + (W[i+1]-cy)*ay;
+      for (let i = 0; i < W.length; i += 3) {
+        const sv = sOf(i), wv = (W[i]-cx)*sx + (W[i+1]-cy)*sy;
+        if (sv < sLo) sLo = sv; if (sv > sHi) sHi = sv;
+        if (wv > wHi) wHi = wv; if (W[i+2] < zLo) zLo = W[i+2];
+      }
+      // roof profile in 48 bins: the lowest roof binds the horizontal cut
+      const NB = 48, top = new Float64Array(NB).fill(-Infinity), cnt = new Int32Array(NB);
+      for (let i = 0; i < W.length; i += 3) {
+        let b = Math.floor((sOf(i) - sLo) / Math.max(1e-9, sHi - sLo) * NB);
+        b = b < 0 ? 0 : b >= NB ? NB - 1 : b;
+        cnt[b]++; if (W[i+2] > top[b]) top[b] = W[i+2];
+      }
+      let crown = Infinity;
+      for (let b = 0; b < NB; b++) if (cnt[b] > 20 && top[b] < crown) crown = top[b];
+      if (!isFinite(crown)) crown = zLo + 1;
+      const zOpen = crown - 0.20 * (crown - zLo);
+      // the far side: bury the air chambers that lie alongside this stretch of drift
+      let wFar = wHi - delta;
+      const A = figPoints('air');
+      if (A) {
+        let m = Infinity;
+        for (let i = 0; i < A.length; i += 3) {
+          const sv = (A[i]-cx)*ax + (A[i+1]-cy)*ay;
+          if (sv < sLo - sMargin || sv > sHi + sMargin) continue;
+          const wv = (A[i]-cx)*sx + (A[i+1]-cy)*sy;
+          if (wv < m) m = wv;
+        }
+        if (isFinite(m)) wFar = m - 1.0;
+      }
+      const s0 = sLo - sMargin, s1 = sHi + sMargin, w1 = wHi + delta, z0 = zLo - delta;
+      const sM = (s0 + s1) / 2, wM = (wFar + w1) / 2;
+      return { len: s1 - s0, wid: w1 - wFar, hgt: zOpen - z0,
+               ctr: [cx + ax*sM + sx*wM, cy + ay*sM + sy*wM, (z0 + zOpen) / 2],
+               yawDeg: -Math.atan2(ax, ay) * 180 / Math.PI };
+    }
     let figSlab = null;
     function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; } }
-    function buildFigSlab(margin, col, opacity, topFrac) {
+    function buildFigSlab(margin, col, opacity, sMargin) {
       removeFigSlab();
-      // the union of every region inside the rock — water, the plugs and the air-filled ends,
-      // which reach well past the water body and were poking out of the first slab
-      let wb = null;
-      ['water','concrete','air'].forEach(nm => { const o = objs[nm]; if (!o) return;
-        const g = o.actor.getBounds(); if (!g || !isFinite(g[0]) || g[1] < g[0]) return;
-        wb = wb ? [Math.min(wb[0],g[0]), Math.max(wb[1],g[1]), Math.min(wb[2],g[2]),
-                   Math.max(wb[3],g[3]), Math.min(wb[4],g[4]), Math.max(wb[5],g[5])] : g.slice(); });
-      if (!wb) return;
-      // the printed panel cuts the slab's top plane just above the water body's invert, so the
-      // water lies proud of the rock instead of being seen through it
-      let z1 = wb[5] + margin;
-      if (topFrac != null) {
-        const w = objs.water && objs.water.actor.getBounds();
-        if (w && isFinite(w[4]) && w[5] > w[4]) z1 = w[4] + topFrac * (w[5] - w[4]);
-      }
-      const z0 = wb[4] - margin, zl = Math.max(1e-3, z1 - z0);
+      const B = driftSlabBox(margin, sMargin == null ? 5.0 : sMargin);
+      if (!B) return;
       try {
         const src = vtk.Filters.Sources.vtkCubeSource.newInstance({
-          xLength: (wb[1]-wb[0]) + 2*margin, yLength: (wb[3]-wb[2]) + 2*margin, zLength: zl,
-          center: [(wb[0]+wb[1])/2, (wb[2]+wb[3])/2, (z0+z1)/2] });
+          xLength: B.wid, yLength: B.len, zLength: B.hgt, center: [0, 0, 0] });
         const m = vtk.Rendering.Core.vtkMapper.newInstance(); m.setInputConnection(src.getOutputPort());
         const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
+        a.setPosition(B.ctr[0], B.ctr[1], B.ctr[2]);
+        a.setOrientation(0, 0, B.yawDeg);                  // the block runs with the drift
         const pr = a.getProperty();
-        const c = col || [0.746, 0.754, 0.770];                     // the panel's slab reads #bec0c4
+        const c = col || [0.746, 0.754, 0.770];            // the panel's slab reads #bec0c4
         const op = (opacity == null) ? 0.12 : opacity;
         pr.setColor(c[0], c[1], c[2]); pr.setOpacity(op);
-        // an opaque slab needs real diffuse shading so its faces separate; a translucent
-        // one needs the flat ambient look it had, or the whole box goes muddy
+        // an opaque block needs real diffuse shading so its faces separate; a
+        // translucent one needs the flat ambient look, or the whole box goes muddy
         if (op > 0.9) { pr.setAmbient(0.52); pr.setDiffuse(0.54); pr.setSpecular(0.02); }
         else { pr.setAmbient(0.62); pr.setDiffuse(0.40); pr.setSpecular(0.03); }
         pr.setEdgeVisibility(true); pr.setEdgeColor(0.46, 0.47, 0.49); pr.setLineWidth(1);
