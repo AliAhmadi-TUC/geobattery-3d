@@ -1,0 +1,86 @@
+{
+ "z_open": 1.181170761585236,
+ "sleeve_m": 7.0,
+ "depth_m": 5.0,
+ "elev_deg": 62.0,
+ "yaw_deg": 0.0,
+ "zoom": 2.05,
+ "clim": [
+  10.0,
+  80.0
+ ],
+ "cmap_gamma": 0.32,
+ "delta_m": 3.866113739019841,
+ "phases": [
+  "charge",
+  "store",
+  "discharge",
+  "recover"
+ ],
+ "bounds": [
+  -8.332438468933105,
+  26.159093856811523,
+  -8.35888385772705,
+  52.26477813720703,
+  1.2111706733703613,
+  1.2111707925796509
+ ],
+ "parts": {
+  "face": {
+   "cells": 6289,
+   "points": 5008,
+   "arrays": [
+    "charge",
+    "discharge",
+    "implicit_distance",
+    "recover",
+    "store"
+   ],
+   "bytes": 364684
+  },
+  "outline": {
+   "cells": 1371,
+   "points": 1371,
+   "arrays": [
+    "charge",
+    "discharge",
+    "recover",
+    "store"
+   ],
+   "bytes": 89387
+  },
+  "rock_body": {
+   "cells": 29864,
+   "points": 14934,
+   "arrays": [
+    "charge",
+    "discharge",
+    "recover",
+    "store"
+   ],
+   "bytes": 962768
+  },
+  "conc_body": {
+   "cells": 1214,
+   "points": 612,
+   "arrays": [
+    "charge",
+    "discharge",
+    "recover",
+    "store"
+   ],
+   "bytes": 46757
+  },
+  "water": {
+   "cells": 25162,
+   "points": 12586,
+   "arrays": [
+    "charge",
+    "discharge",
+    "recover",
+    "store"
+   ],
+   "bytes": 834091
+  }
+ }
+}
