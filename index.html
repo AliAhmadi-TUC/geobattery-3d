@@ -1537,7 +1537,7 @@ function main() {
                  pal:{ water:[0.484,0.831,0.987], concrete:[0.836,0.806,0.746], air:[0.968,0.976,0.992] },
                  shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.74,0.28,0.05,6] },
                  slabCol:[0.878,0.887,0.906],
-                 cam:{ dir:[-0.62,0.78,-0.55], zoom:1.10 } },
+                 cam:{ dir:[-0.62,0.78,-0.55], zoom:1.0 } },   // framed on the slab's projected extents
       plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
                  mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', play:1, cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
@@ -1554,17 +1554,51 @@ function main() {
                  clip:{ axis:0, pos:0.5, flip:false }, repr:'2', cam:{ dir:[-0.73,0.54,-0.41], zoom:1.15 } },
     };
 
-    function figCam(dir, zoom) {
-      const cam = renderer.getActiveCamera(), bb = renderer.computeVisiblePropBounds();
-      if (!bb || !isFinite(bb[0]) || bb[1] <= bb[0]) return;
-      const c = [(bb[0]+bb[1])/2, (bb[2]+bb[3])/2, (bb[4]+bb[5])/2];
-      const R = 0.5 * Math.hypot(bb[1]-bb[0], bb[3]-bb[2], bb[5]-bb[4]);
-      const n = Math.hypot(dir[0], dir[1], dir[2]) || 1, d = dir.map(v => v/n);
+    /* When a figure has a slab, the printed panel is framed on the SLAB — not on
+       every visible prop. The air-filled drift runs 94 m, far past the 59 m block,
+       so fitting all props shrinks the slab to a chip and fills the frame with the
+       air tubes. Worse, resetCamera fits the bounding SPHERE, which for a
+       59 x 21 x 5 m slab wastes two thirds of the frame — the exact complaint in
+       the figure script, which is why it carries its own Projector. Under the
+       parallel projection the panel uses, the projected extents give it exactly. */
+    function figCam(dir, zoom, corners) {
+      const cam = renderer.getActiveCamera();
+      let c, R;
+      if (corners && corners.length) {
+        c = [0, 0, 0];
+        corners.forEach(p => { c[0] += p[0]; c[1] += p[1]; c[2] += p[2]; });
+        c = c.map(v => v / corners.length);
+        R = Math.max.apply(null, corners.map(p => Math.hypot(p[0]-c[0], p[1]-c[1], p[2]-c[2])));
+      } else {
+        const bb = renderer.computeVisiblePropBounds();
+        if (!bb || !isFinite(bb[0]) || bb[1] <= bb[0]) return;
+        c = [(bb[0]+bb[1])/2, (bb[2]+bb[3])/2, (bb[4]+bb[5])/2];
+        R = 0.5 * Math.hypot(bb[1]-bb[0], bb[3]-bb[2], bb[5]-bb[4]);
+      }
+      const nn = Math.hypot(dir[0], dir[1], dir[2]) || 1, d = dir.map(v => v/nn);
       cam.setFocalPoint(c[0], c[1], c[2]);
       cam.setPosition(c[0]-d[0]*2.5*R, c[1]-d[1]*2.5*R, c[2]-d[2]*2.5*R);
       cam.setViewUp(0, 0, 1);
-      renderer.resetCamera();                      // keeps the direction, solves the framing distance (same as the figure scripts)
-      if (zoom && zoom !== 1) cam.zoom(zoom);
+      if (corners && corners.length && cam.getParallelProjection()) {
+        // right/up of the view plane, then the true projected half-extents
+        let rx = d[1]*1 - d[2]*0, ry = d[2]*0 - d[0]*1, rz = d[0]*0 - d[1]*0;   // d x (0,0,1)
+        const rn = Math.hypot(rx, ry, rz) || 1; rx/=rn; ry/=rn; rz/=rn;
+        const ux = ry*d[2] - rz*d[1], uy = rz*d[0] - rx*d[2], uz = rx*d[1] - ry*d[0];
+        let hw = 0, hh = 0;
+        corners.forEach(p => {
+          const ex = p[0]-c[0], ey = p[1]-c[1], ez = p[2]-c[2];
+          hw = Math.max(hw, Math.abs(ex*rx + ey*ry + ez*rz));
+          hh = Math.max(hh, Math.abs(ex*ux + ey*uy + ez*uz));
+        });
+        let asp = 16/9;
+        try { const cv = document.querySelector('#view canvas');
+          if (cv && cv.clientHeight) asp = cv.clientWidth / cv.clientHeight; } catch (e) {}
+        const pad = 1.06;
+        cam.setParallelScale(Math.max(hh, hw / asp) * pad / (zoom && zoom > 0 ? zoom : 1));
+      } else {
+        renderer.resetCamera();                    // keeps the direction, solves the framing distance
+        if (zoom && zoom !== 1) cam.zoom(zoom);
+      }
       renderer.resetCameraClippingRange();
     }
     function figLayer(nm, vis, op) {
@@ -1601,9 +1635,9 @@ function main() {
         if (o) { const pr = o.actor.getProperty(); pr.setLighting(true);
           pr.setAmbient(h[0]); pr.setDiffuse(h[1]); pr.setSpecular(h[2]); pr.setSpecularPower(h[3]); } });
       if (F.parallel) renderer.getActiveCamera().setParallelProjection(true);            // the panel is a parallel projection
-      if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom);
-      if (F.wells) wellActors.forEach(a => a.setVisibility(true));
       if (F.slab) buildFigSlab(F.slab, F.slabCol, F.slabOp, F.sMargin); else removeFigSlab();
+      if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom, figSlabBox && figSlabBox.corners);
+      if (F.wells) wellActors.forEach(a => a.setVisibility(true));
       document.body.classList.toggle('figbare', !!F.bare);
       document.body.classList.toggle('fignodeck', !!F.nodeck);
       document.body.classList.toggle('figkey', !!F.key);
@@ -1690,12 +1724,15 @@ function main() {
       }
       const s0 = sLo - sMargin, s1 = sHi + sMargin, w1 = wHi + delta, z0 = zLo - delta;
       const sM = (s0 + s1) / 2, wM = (wFar + w1) / 2;
-      return { len: s1 - s0, wid: w1 - wFar, hgt: zOpen - z0,
+      const corners = [];
+      [s0, s1].forEach(sv => [wFar, w1].forEach(wv => [z0, zOpen].forEach(zv =>
+        corners.push([cx + ax*sv + sx*wv, cy + ay*sv + sy*wv, zv]))));
+      return { len: s1 - s0, wid: w1 - wFar, hgt: zOpen - z0, corners,
                ctr: [cx + ax*sM + sx*wM, cy + ay*sM + sy*wM, (z0 + zOpen) / 2],
                yawDeg: -Math.atan2(ax, ay) * 180 / Math.PI };
     }
-    let figSlab = null;
-    function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; } }
+    let figSlab = null, figSlabBox = null;
+    function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; } figSlabBox = null; }
     function buildFigSlab(margin, col, opacity, sMargin) {
       removeFigSlab();
       const B = driftSlabBox(margin, sMargin == null ? 5.0 : sMargin);
@@ -1716,7 +1753,7 @@ function main() {
         if (op > 0.9) { pr.setAmbient(0.52); pr.setDiffuse(0.54); pr.setSpecular(0.02); }
         else { pr.setAmbient(0.62); pr.setDiffuse(0.40); pr.setSpecular(0.03); }
         pr.setEdgeVisibility(true); pr.setEdgeColor(0.46, 0.47, 0.49); pr.setLineWidth(1);
-        renderer.addActor(a); figSlab = a;
+        renderer.addActor(a); figSlab = a; figSlabBox = B;
       } catch (e) { console.warn('slab unavailable', e); }
     }
 
