@@ -78,6 +78,36 @@
     background:rgba(10,16,28,.62); padding:7px 16px; border-radius:999px; border:1px solid rgba(140,180,240,.28);
     backdrop-filter:blur(6px); pointer-events:none; text-shadow:0 1px 6px rgba(0,0,0,.6); }
   #tourTitle b{ color:var(--heat-300); font-weight:700; margin-right:8px; }
+  /* the step's own words, under its title */
+  #tourNote{ position:absolute; top:56px; left:50%; transform:translateX(-50%); z-index:7; display:none;
+    width:min(680px,calc(100vw - 40px)); text-align:center; pointer-events:none; }
+  body.touring #tourNote{ pointer-events:auto; }
+  #tourNoteL{ margin:0; font:400 15px/1.55 system-ui,sans-serif; color:#dde8f7;
+    text-shadow:0 1px 8px rgba(0,0,0,.75); }
+  /* Words surface one after another. A typewriter paces the reader at its own
+     speed; a staggered word-fade is done in under a second and still reads as
+     arrival rather than a caption that was always there. */
+  #tourNoteL span{ display:inline-block; opacity:0; transform:translateY(9px); filter:blur(5px);
+    animation:wordin .62s cubic-bezier(.19,.72,.3,1) forwards; }
+  @keyframes wordin{ to{ opacity:1; transform:none; filter:blur(0); } }
+  #tourMore{ margin-top:9px; display:none; }
+  #tourMore>summary{ display:inline-block; cursor:pointer; list-style:none;
+    font:600 10.5px var(--mono); letter-spacing:.12em; text-transform:uppercase;
+    color:#9fd8b8; background:rgba(10,16,28,.55); border:1px solid rgba(120,220,170,.35);
+    padding:4px 11px; border-radius:999px; backdrop-filter:blur(6px);
+    box-shadow:0 0 14px rgba(70,201,126,.30); }
+  #tourMore>summary::-webkit-details-marker{ display:none; }
+  #tourMore>summary::after{ content:' +'; opacity:.7; }
+  #tourMore[open]>summary::after{ content:' −'; }
+  #tourMore>summary:hover{ color:#fff; box-shadow:0 0 20px rgba(70,201,126,.55); }
+  #tourMore>p{ margin:8px auto 0; max-width:620px; text-align:left;
+    font:400 13px/1.62 system-ui,sans-serif; color:#cfdcec;
+    background:rgba(10,16,28,.72); border:1px solid rgba(140,180,240,.24);
+    padding:11px 14px; border-radius:11px; backdrop-filter:blur(7px);
+    animation:wordin .5s cubic-bezier(.19,.72,.3,1) forwards; }
+  @media (max-width:640px){ #tourNoteL{ font-size:13.5px; } #tourMore>p{ font-size:12px; } }
+  @media (prefers-reduced-motion:reduce){ #tourNoteL span{ animation:none; opacity:1;
+    transform:none; filter:none; } #tourMore>p{ animation:none; } }
   /* during the tour: hide the control widgets but KEEP the Geobattery hero card */
   body.touring #panel, body.touring #deck, body.touring #infoCard, body.touring #infoScrim, body.touring #coach, body.touring #wlScrim, body.touring #axLabels{ display:none !important; }
   #axLabels{ position:fixed; inset:0; z-index:6; pointer-events:none; }
@@ -597,6 +627,10 @@
 
 <div id="hint" aria-hidden="true"><span class="coarse">drag to rotate · pinch to zoom</span><span class="fine">drag to rotate · scroll to zoom</span></div>
 <div id="tourTitle" aria-live="polite"></div>
+<div id="tourNote" aria-live="polite">
+  <p id="tourNoteL" class="tw"></p>
+  <details id="tourMore"><summary>how we know this</summary><p id="tourMoreP"></p></details>
+</div>
 <div id="axLabels" aria-hidden="true"><span data-ax="x">X</span><span data-ax="y">Y</span><span data-ax="z">Z</span></div>
 
 <div id="figLab" aria-hidden="true"><svg id="figLead"></svg></div>
@@ -1216,6 +1250,7 @@ function main() {
     window.uiView = { renderer, renderWindow };          // handle for the UI layer (idle orbit)
     setStatus('ready');
     const b = renderer.computeVisiblePropBounds();
+    const REDUCED_LAB = matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
     let touring = false, tourPaused = false;             // guided-tour (cinematic) flags
     let tourStep = 0, tourTargetStep = 0, tourGoto = -1; // step index, fast-forward target, and pending back-jump
 
@@ -2463,9 +2498,71 @@ function main() {
     }
     function _hideLabels() { if (_labelRAF) { cancelAnimationFrame(_labelRAF); _labelRAF = null; } if (tourSVG) { tourSVG.remove(); tourSVG = null; } }
     function _labelLoop() { if (!tourSVG) { _labelRAF = null; return; } _positionLabels(); _labelRAF = requestAnimationFrame(_labelLoop); }
+    /* ---- step narration -------------------------------------------------
+       The tour shows the pipeline but never says what any of it is. Steps 1-8
+       ARE the provenance chain — survey, reconstruction, mirroring, domain,
+       tetrahedralisation — so each step gets one line, and the five that carry
+       something a viewer could not infer from the picture get a paragraph
+       behind a tap. Steps 9-13 are self-evident from the animation and are
+       left alone with their line; padding them would only teach people that
+       the text is skippable.
+
+       Words surface one after another rather than typing character by
+       character: a typewriter paces the reader at its own speed, whereas a
+       staggered word fade is over quickly and still reads as arrival. */
+    const TOURNOTE = {
+      1:{ l:'Not drawn — scanned. Every point here was measured underground.',
+          p:'The geometry comes from a laser survey of the Reiche Zeche research mine in Freiberg, on Sohle 1 at 147 m depth. A Z+F FlexScan 22 mobile platform, running as an extension on a Z+F IMAGER 5016A scanner with SLAM, collected two overlapping point clouds. They were registered to one another with the ICP algorithm and subsampled to a uniform 1 cm spacing. The irregular walls you are looking at are the real ones — historical mining leaves nothing smooth.' },
+      2:{ l:'A cloud of points becomes a surface — Screened Poisson, then remeshed.',
+          p:'Points alone have no surface, so the cloud is turned into one by Screened Poisson reconstruction at octree depth 10, which solves for the field whose gradient best matches the measured normals. The result is then isotropically remeshed to a uniform 20 cm edge length. That resolution is a deliberate choice: fine enough to keep the wall’s real roughness, coarse enough that a decade of coupled physics stays affordable.' },
+      3:{ l:'This interface is the survey itself — 441.5 m² of wetted wall.' },
+      4:{ l:'From here on, the geometry stops being measured and starts being designed.',
+          p:'The survey captured a flooded drift. The air-filled ends and the concrete plugs are not scanned — they are built by mirroring the surveyed halves, because the installation they represent does not exist yet. This is the honest boundary of the model: the water body and the rock wall are measurement, everything added from here is a hypothetical duty cycle. It is why the printed panel carries the line “not an as-built installation”.' },
+      5:{ l:'One injection sphere at the invert, one extraction sphere at the crown.' },
+      6:{ l:'Four materials share a single mesh: water, gneiss, concrete, air.' },
+      7:{ l:'The rock runs 100 m further out — far enough to be no boundary at all.',
+          p:'A thermal problem needs somewhere for heat to go. The drift is embedded in a block of host rock expanded by 100 m, the far-field buffer the poster quotes. Over one storage season the thermal front travels a few metres, so at 100 m the outer boundary never learns anything happened and holding it at the undisturbed rock temperature costs nothing. The array figures remove that buffer deliberately — there, the neighbouring drifts seal it instead, and that single change is what lifts the annual return to 98.5 %.' },
+      8:{ l:'40 679 nodes, 273 794 tetrahedra — the volume everything is solved on.',
+          p:'The surface is filled by constrained Delaunay tetrahedralisation in Gmsh, optimised with Netgen. The cells are graded: small against the wetted wall where the gradients live, large out in the far field where nothing happens. Every number on the poster — the 88.4 MWh stored, the retention, the stress — is an integral over this mesh, so its resolution is the floor under all of them.' },
+      9:{ l:'Inside the tunnel now, at the scale a person would stand in it.' },
+      10:{ l:'80 °C water in for 61 days — the wall takes what it can.' },
+      11:{ l:'Sealed for 123 days. Nothing enters or leaves; the rock keeps drinking.' },
+      12:{ l:'10 °C in, and whatever the rock will give back out.' },
+      13:{ l:'One year, compressed — and the rock ends warmer than it began.' }
+    };
+    let _noteT = null;
+    function _wordsIn(el, text) {                    // words surface, staggered
+      el.textContent = '';
+      if (REDUCED_LAB) { el.textContent = text; return; }
+      text.split(/(\s+)/).forEach(w => {
+        if (!w.trim()) { el.appendChild(document.createTextNode(w)); return; }
+        const sp = document.createElement('span');
+        sp.textContent = w;
+        sp.style.animationDelay = (el.querySelectorAll('span').length * 34) + 'ms';
+        el.appendChild(sp);
+      });
+    }
+    function _note(n) {
+      const box = document.getElementById('tourNote'), line = document.getElementById('tourNoteL'),
+            more = document.getElementById('tourMore'), body = document.getElementById('tourMoreP');
+      if (!box) return;
+      clearTimeout(_noteT);
+      const d = TOURNOTE[parseInt(n, 10)];
+      if (!d) { box.style.display = 'none'; return; }
+      box.style.display = 'block';
+      more.open = false;
+      if (d.p) { more.style.display = 'block'; body.textContent = d.p; }
+      else more.style.display = 'none';
+      // let the step's own motion settle before the words arrive
+      _noteT = setTimeout(() => _wordsIn(line, d.l), 620);
+    }
     function _title(n, t) { const el = document.getElementById('tourTitle');   // step caption at the top of the screen
       if (t) tourStep = parseInt(n, 10) || 0;            // mark the current step (drives seek/fast-forward)
-      if (!el) return; if (t) { el.innerHTML = '<b>' + n + '</b>' + t; el.style.display = tourStep < tourTargetStep ? 'none' : 'block'; } else { el.style.display = 'none'; } }
+      const show = t && !(tourStep < tourTargetStep);
+      if (el) { if (t) { el.innerHTML = '<b>' + n + '</b>' + t; el.style.display = show ? 'block' : 'none'; }
+                else el.style.display = 'none'; }
+      if (show) _note(n); else { const b = document.getElementById('tourNote');
+        if (b) b.style.display = 'none'; clearTimeout(_noteT); } }
     const _ff = () => tourStep < tourTargetStep;         // true while fast-forwarding to a target step
     function _showLabels(list, perp, axis) {
       _hideLabels();
