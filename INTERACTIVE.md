@@ -43,6 +43,44 @@ These were each checked against the project's own outputs; do not re-derive by h
   carries in. Gross |Eout| overstates the 30 °C run by **52.6 %**. The net matches
   `recovered_kWh` in `decadal_*.json` exactly and is monotone.
 
+## 2b · Where the geometry came from
+
+The drift is not drawn — it is **surveyed**, and every figure in this poster inherits that.
+Recorded from `GrazPaper/sections/02_methodology_compact.tex` (a separate paper on the same
+scan), because the provenance is not written down anywhere in this repo.
+
+**Site.** "Reiche Zeche" research and education mine, Freiberg — TU Bergakademie Freiberg since
+1919, ~19 km of drifts to 230 m depth. The region of interest is on **Sohle 1, 147 m depth**:
+irregular walls typical of historical mining, which is exactly why the wetted area is what it is
+and why a smooth cylinder would be the wrong idealisation.
+
+**Acquisition.** A **Z+F FlexScan 22** mobile mapping platform running as an extension unit on a
+**Z+F IMAGER 5016A** laser scanner with SLAM. Two overlapping clouds, processed in Z+F
+LaserControl (preprocessing → trajectory optimisation → 3-D filtering), registered by **ICP**
+(Besl & McKay 1992) minimising Σ‖R·p_i + t − q_i‖², then subsampled to **1 cm**.
+
+**Surface.** Screened Poisson reconstruction (Kazhdan & Hoppe 2013) in MeshLab at **octree depth
+10**, then isotropic remeshing to uniform edge lengths of **5, 9, 20 and 50 cm**. A structured
+hexahedral mesh exists too but is used *only* for round-trip transfer-error analysis — it is a
+geometrically distinct mesh, not a coarser variant.
+
+**Volume.** Gmsh, each surface embedded in a cuboidal host-rock domain **expanded by 100 m**,
+constrained Delaunay tetrahedralisation with Netgen optimisation. That 100 m is the same
+far-field buffer the poster's KEY QUANTITIES card quotes.
+
+| edge length | nodes | elements |
+|---|---|---|
+| 5 cm | 296,019 | 1,471,842 |
+| 9 cm | 75,171 | 379,254 |
+| 20 cm | 20,307 | 103,489 |
+| 50 cm | 3,664 | 19,320 |
+
+**The one caveat that matters for the figures.** In the Graz work the *original* mesh is used —
+water region only. In this project's mesh the **air and concrete regions are produced by
+mirroring the surveyed geometry**, not scanned. So the water body and the rock wall are survey;
+the air-filled ends and the plugs are construction. Worth remembering before describing any part
+of FIG 2 as "measured".
+
 ## 3 · Data generation
 
 - `poster_ALERT2026/make_rf_table.py` → `data/rf_field.json`. **Two** tables, deliberately:
