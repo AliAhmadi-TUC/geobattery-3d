@@ -1849,6 +1849,34 @@ function numTab(t){
 }
 document.querySelectorAll('#n-tabs .tab').forEach(b=>b.onclick=()=>numTab(b.dataset.t));
 
+/* A genuine P1 solve, run in the browser: -k T'' = f on (0,1) with T(0) pinned.
+   The solution is nodally exact, so the nodal gradient's O(h) error and the
+   reaction's exactness are properties of the METHOD, not of any application. */
+const FEM_A=(function(){
+  const k=1, f=1, Tin=1, Tout=0, C=Tout-Tin+0.5, qExact=-k*C;
+  function solve(n){
+    const h=1/n, N=n+1;
+    // unconstrained tridiagonal stiffness + load
+    const a=new Float64Array(N), b=new Float64Array(N), c=new Float64Array(N), r=new Float64Array(N);
+    for(let i=0;i<N;i++){ b[i]=(i===0||i===N-1)?k/h:2*k/h; if(i>0)a[i]=-k/h; if(i<N-1)c[i]=-k/h;
+      r[i]=f*h*((i===0||i===N-1)?0.5:1); }
+    const A0=[b[0],c[0]], f0=r[0];                       // the row Dirichlet is about to discard
+    // strong Dirichlet at both ends
+    b[0]=1; c[0]=0; r[0]=Tin;
+    b[N-1]=1; a[N-1]=0; r[N-1]=Tout;
+    // Thomas
+    const cp=new Float64Array(N), dp=new Float64Array(N);
+    cp[0]=c[0]/b[0]; dp[0]=r[0]/b[0];
+    for(let i=1;i<N;i++){ const m=b[i]-a[i]*cp[i-1]; cp[i]=c[i]/m; dp[i]=(r[i]-a[i]*dp[i-1])/m; }
+    const T=new Float64Array(N); T[N-1]=dp[N-1];
+    for(let i=N-2;i>=0;i--) T[i]=dp[i]-cp[i]*T[i+1];
+    const qNodal=-k*(T[1]-T[0])/h;                       // the tempting, wrong one
+    const qReact=A0[0]*T[0]+A0[1]*T[1]-f0;               // the consistent reaction
+    return {h,T,qNodal,qReact};
+  }
+  return {solve,qExact,k,Tin,Tout};
+})();
+
 const FEM_B=(function(){
   const kR=3.0,kC=1.5,LR=0.6,LC=0.4,Ltot=LR+LC,Tin=80,T0=10;
   function solve(n,pin){
