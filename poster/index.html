@@ -1746,7 +1746,7 @@ function numWake(){ if(!NUM_RAF) NUM_RAF=requestAnimationFrame(numAnim); }
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) numWake(); });
 
 /* dark-ground palette */
-const NC={ wire:'rgba(255,255,255,.85)', dim:'#9AA4AE', yel:'#F2C14E',
+const PAL7={ wire:'rgba(255,255,255,.85)', dim:'#9AA4AE', yel:'#F2C14E',
            red:'#E4572E', grn:'#46C97E', blu:'#5FA8E8' };
 const MONO=w=>(w||'600')+' 11px "IBM Plex Mono",monospace';
 
@@ -1802,8 +1802,8 @@ const FEM_A=(function(){
     // the slab and its pinned face
     box3([-1,0,0],[2,0.34,0.30],'rgba(56,66,78,.55)','rgba(154,164,174,.55)',1).forEach(x=>it.push(x));
     it.push({type:'poly',pts:[[-1,0,0],[-1,0.34,0],[-1,0.34,0.30],[-1,0,0.30]],
-      fill:'rgba(95,168,232,.32)',stroke:NC.blu,lw:1.8});
-    it.push({type:'text',pts:[[-1,0.17,-0.18]],text:'u fixed',color:NC.blu,font:MONO('700')});
+      fill:'rgba(95,168,232,.32)',stroke:PAL7.blu,lw:1.8});
+    it.push({type:'text',pts:[[-1,0.17,-0.18]],text:'u fixed',color:PAL7.blu,font:MONO('700')});
     // exact solution, faint white
     const ex=[]; for(let k2=0;k2<=60;k2++){ const x=k2/60; ex.push([wx(x),0.17,zOf(uEx(x))]); }
     it.push({type:'line',pts:ex,stroke:'rgba(255,255,255,.50)',lw:1.3});
@@ -1831,18 +1831,18 @@ const FEM_A=(function(){
     const LR=QS*qN, LG=QS*AL[0].s.qReact;                // reaction: identical at every n
     it.push({type:'line',pts:[[-1-LG,0.17,0.20],[-1-LG,0.17,0.76]],
       stroke:'rgba(255,255,255,.65)',lw:1.2,dash:[4,3]});
-    it.push({type:'text',pts:[[-1-LG,0.17,0.90]],text:'exact flux',color:NC.dim,font:MONO()});
-    it.push({type:'arrow',pts:[[-1,0.17,0.30],[-1-LR,0.17,0.30]],stroke:NC.red,lw:2.8,head:8});
-    it.push({type:'text',pts:[[-1.28,0.17,0.14]],text:'slope of uₕ',color:NC.red,font:MONO('700')});
-    it.push({type:'arrow',pts:[[-1,0.17,0.62],[-1-LG,0.17,0.62]],stroke:NC.grn,lw:2.8,head:8});
-    it.push({type:'text',pts:[[-1.28,0.17,0.82]],text:'reaction —\nthe deleted equation',color:NC.grn,font:MONO('700')});
+    it.push({type:'text',pts:[[-1-LG,0.17,0.90]],text:'exact flux',color:PAL7.dim,font:MONO()});
+    it.push({type:'arrow',pts:[[-1,0.17,0.30],[-1-LR,0.17,0.30]],stroke:PAL7.red,lw:2.8,head:8});
+    it.push({type:'text',pts:[[-1.28,0.17,0.14]],text:'slope of uₕ',color:PAL7.red,font:MONO('700')});
+    it.push({type:'arrow',pts:[[-1,0.17,0.62],[-1-LG,0.17,0.62]],stroke:PAL7.grn,lw:2.8,head:8});
+    it.push({type:'text',pts:[[-1.28,0.17,0.82]],text:'reaction —\nthe deleted equation',color:PAL7.grn,font:MONO('700')});
     // the overshoot bracket: how far the slope reading still is from the truth
     const gap=LR-LG;
     if(gap>0.028){
-      it.push({type:'line',pts:[[-1-LG,0.17,0.42],[-1-LR,0.17,0.42]],stroke:NC.red,lw:1.4});
-      it.push({type:'line',pts:[[-1-LG,0.17,0.39],[-1-LG,0.17,0.45]],stroke:NC.red,lw:1.4});
-      it.push({type:'line',pts:[[-1-LR,0.17,0.39],[-1-LR,0.17,0.45]],stroke:NC.red,lw:1.4});
-      it.push({type:'text',pts:[[-1-(LR+LG)/2,0.17,0.52]],text:(t>7.4&&t<10.2)?'O(h) · never exact':'O(h)',color:NC.red,font:MONO('700')});
+      it.push({type:'line',pts:[[-1-LG,0.17,0.42],[-1-LR,0.17,0.42]],stroke:PAL7.red,lw:1.4});
+      it.push({type:'line',pts:[[-1-LG,0.17,0.39],[-1-LG,0.17,0.45]],stroke:PAL7.red,lw:1.4});
+      it.push({type:'line',pts:[[-1-LR,0.17,0.39],[-1-LR,0.17,0.45]],stroke:PAL7.red,lw:1.4});
+      it.push({type:'text',pts:[[-1-(LR+LG)/2,0.17,0.52]],text:(t>7.4&&t<10.2)?'O(h) · never exact':'O(h)',color:PAL7.red,font:MONO('700')});
     }
     // the green tip pulses once per refinement: still exact
     if(lj>li&&e<1){ it.push({type:'dot',pts:[[-1-LG,0.17,0.62]],r:5+9*e,
@@ -1879,12 +1879,12 @@ const FEM_A=(function(){
     box3([-0.8,0,0],[1.6,0.6,0.55],'rgba(44,52,62,.30)','rgba(255,255,255,.40)',1).forEach(x=>it.push(x));
     // inlet and outlet, both honest boundaries
     it.push({type:'poly',pts:[[-0.8,0,0],[-0.8,0.6,0],[-0.8,0.6,0.55],[-0.8,0,0.55]],
-      fill:'rgba(95,168,232,.20)',stroke:NC.blu,lw:1.5});
-    it.push({type:'text',pts:[[-0.93,0.3,0.70]],text:'inlet',color:NC.blu,font:MONO('700')});
-    it.push({type:'text',pts:[[-0.97,0.3,0.24]],text:'heat →',color:NC.yel,font:MONO('700')});
+      fill:'rgba(95,168,232,.20)',stroke:PAL7.blu,lw:1.5});
+    it.push({type:'text',pts:[[-0.93,0.3,0.70]],text:'inlet',color:PAL7.blu,font:MONO('700')});
+    it.push({type:'text',pts:[[-0.97,0.3,0.24]],text:'heat →',color:PAL7.yel,font:MONO('700')});
     it.push({type:'line',pts:[[0.05,0.15,0.551],[0.45,0.15,0.551],[0.45,0.45,0.551],[0.05,0.45,0.551],[0.05,0.15,0.551]],
-      stroke:NC.blu,lw:1.5});
-    it.push({type:'text',pts:[[0.25,0.3,0.97]],text:'outlet',color:NC.blu,font:MONO('700')});
+      stroke:PAL7.blu,lw:1.5});
+    it.push({type:'text',pts:[[0.25,0.3,0.97]],text:'outlet',color:PAL7.blu,font:MONO('700')});
     // the sealed face: green while blank, red once written on
     const fc=[Math.round(lerp(70,228,m)),Math.round(lerp(201,87,m)),Math.round(lerp(126,46,m))];
     it.push({type:'poly',pts:[[0.8,0,0],[0.8,0.6,0],[0.8,0.6,0.55],[0.8,0,0.55]],
@@ -1897,7 +1897,7 @@ const FEM_A=(function(){
       it.push({type:'text',pts:[[1.24,0.3,0.55]],text:'no heat crosses\nq·n = 0',
         color:'rgba(70,201,126,'+gA.toFixed(2)+')',font:MONO('700')}); }
     if(ty>0.01){ const msg='T = T₀', nch=Math.max(1,Math.round(ty*msg.length));
-      it.push({type:'text',pts:[[0.94,0.3,0.30]],text:msg.slice(0,nch),color:NC.red,
+      it.push({type:'text',pts:[[0.94,0.3,0.30]],text:msg.slice(0,nch),color:PAL7.red,
         font:'700 13px "IBM Plex Mono",monospace',align:'left'}); }
     const rA=m*(seg(t,7.2,8.0)-seg(t,10.4,11.0));
     if(rA>0.03) it.push({type:'text',pts:[[1.30,0.3,0.66]],text:'q·n ≠ 0',
@@ -1955,7 +1955,7 @@ const FEM_A=(function(){
       it.push({type:'text',pts:[[1.12,0,F(0.92,0,c)+0.22]],text:'constraint\nBu = g',
         color:'rgba(95,168,232,'+(0.95*cl).toFixed(2)+')',font:MONO('700')}); }
     // the solution ball never moves; the ghosts probe the two directions
-    it.push({type:'dot',pts:[[0,0,F(0,0,c)+0.07]],r:6,fill:NC.yel,stroke:'#14181C',lw:1.5});
+    it.push({type:'dot',pts:[[0,0,F(0,0,c)+0.07]],r:6,fill:PAL7.yel,stroke:'#14181C',lw:1.5});
     function probe(t0,saddle){
       const tt=t-t0; if(tt<0||tt>3) return;
       const tr1=[],tr2=[];
@@ -1988,11 +1988,11 @@ const FEM_A=(function(){
     // the lowest eigenvalue, sliding across zero
     it.push({type:'line',pts:[[-0.7,-1.22,-0.95],[0.7,-1.22,-0.95]],stroke:'rgba(154,164,174,.7)',lw:1.3});
     it.push({type:'line',pts:[[0,-1.22,-1.00],[0,-1.22,-0.90]],stroke:'rgba(154,164,174,.9)',lw:1.3});
-    it.push({type:'text',pts:[[0,-1.22,-1.12]],text:'0',color:NC.dim,font:MONO()});
-    it.push({type:'text',pts:[[-0.98,-1.22,-0.95]],text:'λmin',color:NC.dim,font:MONO()});
+    it.push({type:'text',pts:[[0,-1.22,-1.12]],text:'0',color:PAL7.dim,font:MONO()});
+    it.push({type:'text',pts:[[-0.98,-1.22,-0.95]],text:'λmin',color:PAL7.dim,font:MONO()});
     const xe=0.42*c;
-    it.push({type:'dot',pts:[[xe,-1.22,-0.95]],r:4.5,fill:xe>0?NC.grn:NC.red});
-    if(xe<0) it.push({type:'text',pts:[[-0.52,-1.22,-0.76]],text:'λmin < 0',color:NC.red,font:MONO('700')});
+    it.push({type:'dot',pts:[[xe,-1.22,-0.95]],r:4.5,fill:xe>0?PAL7.grn:PAL7.red});
+    if(xe<0) it.push({type:'text',pts:[[-0.52,-1.22,-0.76]],text:'λmin < 0',color:PAL7.red,font:MONO('700')});
     // one label at a time, top of the box
     const upA=(1-seg(t,4.4,5.2))+seg(t,11.2,12);
     if(upA>0.05) it.push({type:'text',pts:[[0,0,0.92]],text:'every direction uphill',
@@ -2005,7 +2005,7 @@ const FEM_A=(function(){
 })();
 
 
-console.log('%c● GEOBATTERY poster build 2026-07-24b · §07 as three free-running loops','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24c · §07 loops, palette const renamed','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
