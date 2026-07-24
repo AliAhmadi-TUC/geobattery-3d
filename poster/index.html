@@ -185,7 +185,7 @@
   .story .dots i.on{ background:var(--grn-d); width:18px; border-radius:4px; }
   .story .cap{ margin-left:auto; font:600 10.5px var(--mono); letter-spacing:.04em; color:var(--ink-3); }
   .mth{ font:500 14px/1.5 var(--mono); color:#EAF2ED; background:var(--dark); border-radius:8px;
-    padding:9px 13px; margin:6px 0 7px; overflow-x:auto; white-space:nowrap; letter-spacing:.01em; }
+    padding:9px 13px; margin:6px 0 7px; white-space:normal; letter-spacing:.01em; }
   .mth b{ color:#8FE3B4; font-weight:600; } .mth sub,.mth sup{ font-size:.72em; }
   @media (max-width:620px){ .mth{ font-size:12px; padding:8px 10px; } }
   .beat{ font:400 12.5px/1.45 var(--sans); color:var(--ink-2); margin:2px 2px 8px; min-height:36px; }
@@ -486,7 +486,7 @@
         <canvas class="mini dk" id="n3d-a"></canvas>
         <p class="capt">Drag to rotate — the loop keeps playing. Arrow lengths <em>and</em> the tilt of the balance
           are real output of a P1 solve running in your browser at every mesh shown.</p>
-        <div class="mth">Q = Σ<sub>i∈Γ</sub>[ a(u<sub>h</sub>,φ<sub>i</sub>) − ℓ(φ<sub>i</sub>) ] — <b>exact at every h</b>&nbsp; ·&nbsp; −k ∂u<sub>h</sub>/∂n|<sub>Γ</sub> = O(h) — never exact</div>
+        <div class="mth">Q = Σ<sub>i∈Γ</sub>[ a(u<sub>h</sub>,φ<sub>i</sub>) − ℓ(φ<sub>i</sub>) ] — <b>exact at every h</b> · −k ∂u<sub>h</sub>/∂n|<sub>Γ</sub> = O(h) — never exact</div>
         <p class="projn"><b>Where this project meets it&nbsp;·</b> pinning the inlet at 80&nbsp;°C and summing
           k&thinsp;∂T/∂n across it left the energy budget visibly open. Metered instead as the reaction — the
           consistent boundary flux of Douglas, Dupont &amp; Wheeler and Carey, in the form of Gresho&nbsp;et&nbsp;al. —
@@ -502,7 +502,7 @@
           spurious flux. The cure is to impose the seal <b>weakly, by penalty</b>: every node keeps exactly one equation.</p>
         <canvas class="mini dk" id="n3d-b"></canvas>
         <p class="capt">Drag to rotate — the loop keeps playing. Two seals, one shared corner ring, then the penalty.</p>
-        <div class="mth">x ∈ Γ₁∩Γ₂ : u = g₁ <b>and</b> u = g₂ — over-determined&nbsp; ·&nbsp; a(u,v) + (γ/h)∮u v = ℓ(v) + (γ/h)∮g v — <b>weakly</b></div>
+        <div class="mth">x ∈ Γ₁∩Γ₂ : u = g₁ <b>and</b> u = g₂ — over-determined · the cure: add (γ/h)∮(u−g)v — <b>weakly</b></div>
         <p class="projn"><b>Where this project meets it&nbsp;·</b> the rock–water and the concrete–water interfaces meet
           at a corner ring of shared grid nodes. Sealing both with Dirichlet values over-constrained exactly that ring,
           so the no-flux condition is applied weakly, by penalty — the corner keeps one equation per node and passes
@@ -517,7 +517,7 @@
           negative direction per constraint.</p>
         <canvas class="mini dk" id="n3d-c"></canvas>
         <p class="capt">Drag to rotate — the saddle is a 3-D fact, and the orbit is part of the argument.</p>
-        <div class="mth">[ A  B<sup>T</sup> ; B  <b>0</b> ][ u ; p ] = [ f ; g ] — symmetric, <b>indefinite</b>&nbsp; ·&nbsp; no Cholesky, no CG</div>
+        <div class="mth">[ A Bᵀ ; B <b>0</b> ][ u ; p ] = [ f ; g ] — symmetric but <b>indefinite</b> · no Cholesky, no CG</div>
         <p class="projn"><b>Where this project meets it&nbsp;·</b> the water in the drift is incompressible and its
           pressure is a live Lagrange multiplier, so every time step factorises a saddle system — 17&thinsp;110
           negative pivots, about twice the memory of the equivalent definite solve; that ceiling, not the physics,
@@ -1807,12 +1807,12 @@ const FEM_A=(function(){
   }
   NUM3D.a=mini3d($('n3d-a'),()=>{
     const tm=numTime(), t=tm%12, it=[];
-    it.push(cage([-2.35,1.35,-0.05,0.40,-1.05,1.45]));
+    it.push(cage([-2.35,1.35,-0.05,0.40,-1.05,1.72]));
     // ── the domain, and the face whose value is pinned ──
     box3([-1,0,0],[2,0.30,0.30],'rgba(56,66,78,.55)','rgba(154,164,174,.50)',1).forEach(x=>it.push(x));
     it.push({type:'poly',pts:[[-1,0,0],[-1,0.30,0],[-1,0.30,0.30],[-1,0,0.30]],
       fill:'rgba(95,168,232,.34)',stroke:PAL7.blu,lw:2});
-    it.push({type:'text',pts:[[-1.34,0.17,-0.16]],text:'T = 80 °C pinned',color:PAL7.blu,font:MONO('700')});
+    it.push({type:'text',pts:[[-1.16,0.17,-0.32]],text:'T = 80 °C pinned',color:PAL7.blu,font:MONO('700')});
     // ── the exact solution, and the finite-element answer on top of it ──
     const ex=[]; for(let k2=0;k2<=60;k2++){ const x=k2/60; ex.push([wx(x),0.17,zOf(uEx(x))]); }
     it.push({type:'line',pts:ex,stroke:'rgba(255,255,255,.45)',lw:1.3});
@@ -1846,7 +1846,7 @@ const FEM_A=(function(){
     const cap=t<1.8?['one equation per node','rgba(201,212,222,'+(0.9*(1-seg(t,1.5,1.8))).toFixed(2)+')']
              :t<8.0?['deleted by the pin','rgba(228,87,46,'+(0.95*seg(t,2.4,3.0)*(1-seg(t,7.7,8.0))).toFixed(2)+')']
                    :['put back → the flux','rgba(70,201,126,'+(0.95*seg(t,8.4,9.0)*(1-seg(t,11.2,11.7))).toFixed(2)+')'];
-    it.push({type:'text',pts:[[-1.90,0.17,T0[2]]],text:cap[0],color:cap[1],font:MONO('700')});
+    it.push({type:'text',pts:[[T0[0],0.17,T0[2]+0.21]],text:cap[0],color:cap[1],font:MONO('700')});
     // the blue clamp standing in for the equation while it is away
     const cl=seg(t,2.6,3.2)*(1-seg(t,8.0,8.6));
     if(cl>0.03){ const a='rgba(95,168,232,'+(0.95*cl).toFixed(2)+')';
@@ -1856,7 +1856,7 @@ const FEM_A=(function(){
     // ── the exact flux, as a target the two readings are measured against ──
     const LG=QS*AL[0].s.qReact;                          // the reaction: one value, every mesh
     it.push({type:'line',pts:[[-1-LG,0.17,0.08],[-1-LG,0.17,0.74]],stroke:'rgba(255,255,255,.60)',lw:1.2,dash:[4,3]});
-    it.push({type:'text',pts:[[-1-LG,0.17,-0.04]],text:'exact',color:PAL7.dim,font:MONO()});
+    it.push({type:'text',pts:[[-1-LG,0.17,-0.02]],text:'exact',color:PAL7.dim,font:MONO()});
     // ── the tempting reading: differentiate the answer at the wall ──
     const qN=lerp(AL[base].s.qNodal,AL[fine].s.qNodal,b), LR=QS*qN;
     const rA=seg(t,3.0,3.8)*(1-seg(t,11.0,11.8));
@@ -1877,10 +1877,10 @@ const FEM_A=(function(){
     if(gr>0.03){
       it.push({type:'arrow',pts:[[-1,0.17,0.62],[-1-LG*gr,0.17,0.62]],
         stroke:'rgba(70,201,126,'+(0.95*gr).toFixed(2)+')',lw:2.8,head:8});
-      it.push({type:'text',pts:[[-1.80,0.17,0.80]],text:'consistent flux',
+      it.push({type:'text',pts:[[-2.04,0.17,0.62]],text:'consistent flux',
         color:'rgba(70,201,126,'+(0.95*gr).toFixed(2)+')',font:MONO('700')});
     }
-    if(t>9.4&&t<11.0) it.push({type:'text',pts:[[-0.30,0.17,1.06]],text:'coarsen it — still exact',
+    if(t>9.4&&t<11.0) it.push({type:'text',pts:[[-0.30,0.17,1.36]],text:'coarsen it — still exact',
       color:'rgba(70,201,126,'+(0.9*seg(t,9.4,9.8)*(1-seg(t,10.7,11.0))).toFixed(2)+')',font:MONO('700')});
     // ── the energy balance: what actually went wrong, and what fixed it ──
     const on=seg(t,3.2,3.8), fix=seg(t,8.2,9.0), off=seg(t,11.2,11.9);
@@ -1990,7 +1990,7 @@ const FEM_A=(function(){
   NUM3D.c=mini3d($('n3d-c'),()=>{
     const t=numTime()%12, it=[];
     const c=lerp(1,-1,seg(t,4.8,6)-seg(t,9.8,11.4));     // +1 bowl, -1 saddle, back again
-    it.push(cage([-1.80,1.80,-1.65,1.65,-1.45,1.42]));
+    it.push(cage([-1.80,1.80,-1.98,1.78,-1.52,1.42]));
     // the landscape
     const n=13,h=2/n, lo=-1.0,hi=0.35;
     for(let i=0;i<n;i++) for(let j=0;j<n;j++){
@@ -2040,13 +2040,13 @@ const FEM_A=(function(){
     probe(1.5,false);                                    // on the bowl: both come back
     probe(6.2,true);                                     // on the saddle: one does not
     // the lowest eigenvalue, sliding across zero
-    it.push({type:'line',pts:[[-0.7,-1.45,-1.10],[0.7,-1.45,-1.10]],stroke:'rgba(154,164,174,.7)',lw:1.3});
-    it.push({type:'line',pts:[[0,-1.45,-1.15],[0,-1.45,-1.05]],stroke:'rgba(154,164,174,.9)',lw:1.3});
-    it.push({type:'text',pts:[[0,-1.45,-1.28]],text:'0',color:PAL7.dim,font:MONO()});
-    it.push({type:'text',pts:[[-1.10,-1.45,-1.10]],text:'λmin',color:PAL7.dim,font:MONO()});
+    it.push({type:'line',pts:[[-0.7,-1.72,-1.10],[0.7,-1.72,-1.10]],stroke:'rgba(154,164,174,.7)',lw:1.3});
+    it.push({type:'line',pts:[[0,-1.72,-1.15],[0,-1.72,-1.05]],stroke:'rgba(154,164,174,.9)',lw:1.3});
+    it.push({type:'text',pts:[[0,-1.72,-1.34]],text:'0',color:PAL7.dim,font:MONO()});
+    it.push({type:'text',pts:[[-1.18,-1.72,-1.10]],text:'λmin',color:PAL7.dim,font:MONO()});
     const xe=0.42*c;
-    it.push({type:'dot',pts:[[xe,-1.45,-1.10]],r:4.5,fill:xe>0?PAL7.grn:PAL7.red});
-    if(xe<0) it.push({type:'text',pts:[[-0.60,-1.45,-0.88]],text:'λmin < 0',color:PAL7.red,font:MONO('700')});
+    it.push({type:'dot',pts:[[xe,-1.72,-1.10]],r:4.5,fill:xe>0?PAL7.grn:PAL7.red});
+    if(xe<0) it.push({type:'text',pts:[[-0.42,-1.72,-0.78]],text:'λmin < 0',color:PAL7.red,font:MONO('700')});
     // one label at a time, top of the box
     const upA=(1-seg(t,4.4,5.2))+seg(t,11.2,12);
     if(upA>0.05) it.push({type:'text',pts:[[0,0,1.30]],text:'every direction uphill',
@@ -2059,7 +2059,7 @@ const FEM_A=(function(){
 })();
 
 
-console.log('%c● GEOBATTERY poster build 2026-07-24e · A rebuilt as delete-and-restore with an energy balance','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24f · label bands separated, equation strips no longer scroll','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
