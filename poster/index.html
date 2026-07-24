@@ -150,20 +150,29 @@
      signal: a soft halo that NOTHING static carries. Once the eye has learned it
      on one figure it transfers to all of them, with no legend to read. */
   .chip, .tab, table.tb tr.clk td:first-child, .story button{ position:relative; }
-  .chip{ box-shadow:0 0 0 2.5px rgba(10,110,56,.10), 0 0 8px rgba(10,110,56,.16); }
-  .chip:hover{ box-shadow:0 0 0 3px rgba(10,110,56,.18), 0 0 12px rgba(10,110,56,.30); }
-  .chip.on{ box-shadow:0 0 0 3px rgba(10,110,56,.22), 0 0 13px rgba(10,110,56,.42); }
-  input[type=range]{ filter:drop-shadow(0 0 5px rgba(10,110,56,.30)); }
+  .chip{ box-shadow:0 0 0 3px rgba(10,110,56,.18), 0 0 15px rgba(10,110,56,.38); }
+  .chip:hover{ box-shadow:0 0 0 3.5px rgba(10,110,56,.30), 0 0 22px rgba(10,110,56,.58); }
+  .chip.on{ box-shadow:0 0 0 4px rgba(10,110,56,.34), 0 0 26px rgba(10,110,56,.72); }
+  input[type=range]{ filter:drop-shadow(0 0 9px rgba(10,110,56,.52)); }
   .tab{ border-radius:7px 7px 0 0; }
-  .tab:hover{ box-shadow:0 0 9px rgba(10,110,56,.22); }
-  .tab.on{ box-shadow:0 0 11px rgba(10,110,56,.30); }
-  table.tb tr.clk td:first-child::before{ content:''; position:absolute; left:0; top:18%; bottom:18%;
-    width:2.5px; border-radius:2px; background:var(--grn-d); opacity:.45;
-    box-shadow:0 0 7px rgba(10,110,56,.55); }
-  table.tb tr.clk:hover td:first-child::before, table.tb tr.clk.sel td:first-child::before{ opacity:1; }
-  canvas.mini{ box-shadow:0 0 0 1px rgba(70,201,126,.22), 0 0 14px rgba(70,201,126,.16); }
-  canvas.mini:hover{ box-shadow:0 0 0 1px rgba(70,201,126,.40), 0 0 20px rgba(70,201,126,.28); }
-  .story button{ box-shadow:0 0 8px rgba(10,110,56,.20); }
+  .tab:hover{ box-shadow:0 0 16px rgba(10,110,56,.40); }
+  .tab.on{ box-shadow:0 0 20px rgba(10,110,56,.52); }
+  table.tb tr.clk td:first-child::before{ content:''; position:absolute; left:0; top:14%; bottom:14%;
+    width:3.5px; border-radius:2px; background:var(--grn-d); opacity:.70;
+    box-shadow:0 0 12px rgba(10,110,56,.95); }
+  table.tb tr.clk:hover td:first-child::before, table.tb tr.clk.sel td:first-child::before{ opacity:1;
+    box-shadow:0 0 16px rgba(10,110,56,1); }
+  canvas.mini{ box-shadow:0 0 0 1.5px rgba(70,201,126,.40), 0 0 26px rgba(70,201,126,.30); }
+  canvas.mini:hover{ box-shadow:0 0 0 2px rgba(70,201,126,.62), 0 0 34px rgba(70,201,126,.48); }
+  .story button{ box-shadow:0 0 14px rgba(10,110,56,.38); }
+  /* A halo that only ever sits there still has to be FOUND. On opening a figure
+     every control breathes three times and then settles, so the eye is handed the
+     set of things it can touch before it starts reading. */
+  @keyframes ctlwake{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.9) saturate(1.3); } }
+  .modal.wake .chip, .modal.wake input[type=range], .modal.wake .tab,
+  .modal.wake .story button{ animation:ctlwake 1.1s ease-in-out 3; }
+  @media (prefers-reduced-motion:reduce){ .modal.wake .chip, .modal.wake input[type=range],
+    .modal.wake .tab, .modal.wake .story button{ animation:none; } }
   .chip{ font:600 11px var(--sans); padding:6px 10px; border-radius:7px; cursor:pointer; color:var(--ink-3);
     background:#F5F4F0; border:1px solid var(--line); }
   .chip:hover{ color:var(--ink); border-color:var(--grn-d); }
@@ -755,8 +764,12 @@ Object.assign($('qrpatch').style,{left:'85.30%',top:'79.30%',width:'12.70%',heig
 
 /* ── modal plumbing ──────────────────────────────────────────────────────── */
 const scrim=$('scrim');
+let wakeT=null;
 function openModal(id,arg){
-  document.querySelectorAll('.modal').forEach(m=>m.hidden=(m.id!=='m-'+id));
+  document.querySelectorAll('.modal').forEach(m=>{ m.hidden=(m.id!=='m-'+id); m.classList.remove('wake'); });
+  const M=document.getElementById('m-'+id);
+  if(M){ void M.offsetWidth; M.classList.add('wake');        // restart the animation every open
+    clearTimeout(wakeT); wakeT=setTimeout(()=>M.classList.remove('wake'),3600); }
   scrim.classList.add('open'); document.body.style.overflow='hidden';
   if(id==='num'&&arg) numTab(arg);
   if(id==='num') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); numWake(); numHint(); });
@@ -841,11 +854,11 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
     const defs=g(E('defs',{}));
     const glow=(id,c,sd)=>{ const f=E('filter',{id,x:'-90%',y:'-90%',width:'280%',height:'280%'});
       f.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:String(sd||3.2),
-        'flood-color':c,'flood-opacity':'0.9'})); defs.appendChild(f); return 'url(#'+id+')'; };
+        'flood-color':c,'flood-opacity':'1'})); defs.appendChild(f); return 'url(#'+id+')'; };
     // window bands, behind everything
     const bands=[[ST.ch,'#E39A26','CHARGE','#9C6A12'],[ST.di,'#3E5C76','DISCHARGE','#2B4257']];
-    const GL=bands.map((b,i)=>glow('gl'+i,b[3]));
-    glow('glf','#C0392B',3.4);
+    const GL=bands.map((b,i)=>glow('gl'+i,b[3],4.8));
+    glow('glf','#C0392B',5.2);
     bands.forEach(([w,col,lab,txt],bi)=>{
       const x0=X(w[0])-PW/ND/2, x1=X(w[1])+PW/ND/2;
       g(E('rect',{x:x0,y:AY0-8,width:Math.max(1,x1-x0),height:BY1-AY0+8,fill:col,'fill-opacity':'.13',rx:3}));
@@ -1291,7 +1304,7 @@ const DEC=[
     const ux=px(ST.a), uy=py(ST.t), th=rf1(FoOf(ST.a,ST.t,k),k);
     const col=th>=ST.tgt?'#0A6E38':th>=ST.tgt*0.5?'#C97A10':'#C0392B';
     const gd=E('defs',{}); const gf=E('filter',{id:'glpuck',x:'-120%',y:'-120%',width:'340%',height:'340%'});
-    gf.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'3.6','flood-color':col,'flood-opacity':'0.95'}));
+    gf.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'5.4','flood-color':col,'flood-opacity':'1'}));
     gd.appendChild(gf); g(gd);
     [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy])=>{        // it moves in both a and t
       const bx=ux+dx*17, by=uy+dy*17;
@@ -1448,8 +1461,8 @@ const DEC=[
     hp.appendChild(E('line',{x1:0,y1:0,x2:0,y2:5,stroke:'#C0392B','stroke-width':2,'stroke-opacity':'.8'}));
     defs.appendChild(hp);
     S.forEach((sc,k)=>{ const f=E('filter',{id:'glcell'+k,x:'-40%',y:'-40%',width:'180%',height:'180%'});
-      f.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'2.8',
-        'flood-color':COL[k],'flood-opacity':'0.8'})); defs.appendChild(f); });
+      f.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'4.4',
+        'flood-color':COL[k],'flood-opacity':'1'})); defs.appendChild(f); });
 
     /* ── shelf ── */
     S.forEach((sc,k)=>{
@@ -1623,8 +1636,8 @@ const DEC=[
     pat.appendChild(el('line',{x1:0,y1:0,x2:0,y2:5,stroke:'#C97A10','stroke-width':2,'stroke-opacity':'.75'}));
     defs.appendChild(pat);
     DEC.forEach((sc,k)=>{ const f=E('filter',{id:'glcell5'+k,x:'-40%',y:'-40%',width:'180%',height:'180%'});
-      f.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'2.8',
-        'flood-color':sc.c,'flood-opacity':'0.8'})); defs.appendChild(f); });
+      f.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:'4.4',
+        'flood-color':sc.c,'flood-opacity':'1'})); defs.appendChild(f); });
 
     /* ── shelf: the selector, and the grade comparison that never moves ── */
     DEC.forEach((sc,k)=>{
@@ -2390,7 +2403,7 @@ let CELL3D=null, CL=10;
   updCell();
 })();
 
-console.log('%c● GEOBATTERY poster build 2026-07-24aj · the array drifts are cylinders, as printed','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24ak · brighter halos, and a wake when a figure opens','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
