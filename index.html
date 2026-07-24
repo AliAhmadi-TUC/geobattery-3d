@@ -1531,15 +1531,19 @@ function main() {
                  slab:3.87,                                     // the figure renders "a >= 3.87 m rock slab around the water body"
                  slabOp:1.0,                                    // closed and opaque, as printed
                  sMargin:5.0,                                   // ...plus 5 m of drift beyond each end
-                 layers:{ rock:[0,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.55] },  // AIR_OPACITY
+                 layers:{ rock:[0,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.70] },
                  // sampled from the printed panel itself: water renders #73b5d3, the slab #bec0c4.
                  // These are pre-divided by this renderer's mean shading factor (~0.85) so the
                  // shaded average matches the panel instead of the far darker base colour.
-                 pal:{ water:[0.484,0.831,0.987], concrete:[0.836,0.806,0.746], air:[0.843,0.902,0.949] },  // #d7e6f2
+                 // The panel's air is #d7e6f2 at AIR_OPACITY, but the panel also has PBR, a
+                 // cubemap and SSAO to give it edges. Here that is a near-white body on a white
+                 // ground with a pale slab behind it: it renders at #eceeee and is invisible.
+                 // Deepened, and given real diffuse shading, so the drift actually reads.
+                 pal:{ water:[0.484,0.831,0.987], concrete:[0.836,0.806,0.746], air:[0.812,0.886,0.949] },
                  // the air keeps its whole surface at the panel's #d7e6f2 / AIR_OPACITY; the
                  // cavity comes from the excavated block, not from hiding faces
-                 shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.55,0.42,0.02,6] },
-                 slabCol:[0.878,0.887,0.906],
+                 shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.32,0.60,0.04,10] },
+                 slabCol:[0.800,0.812,0.834],
                  cam:{ dir:[-0.62,0.78,-0.55], zoom:1.0 } },   // framed on the slab's projected extents
       plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
                  mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
@@ -1858,7 +1862,7 @@ function main() {
         pr.setColor(c[0], c[1], c[2]); pr.setOpacity(op);
         // an opaque block needs real diffuse shading so its faces separate; a
         // translucent one needs the flat ambient look, or the whole box goes muddy
-        if (op > 0.9) { pr.setAmbient(0.52); pr.setDiffuse(0.54); pr.setSpecular(0.02); }
+        if (op > 0.9) { pr.setAmbient(0.60); pr.setDiffuse(0.46); pr.setSpecular(0.02); }
         else { pr.setAmbient(0.62); pr.setDiffuse(0.40); pr.setSpecular(0.03); }
         pr.setBackfaceCulling(false);                      // the excavation is seen from inside
         renderer.addActor(a); figSlab = a; figSlabBox = B;
