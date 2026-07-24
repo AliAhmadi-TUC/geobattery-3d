@@ -986,17 +986,91 @@ function main() {
     if (sl && +sl.value !== i) sl.value = i;
     renderWindow.render();
   }
-  function panel3aBar() {
+  /* One bar, whichever panel is up: FIG 3A steps through the four phases,
+     FIG 6 through the three printed stress panels. */
+  function panelBarInit(steps, apply, current) {
     const sl = document.getElementById('panelStep');
-    if (!sl || !panel3a) return;
-    sl.max = String(Math.max(0, panel3a.meta.phases.length - 1));
-    sl.oninput = () => panel3aPhase(panel3a.meta.phases[+sl.value] || panel3a.meta.phases[0]);
-    panel3aPhase(panel3a.phase);
+    if (!sl || !steps || !steps.length) return;
+    sl.max = String(steps.length - 1);
+    sl.value = String(Math.max(0, steps.indexOf(current)));
+    sl.oninput = () => apply(steps[+sl.value] || steps[0]);
+    apply(current || steps[0]);
+  }
+  function panel3aBar() {
+    if (panel3a) panelBarInit(panel3a.meta.phases, panel3aPhase, panel3a.phase);
+  }
+  function panel6Bar() {
+    if (panel6) panelBarInit(panel6.meta.panels, panel6Field, panel6.field);
   }
   function panel3aShow(on) {
     if (!panel3a) return;
     Object.keys(panel3a.actors).forEach(nm => panel3a.actors[nm].actor.setVisibility(!!on));
   }
+
+  /* ---- FIG 6: the printed panel's OWN geometry ----------------------------
+     fig07_stress renders a 3 m sleeve of rock+concrete around the wetted wall,
+     sliced open at z_open, coloured three ways on a shared camera. The lab has
+     no von Mises VOLUME at all — only surface arrays — so posing it gives stress
+     on the wetted wall, which is a different picture entirely. Exported by
+     poster_ALERT2026/export_fig6_panel.py using fig07's own near_drift(). */
+  const CIVIDIS = [[0.000,0.135,0.304],[0.000,0.227,0.427],[0.153,0.325,0.427],
+                   [0.291,0.416,0.435],[0.412,0.506,0.443],[0.541,0.600,0.427],
+                   [0.686,0.702,0.388],[0.839,0.812,0.322],[0.996,0.929,0.216]];
+  let panel6 = null, panel6Loading = false, _cividis = null;
+  function cividisLUT(lo, hi) {
+    if (!_cividis) {
+      _cividis = vtk.Rendering.Core.vtkColorTransferFunction.newInstance();
+      _cividis._lo = null;
+    }
+    if (_cividis._lo !== lo || _cividis._hi !== hi) {
+      _cividis.removeAllPoints();
+      CIVIDIS.forEach((c, i) => _cividis.addRGBPoint(
+        lo + (hi - lo) * i / (CIVIDIS.length - 1), c[0], c[1], c[2]));
+      _cividis._lo = lo; _cividis._hi = hi;
+    }
+    return _cividis;
+  }
+  function loadPanel6(done) {
+    if (panel6) { if (done) done(); return; }
+    if (panel6Loading) return;
+    panel6Loading = true;
+    setStatus('loading the printed panel…');
+    const PDIR = DATA.replace(/data\/[^/]*\/$/, 'data/') + 'fig6/';
+    const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
+    Promise.all([
+      fetch(PDIR + 'meta.json').then(r => {
+        if (!r.ok) throw new Error('meta.json ' + r.status + ' at ' + PDIR); return r.json(); }),
+      rd.setUrl(PDIR + 'sleeve.vtp').then(() => rd.getOutputData(0))
+    ]).then(([meta, pd]) => {
+      const m = vtk.Rendering.Core.vtkMapper.newInstance();
+      m.setInputData(pd);
+      m.setScalarModeToUsePointFieldData(); m.setScalarVisibility(true);
+      const a = vtk.Rendering.Core.vtkActor.newInstance(); a.setMapper(m);
+      const pr = a.getProperty();
+      pr.setAmbient(0.30); pr.setDiffuse(0.72); pr.setSpecular(0.03);
+      a.setVisibility(false);
+      renderer.addActor(a);
+      panel6 = { meta, actor: a, mapper: m, field: meta.panels[0] };
+      panel6Loading = false; setStatus('ready');
+      panelNote('sleeve ' + pd.getNumberOfPoints() + 'p · ' + meta.panels.join(' / '));
+      if (done) done();
+    }).catch(err => { panel6Loading = false;
+      setStatus('panel load failed: ' + err, true);
+      panelNote('panel load FAILED: ' + (err && err.message || err)); });
+  }
+  function panel6Field(key) {
+    if (!panel6 || panel6.meta.panels.indexOf(key) < 0) return;
+    const cl = (panel6.meta.clim && panel6.meta.clim[key]) || [0, 30];
+    panel6.mapper.setColorByArrayName(key);
+    panel6.mapper.setLookupTable(cividisLUT(cl[0], cl[1]));
+    panel6.mapper.setScalarRange(cl[0], cl[1]);
+    panel6.field = key;
+    const lbl = document.getElementById('panelLbl');
+    if (lbl) lbl.textContent = (panel6.meta.panel_label && panel6.meta.panel_label[key] || key) +
+      ' · 0–' + cl[1].toFixed(1) + ' MPa';
+    renderWindow.render();
+  }
+  function panel6Show(on) { if (panel6) panel6.actor.setVisibility(!!on); }
 
   // ---- volumetric temperature (ImageData) — transient time series ----
   let volume = null, volMapper = null;   // legacy glow handles — kept null so the `if (volume)` guards stay no-ops
@@ -1708,10 +1782,8 @@ function main() {
                  cam:{ yaw:0, elev:0, dir:[-0.9368,0.3499,0.0], zoom:1.10 } },
       // fig07_stress: rc.camera_three_quarter(zoom=1.42) — direction (0.62, 0.78, -0.55),
       // "from -y/-x, above, looking down the drift" — and sliced at the same z_open.
-      stress:  { bare:1, kick:'FIG 6', txt:'Von Mises stress at end of charge, sliced at the crown — the poster’s panel (a), live.',
-                 mode:'vm', layers:{ rock:[0,1.0], water:[1,1.0], concrete:[1,1.0], air:[0,0.3] },
-                 clip:{ axis:2, atZOpen:1, pos:0.60, flip:false }, repr:'2', parallel:1,
-                 frame:{ sleeve:3.0, depth:5.0 },     // fig07 SLEEVE_M = 3.0
+      stress:  { bare:1, kick:'FIG 6', txt:'The printed panel’s own geometry — a 3 m rock sleeve sliced at the crown. Slide through total, thermal and geostatic.',
+                 mode:'vm', panel:'fig6', repr:'2', parallel:1,
                  cam:{ dir:[0.62,0.78,-0.55], zoom:1.0 } },
       arraydomain:{ bare:1, nodeck:1, kick:'FIX', txt:'The simulated unit cell — the red box in the poster figure — as real geometry. Drifts repeat at 10 m pitch either side.',
                  mode:'material', layers:{ rock:[1,0.20], water:[1,0.95], concrete:[1,1.0], air:[1,0.5] },
@@ -1941,7 +2013,35 @@ function main() {
           figCam(figViewDir(m.yaw_deg, m.elev_deg) || F.cam.dir, 1.0, cn);
           renderWindow.render();
         });
-      } else { if (panel3a) panel3aShow(false); document.body.classList.remove('figpanel'); }
+      } else if (F.panel === 'fig6') {
+        const hideScene = () => {
+          Object.values(objs).forEach(o => o.actor.setVisibility(false));
+          if (objs.wire) objs.wire.actor.setVisibility(false);
+          wellActors.forEach(a => a.setVisibility(false));
+          if (figSlab) figSlab.setVisibility(false);
+          if (imgSlice) imgSlice.setVisibility(false);
+          if (flowActor) flowActor.setVisibility(false);
+          if (pActor) pActor.setVisibility(false);
+          if (panel3a) panel3aShow(false);
+        };
+        hideScene();
+        loadPanel6(() => {
+          hideScene();
+          panel6Show(true);
+          document.body.classList.add('figpanel');
+          panel6Bar();
+          const m = panel6.meta, b2 = m.bounds, cn = [];
+          [b2[0],b2[1]].forEach(x => [b2[2],b2[3]].forEach(y =>
+            [b2[4],b2[5]].forEach(z => cn.push([x,y,z]))));
+          renderer.getActiveCamera().setParallelProjection(true);
+          figCam(m.cam_dir, 1.0, cn);
+          renderWindow.render();
+        });
+      } else {
+        if (panel3a) panel3aShow(false);
+        if (panel6) panel6Show(false);
+        document.body.classList.remove('figpanel');
+      }
       figApplied = true;
       renderWindow.render();
     }
@@ -2251,6 +2351,7 @@ function main() {
       document.body.classList.remove('figmode', 'figlabels', 'figkey', 'figbare', 'fignodeck', 'figtitle');
       figCutZ = null;
       if (panel3a) panel3aShow(false);
+      if (panel6) panel6Show(false);
       document.body.classList.remove('figpanel');
       setParticleSpeedColor(false);        // the tour drives the glyph colour itself
       removeFigSlab();
