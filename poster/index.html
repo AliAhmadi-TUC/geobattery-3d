@@ -1643,7 +1643,7 @@ function dragHint(ctx,w,h,a,e){
   ctx.fillStyle='rgba(228,236,244,.96)'; ctx.font='600 11px "IBM Plex Mono", monospace';
   ctx.textAlign='left'; ctx.textBaseline='middle';
   ctx.fillText('drag to rotate', px+36, cy+0.5);
-  const gx=px+19+Math.sin(e*3.6)*7.5;                 // a fingertip swiping
+  const gx=px+19+Math.sin(e*2.5)*7.5;                 // a fingertip swiping
   ctx.beginPath(); ctx.arc(gx,cy,7.4,0,7);
   ctx.strokeStyle='rgba(242,193,78,.42)'; ctx.lineWidth=1.4; ctx.stroke();
   ctx.beginPath(); ctx.arc(gx,cy,4.4,0,7); ctx.fillStyle='rgba(242,193,78,.95)'; ctx.fill();
@@ -1662,10 +1662,11 @@ function mini3d(canvas,build,yaw0,pitch0){
   }
   function intro(){                         // an opening move: turn, then settle
     if(!st.introAt) return;
-    const e=(performance.now()-st.introAt)/1000, eo=x=>1-Math.pow(1-x,3);
-    if(e>=2.4){ st.introAt=0; st.dyaw=0; st.dpit=0; return; }
-    st.dyaw = e<1.5 ? lerp(0.46,-0.15,eo(e/1.5)) : lerp(-0.15,0,eo((e-1.5)/0.9));
-    st.dpit = lerp(0.14,0,eo(Math.min(1,e/1.7)));
+    const D=4.2, u=(performance.now()-st.introAt)/1000/D;
+    if(u>=1){ st.introAt=0; st.dyaw=0; st.dpit=0; return; }
+    const q=u*u*u*(u*(u*6-15)+10);           // smootherstep: leaves and arrives at rest
+    st.dyaw=0.46*(1-q)*Math.cos(1.35*Math.PI*q);   // swings once past, then settles
+    st.dpit=0.14*(1-q);
   }
   function proj(p){
     const yw=st.yaw+st.dyaw, pt=Math.max(-1.35,Math.min(1.35,st.pitch+st.dpit));
@@ -1725,7 +1726,7 @@ function mini3d(canvas,build,yaw0,pitch0){
       }
     });
     if(st.hintAt){ const e=(performance.now()-st.hintAt)/1000;
-      const a=e<0.45?e/0.45:e<2.7?1:e<3.3?1-(e-2.7)/0.6:0;
+      const a=e<0.6?e/0.6:e<3.4?1:e<4.2?1-(e-3.4)/0.8:0;
       if(a<=0) st.hintAt=0; else dragHint(ctx,st.w,st.h,a,e); }
   }
   let drag=null;
@@ -2099,7 +2100,7 @@ const FEM_A=(function(){
 })();
 
 
-console.log('%c● GEOBATTERY poster build 2026-07-24h · the camera opens with a move, then settles','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24i · the opening move, slower and continuous','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
