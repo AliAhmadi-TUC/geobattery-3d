@@ -1910,12 +1910,25 @@ function main() {
           w: [p[0] + U[0]*side*dist*D + aXv[0]*along*D,
               p[1] + U[1]*side*dist*D + aXv[1]*along*D,
               p[2] + U[2]*side*dist*D + aXv[2]*along*D] }); };
-      //        anchor                       text                side  dist  along
-      push(figCentroid('air', lo),      'air-filled drift', +1,  4.2, -1.6, 'sm');
-      push(figCentroid('concrete', lo), 'concrete plug',    +1,  2.7, -0.7, 'sm');
-      push(figCentroid('water'),        'water body',       +1,  3.4,  0.2);
-      push(figCentroid('concrete', hi), 'concrete plug',    +1,  2.7,  0.9, 'sm');
-      push(figCentroid('air', hi),      'air-filled drift', +1,  4.2,  1.8, 'sm');
+      /* A label must point at geometry that is actually DRAWN. These centroids come
+         from the whole body, but the slab clips them — the air-filled drift runs 94 m
+         against a 59 m block, so its centroid sits far outside the frame and the leader
+         ends in empty space. Restrict each anchor to the body's own clip set. */
+      const within = nm => {
+        const B = figSlabBox;
+        if (!B || !B.planes || !SLAB_CLIP[nm]) return () => true;
+        const ps = SLAB_CLIP[nm].map(i => B.planes[i]);
+        return p => ps.every(q => (p[0]-q.o[0])*q.n[0] + (p[1]-q.o[1])*q.n[1]
+                                + (p[2]-q.o[2])*q.n[2] >= 0);
+      };
+      const inAir = within('air'), inCon = within('concrete'), inWat = within('water');
+      const both = (a, b) => p => a(p) && b(p);
+      //        anchor                                    text                side  dist  along
+      push(figCentroid('air', both(lo, inAir)),      'air-filled drift', +1,  4.2, -1.6, 'sm');
+      push(figCentroid('concrete', both(lo, inCon)), 'concrete plug',    +1,  2.7, -0.7, 'sm');
+      push(figCentroid('water', inWat),              'water body',       +1,  3.4,  0.2);
+      push(figCentroid('concrete', both(hi, inCon)), 'concrete plug',    +1,  2.7,  0.9, 'sm');
+      push(figCentroid('air', both(hi, inAir)),      'air-filled drift', +1,  4.2,  1.8, 'sm');
       if (flowMeta && flowMeta.inlet)  push(flowMeta.inlet,  'inlet · invert',  -1, 2.4, -0.9, 'port');
       if (flowMeta && flowMeta.outlet) push(flowMeta.outlet, 'outlet · crown',  -1, 2.4,  0.9, 'port');
       const rb = figSlab ? figSlab.getBounds() : (objs.rock && objs.rock.actor.getBounds());
