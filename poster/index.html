@@ -217,6 +217,16 @@
   .figkey span{ display:inline-flex; align-items:center; gap:6px; }
   .figkey i{ width:13px; height:9px; border-radius:2px; flex:none; }
   .figkey em{ font-style:normal; color:var(--mut); }
+  .howto1{ font:400 13px/1.5 var(--sans); color:var(--ink-2); margin:7px 2px 10px;
+    border-left:3px solid #C97A10; padding:2px 0 2px 11px; }
+  .howto1 b{ color:var(--ink); }
+  details.src{ margin:10px 0 2px; }
+  details.src>summary{ font:600 11.5px var(--mono); color:var(--ink-3); cursor:pointer;
+    letter-spacing:.03em; padding:5px 0; list-style:none; }
+  details.src>summary::-webkit-details-marker{ display:none; }
+  details.src>summary::before{ content:'▸ '; color:var(--grn-d); }
+  details.src[open]>summary::before{ content:'▾ '; }
+  details.src>summary:hover{ color:var(--ink); }
   .howto{ display:flex; flex-wrap:wrap; gap:5px 14px; margin:2px 3px 9px; font:500 11px var(--mono); color:var(--grn-d); }
   .howto span::before{ content:'↔ '; color:var(--mut); }
   .bal{ display:flex; align-items:center; gap:0; height:26px; border-radius:6px; overflow:hidden;
@@ -287,13 +297,10 @@
         <span><i style="background:#16C46A"></i>storable PV above the threshold</span>
         <span><i style="background:#1C2128;height:2px"></i>PV ÷ load · daily</span>
         <span><i style="background:#3E5C76"></i>heat demand · HDD</span>
-        <span><em>heat map: each cell = one metered hour</em></span>
       </div>
-      <div class="howto">
-        <span>drag the <b style="color:#9C6A12">gold</b> and <b style="color:#2B4257">slate</b> windows, or their edges</span>
-        <span>drag the red <b>f</b> tab to redefine surplus</span>
-        <span>hover anywhere to read the hour</span>
-      </div>
+      <p class="howto1">Anything that <b>glows</b> can be dragged. Move the two windows, or their edges, and the
+        <b>gap</b> between them changes — that gap is the seal, and the seal decides how much of the captured heat
+        is still there when the winter wants it.</p>
 
       <div class="figwrap" id="s-fig">
         <svg id="c-solar" viewBox="0 0 1000 290" aria-label="2023 supply, demand and the seal between them"></svg>
@@ -328,6 +335,7 @@
         (50.2 GWh) is <b>569 drift-charges</b>; a single peak surplus hour would fill <b>26</b> of them.
         <span id="s-scale"></span>
       </div>
+      <details class="src"><summary>Sources, and what the numbers do and do not assume</summary>
       <p class="mut">Supply: SMARD / Bundesnetzagentur, 50 Hertz control zone, hourly PV and total grid load, 2023
         (15.05 TWh PV against 99.99 TWh load), stored here to the nearest MWh. <b>f</b> is a modelling choice, not a
         measurement: at f&nbsp;=&nbsp;1.0 “surplus” means PV exceeding the entire grid load — 50.2 GWh in
@@ -335,7 +343,7 @@
         normals (weather-atlas / climate-data.org), so supply is a measured year and demand is a climatology.
         Captured energy is counted as heat <b>1:1</b> — no collector area, conversion or COP is assumed, so treat it
         as an upper bound. RF comes from the same 1-D radial master curve as §04 (gneiss, κ&nbsp;=&nbsp;5,
-        χ&nbsp;=&nbsp;0.51, first cycle).</p>
+        χ&nbsp;=&nbsp;0.51, first cycle).</p></details>
     </div>
   </div>
 
@@ -735,12 +743,21 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
   function drawSVG(){
     clear(svg);
     const g=(el)=>{ svg.appendChild(el); return el; };
+    /* Nothing static in this figure glows. A soft halo is reserved for the parts
+       you can actually move — the two window bars, their four edges, the f tab —
+       so the eye can tell a control from a data mark without reading anything. */
+    const defs=g(E('defs',{}));
+    const glow=(id,c,sd)=>{ const f=E('filter',{id,x:'-90%',y:'-90%',width:'280%',height:'280%'});
+      f.appendChild(E('feDropShadow',{dx:'0',dy:'0',stdDeviation:String(sd||3.2),
+        'flood-color':c,'flood-opacity':'0.9'})); defs.appendChild(f); return 'url(#'+id+')'; };
     // window bands, behind everything
     const bands=[[ST.ch,'#E39A26','CHARGE','#9C6A12'],[ST.di,'#3E5C76','DISCHARGE','#2B4257']];
-    bands.forEach(([w,col,lab,txt])=>{
+    const GL=bands.map((b,i)=>glow('gl'+i,b[3]));
+    glow('glf','#C0392B',3.4);
+    bands.forEach(([w,col,lab,txt],bi)=>{
       const x0=X(w[0])-PW/ND/2, x1=X(w[1])+PW/ND/2;
       g(E('rect',{x:x0,y:AY0-8,width:Math.max(1,x1-x0),height:BY1-AY0+8,fill:col,'fill-opacity':'.13',rx:3}));
-      g(E('rect',{x:x0,y:AY0-8,width:Math.max(1,x1-x0),height:3,fill:col}));
+      g(E('rect',{x:x0,y:AY0-8,width:Math.max(1,x1-x0),height:3.4,fill:txt,filter:GL[bi]}));
       g(T((x0+x1)/2,AY0-12,lab,{'text-anchor':'middle',fill:txt,'font-weight':'700','font-size':'17.86'}));
     });
     // ---- band A : supply ----
@@ -757,7 +774,9 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
     // the f threshold, draggable by the tab parked outside the plot
     g(E('line',{x1:L,x2:W-R,y1:YR(ST.f),y2:YR(ST.f),stroke:'#C0392B','stroke-width':'1.4','stroke-dasharray':'6 4'}));
     const hy=YR(ST.f);
-    g(E('rect',{x:W-R+2,y:hy-10,width:20,height:20,rx:5,fill:'#C0392B'}));
+    g(E('rect',{x:W-R+2,y:hy-10,width:20,height:20,rx:5,fill:'#C0392B',filter:'url(#glf)'}));
+    g(E('path',{d:'M'+(W-R+12)+' '+(hy-13)+' l-3.4 4.6 h6.8 z',fill:'#C0392B'}));
+    g(E('path',{d:'M'+(W-R+12)+' '+(hy+13)+' l-3.4 -4.6 h6.8 z',fill:'#C0392B'}));
     g(T(W-R+12,hy+4,'f',{'text-anchor':'middle',fill:'#fff','font-weight':'700','font-size':'19.64'}));
     g(T(L+4,hy+(hy<46?14:-5),'storable when PV rises above '+fmt(ST.f*100,0)+'% of load',
       {fill:'#C0392B','font-size':'16.96','font-weight':'600'}));
@@ -784,12 +803,20 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
     } else {
       g(T((a+b)/2,by+2,'seal '+sealDays()+' d (wraps the year end)',{'text-anchor':'middle',fill:'#0A6E38','font-weight':'700','font-size':'17.86'}));
     }
-    // ---- window edge handles ----
-    bands.forEach(([w,col])=>{ [w[0],w[1]].forEach(d=>{
-      const x=(d===w[0]?X(d)-PW/ND/2:X(d)+PW/ND/2);
-      g(E('rect',{x:x-3,y:AY0-8,width:6,height:22,rx:3,fill:col}));
-      g(E('rect',{x:x-1,y:AY0-3,width:0.9,height:12,fill:'#fff','fill-opacity':'.75'}));
-      g(E('rect',{x:x+0.6,y:AY0-3,width:0.9,height:12,fill:'#fff','fill-opacity':'.75'})); }); });
+    /* ---- window edge handles: grip, glow, and an arrow each way ----
+       The grip lines are the mark a real slider thumb carries; the flanking
+       arrows say the edge travels in BOTH directions, so a window can be
+       widened or narrowed from either end. */
+    bands.forEach(([w,col,lab,txt],bi)=>{ [w[0],w[1]].forEach(d=>{
+      const x=(d===w[0]?X(d)-PW/ND/2:X(d)+PW/ND/2), cy=AY0+3;
+      const h=E('g',{filter:GL[bi]});
+      h.appendChild(E('rect',{x:x-4,y:AY0-9,width:8,height:25,rx:4,fill:txt}));
+      [-1.6,0.6].forEach(o=>h.appendChild(E('rect',{x:x+o,y:AY0-3,width:1,height:13,
+        fill:'#fff','fill-opacity':'.85'})));
+      g(h);
+      g(E('path',{d:'M'+(x-7)+' '+cy+' l-4.6 -3.2 v6.4 z',fill:txt,'fill-opacity':'.95'}));
+      g(E('path',{d:'M'+(x+7)+' '+cy+' l4.6 -3.2 v6.4 z',fill:txt,'fill-opacity':'.95'}));
+    }); });
     // ---- hover crosshair ----
     if(hoverDay){ g(E('line',{x1:X(hoverDay),x2:X(hoverDay),y1:AY0-8,y2:BY1,
       stroke:'#0C1015','stroke-width':'1','stroke-opacity':'.45'})); }
@@ -2099,7 +2126,7 @@ const FEM_A=(function(){
 })();
 
 
-console.log('%c● GEOBATTERY poster build 2026-07-24af · lab bumped: FIG 6 colourbar matches the panel','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24ag · FIG 1: glowing handles, travel arrows, less crowding','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
