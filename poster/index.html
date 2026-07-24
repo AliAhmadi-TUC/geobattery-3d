@@ -194,6 +194,11 @@
   canvas.mini{ width:100%; height:230px; display:block; background:#fff; border:1px solid var(--line);
     border-radius:9px; cursor:grab; touch-action:none; }
   canvas.mini:active{ cursor:grabbing; }
+  canvas.mini.dk{ background:#14181C; border-color:#2A3038; height:340px; }
+  @media (max-width:620px){ canvas.mini.dk{ height:250px; } }
+  .projn{ border-left:3px solid var(--grn-d); padding:2px 0 2px 12px; margin:12px 2px 2px;
+    font:400 12.5px/1.55 var(--sans); color:var(--ink-2); }
+  .projn b{ color:var(--ink); }
   .capt{ font:400 11px/1.4 var(--sans); color:var(--ink-3); margin:5px 2px 0; }
   .capt b{ color:var(--gold); font-weight:600; }
   .split{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
@@ -474,118 +479,47 @@
 
       <!-- ---- A ---- -->
       <div class="npane" data-p="a">
-        <p class="lead">Wherever a finite-element method fixes a value on a boundary, the <b>flux across that
-          boundary</b> is not obtained by differentiating the answer. It is the <b>reaction</b>: the residual of the
-          equation the constraint deleted. This is a general property of Galerkin methods — nothing here is specific
-          to heat, or to this study. Step through it, then re-solve it yourself: a genuine P1 problem is assembled
-          and solved in your browser at every mesh you choose.</p>
-        <div class="split">
-          <div>
-            <canvas class="mini" id="n3d-a"></canvas>
-            <div class="story" id="st-a"></div>
-            <p class="capt"><b>Γ<sub>in</sub> ·</b> the pinned inlet face (blue) with the advective inflow. Drag to rotate.</p>
-          </div>
-          <div>
-            <div class="card2" style="margin:0 0 9px">
-              <h3>Both fluxes, as the mesh refines</h3>
-              <p class="sc">−k T″ = f on (0,1), T(0)=T<sub>in</sub> pinned. Log–log; the reaction is a flat line.</p>
-              <svg class="chart" id="c-num-a" viewBox="0 0 300 178"></svg>
-            </div>
-          </div>
-        </div>
-        <div class="row2"><label>Refine the mesh — elements across the inlet</label><span class="v" id="a-n">32</span></div>
-        <input type="range" id="a-nin" min="2" max="512" step="1" value="32" aria-label="element count">
-        <div class="ticks"><span>2 — coarse</span><span>the nodal answer keeps moving, the reaction does not</span><span>512 — fine</span></div>
-        <div class="stats">
-          <div class="st bad"><b id="a-nod">—</b><span>nodal k&thinsp;dT/dn at the inlet</span></div>
-          <div class="st hi"><b id="a-rea">—</b><span>reaction flux r<sub>h</sub>|<sub>Γ</sub></span></div>
-          <div class="st"><b id="a-exa">—</b><span>exact flux −k T′(0)</span></div>
-          <div class="st bad"><b id="a-err">—</b><span>nodal error · falls only as O(h)</span></div>
-        </div>
-        <p class="mut">Both are computed from the same solved vector: the nodal gradient from a one-sided
-          difference, the reaction as (A<sub>row</sub>·T − f)|<sub>Γ</sub> using the row that was <em>discarded</em>
-          when the Dirichlet condition was applied. The reaction is exact at every h — that is the whole point.</p>
-
+        <p class="lead">Fix the <b>value</b> of a field on a boundary and you delete that node's equation.
+          The flux through that boundary is <b>not</b> the slope of the computed answer — slopes converge slowly and
+          are never exact. It is the <b>reaction</b>: the leftover of the very equation you deleted, exact on every mesh.</p>
+        <canvas class="mini dk" id="n3d-a"></canvas>
+        <p class="capt">Drag to rotate — the loop keeps playing. The arrow lengths come from a genuine P1 solve
+          running in your browser at each refinement.</p>
+        <div class="mth">Q&nbsp;=&nbsp;Σ<sub>i∈Γ</sub>&thinsp;[&thinsp;a(u<sub>h</sub>,φ<sub>i</sub>) − ℓ(φ<sub>i</sub>)&thinsp;] — <b>exact at every h</b> &nbsp;&nbsp;·&nbsp;&nbsp; −k&thinsp;∂u<sub>h</sub>/∂n&thinsp;|<sub>Γ</sub> = O(h) — never exact</div>
+        <p class="projn"><b>Where this project meets it&nbsp;·</b> every joule crossing the tunnel inlet is metered
+          as a reaction: the 88.4&nbsp;MWh stored in year&nbsp;1 and every recovery number in FIG&nbsp;5 are sums of
+          deleted rows, not derivatives of the temperature field.</p>
       </div>
 
       <!-- ---- B ---- -->
       <div class="npane" data-p="b" hidden>
-        <p class="lead">A zero-flux boundary is a <b>natural</b> condition: integrating by parts leaves a boundary
-          term that is already zero, so the correct action is to write <b>nothing at all</b>. Imposing it as a value
-          instead replaces the physics — and where two boundaries meet, one node inherits two conditions and the
-          system is over-determined. Again, general: this is true of any variational problem, not just this one.</p>
-        <div class="split">
-          <div>
-            <canvas class="mini" id="n3d-b"></canvas>
-            <div class="story" id="st-b"></div>
-            <p class="capt"><b>Corner ·</b> rock (grey) meets concrete (sand); the red edge is the shared node that
-              a Dirichlet pin over-constrains. Drag to rotate.</p>
-          </div>
-          <div>
-            <div class="card2" style="margin:0 0 9px">
-              <h3>Temperature through the sealed end</h3>
-              <p class="sc">Same mesh, same materials, one boundary condition apart.</p>
-              <svg class="chart" id="c-num-b" viewBox="0 0 300 178"></svg>
-            </div>
-          </div>
-        </div>
-        <div class="chips" id="b-mode">
-          <button class="chip on" data-b="weak">no-flux, imposed weakly ✓</button>
-          <button class="chip" data-b="pin">sealed face pinned at T₀ ✕</button>
-        </div>
-        <div class="row2"><label>Refine the mesh — elements</label><span class="v" id="b-n">40</span></div>
-        <input type="range" id="b-nin" min="4" max="400" step="2" value="40" aria-label="element count">
-        <div class="stats">
-          <div class="st" id="b-leakbox"><b id="b-leak">0.0 W/m²</b><span>flux through the “sealed” face</span></div>
-          <div class="st" hidden><b id="b-e">0 kWh</b><span>a wall that must pass nothing, passing something</span></div>
-          <div class="st" hidden><b id="b-share">0%</b><span>of the 88.4 MWh actually stored</span></div>
-        </div>
-        <p class="mut" id="b-say"></p>
-        <p class="mut">A 1-D idealisation of the same error: rock (k&nbsp;=&nbsp;3&nbsp;W/mK, 0.6&nbsp;m) against
-          concrete (k&nbsp;=&nbsp;1.5&nbsp;W/mK, 0.4&nbsp;m), inlet held at 80&nbsp;°C, far end nominally sealed.
-          In 3-D the same pin also collides with the material-interface condition at the shared corner node, which is
-          why the fix is a weak (penalty) statement rather than a second strong one.</p>
+        <p class="lead">Integration by parts hands every boundary one term, ∮(k&thinsp;∂u/∂n)&thinsp;v&thinsp;ds.
+          On a sealed wall that term is zero — so the correct action is to write <b>nothing at all</b>.
+          Pin the wall's value instead and you have not sealed it: you have replaced the physics, and the wall
+          leaks at every mesh size, forever.</p>
+        <canvas class="mini dk" id="n3d-b"></canvas>
+        <p class="capt">Drag to rotate — the loop keeps playing. The same wall, treated both ways, alternating.</p>
+        <div class="mth">∂u/∂n = 0 &nbsp;⟹&nbsp; ∮<sub>Γ</sub>(·)&thinsp;v&thinsp;ds = 0 — <b>write nothing</b> &nbsp;&nbsp;·&nbsp;&nbsp; u = T₀ &nbsp;⟹&nbsp; q ≠ 0 — it leaks</div>
+        <p class="projn"><b>Where this project meets it&nbsp;·</b> the array cell's symmetry planes and the far rock
+          wall are all natural — sealed by silence; the one corner where the pinned inlet meets them is imposed
+          weakly, precisely so that no node ever has to serve two masters.</p>
       </div>
 
       <!-- ---- C ---- -->
       <div class="npane" data-p="c" hidden>
-        <p class="lead">Constrain a minimisation and carry the constraint with a Lagrange multiplier, and the
-          stationary point stops being a minimum: it becomes a <b>saddle</b>. The matrix stays symmetric but turns
-          <b>indefinite</b>, which costs you Cholesky and conjugate gradients. Stokes, incompressible elasticity,
-          contact and constrained optimisation all land here. The measurements below are this study's — offered as
-          confirmation of the theorem, not as its subject.</p>
-        <div class="split">
-          <div>
-            <canvas class="mini" id="n3d-c"></canvas>
-            <div class="story" id="st-c"></div>
-            <p class="capt"><b>[[A, Bᵀ], [B, 0]] ·</b> structure only — MUMPS reports one factor count for the whole matrix, not per block. The zero block is the problem.
-              Drag to rotate.</p>
-          </div>
-          <div>
-            <div class="card2" style="margin:0 0 9px">
-              <h3>What the factorisation costs</h3>
-              <p class="sc">Log–log; the dashed line is this machine's 15&nbsp;GB in-core ceiling.</p>
-              <svg class="chart" id="c-num-c" viewBox="0 0 300 178"></svg>
-            </div>
-          </div>
-        </div>
-        <div class="chips" id="c-op"></div>
-        <div class="stats">
-          <div class="st"><b id="c-dof">337 592</b><span>degrees of freedom</span></div>
-          <div class="st"><b id="c-fill">11.7×</b><span>fill: factor entries ÷ matrix nnz</span></div>
-          <div class="st"><b id="c-mem">4 095 MB</b><span>MUMPS working memory</span></div>
-          <div class="st"><b id="c-t">8.0 s</b><span>numerical factorisation</span></div>
-        </div>
-        <p class="mut" id="c-say"></p>
-        <div class="card2">
-          <h3>The price of indefiniteness</h3>
-          <p class="sc">Same mesh, same MUMPS, three operators — what the saddle point forfeits.</p>
-          <table class="tb" id="c-tab"></table>
-        </div>
-        <p class="mut">MUMPS 5.x through PETSc, METIS ordering, 4 OpenMP threads. The LDLᵀ factorisation reports
-          <b>17 110 negative pivots</b> — the inertia of the matrix, and a direct measurement that the system is
-          indefinite rather than merely non-symmetric.</p>
+        <p class="lead">Minimise an energy and the landscape is a <b>bowl</b>: every direction uphill, and the cheap
+          solvers — Cholesky, conjugate gradients — exist because of that shape. Add a constraint through a Lagrange
+          multiplier and the solution becomes a <b>saddle point</b>: still symmetric, no longer definite, one
+          negative direction per constraint.</p>
+        <canvas class="mini dk" id="n3d-c"></canvas>
+        <p class="capt">Drag to rotate — the saddle is a 3-D fact, and the orbit is part of the argument.</p>
+        <div class="mth">[&thinsp;A&nbsp;&nbsp;B<sup>T</sup>&thinsp;;&nbsp;&nbsp;B&nbsp;&nbsp;<b>0</b>&thinsp;]&thinsp;[&thinsp;u&thinsp;;&thinsp;p&thinsp;] = [&thinsp;f&thinsp;;&thinsp;g&thinsp;] — symmetric, <b>indefinite</b> &nbsp;·&nbsp; no Cholesky, no CG</div>
+        <p class="projn"><b>Where this project meets it&nbsp;·</b> the water in the drift is incompressible and its
+          pressure is a live Lagrange multiplier, so every time step factorises a saddle system — 17&thinsp;110
+          negative pivots, about twice the memory of the equivalent definite solve; that ceiling, not the physics,
+          is what capped the mesh.</p>
       </div>
+
     </div>
   </div>
 </div>
@@ -671,20 +605,6 @@ const THOT=80, CONFIGS=[
 const CLOSURE=[['charge',-1.197602e-6],['store',2.288743e-7],['discharge',-5.213148e-7],['recover',1.806064e-7]];
 const DELIVERED_KWH=454532.3, STORED_KWH=88387.44553, AWET=441.52;
 
-/* MUMPS benchmark — data/mumps_bench.json (measured, 4 OMP threads, METIS)    */
-const MUMPS={
-  meshes:[
-   {id:'baseline', n:'as-built mesh',  dof:337592, nnz:28202708, fac:329579038, fill:11.686, gf:349.11, t:8.001, mem:4095, ok:1},
-   {id:'v2x',      n:'volume ×2 mesh', dof:478486, nnz:42446568, fac:770501926, fill:18.152, gf:1415.54, t:21.105, mem:8000, ok:1},
-   {id:'r2x',      n:'radius ×2 mesh', dof:845500, nnz:76905258, fac:null, fill:null, gf:null, t:null, mem:15000, ok:0}],
-  ops:[
-   {id:'lu',  n:'Stokes saddle · LU (SYM=0)',        dof:337592, nnz:28202708, fac:329579038, fill:11.686, gf:349.11, t:8.001,  mem:4095, bpd:7810, piv:'1 542 off-diagonal pivots · 13 null pivots fixed'},
-   {id:'ldl', n:'Stokes saddle · LDLᵀ (SYM=2)',      dof:337592, nnz:28202708, fac:168139527, fill:5.962,  gf:181.72, t:6.465,  mem:2201, bpd:3984, piv:'17 110 NEGATIVE pivots — the inertia says indefinite'},
-   {id:'spd', n:'velocity block · Cholesky (SYM=1)', dof:320469, nnz:23364171, fac:144945867, fill:6.204,  gf:144.02, t:4.080,  mem:1900, bpd:3618, piv:'0 negative pivots — SPD, the option the saddle point forfeits'},
-   {id:'heat',n:'conduction step · P1 (SPD)',        dof:40679,  nnz:568083,   fac:8910159,   fill:15.685, gf:1.598,  t:0.385,  mem:112,  bpd:1752, piv:'0 negative pivots — this is the cheap half of the physics'}],
-  wall:'in-core factorisation failed on 15 GB (MUMPS INFO(1) = −10); it completed only out-of-core, ICNTL(22)=1'
-};
-
 /* ═════════════════════════════════════════════════════════════════════════
    HOTSPOTS — rectangles measured from poster_ALERT2026_selectable.pdf itself
    (PyMuPDF image + text bboxes), not placed by eye.  % of the poster image.
@@ -740,15 +660,14 @@ function openModal(id,arg){
   document.querySelectorAll('.modal').forEach(m=>m.hidden=(m.id!=='m-'+id));
   scrim.classList.add('open'); document.body.style.overflow='hidden';
   if(id==='num'&&arg) numTab(arg);
-  if(id==='num') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); });
+  if(id==='num') requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); numWake(); });
   // canvases can only size themselves once their modal is actually laid out
   if(id==='solar') requestAnimationFrame(()=>{ if(window.figSolarRedraw) window.figSolarRedraw(); });
   if(id==='screening') requestAnimationFrame(()=>{ if(window.fig4Redraw) window.fig4Redraw(); });
   if(id==='grade') requestAnimationFrame(()=>{ if(window.fig4bRedraw) window.fig4bRedraw(); });
   if(id==='decade') requestAnimationFrame(()=>{ if(window.fig5Redraw) window.fig5Redraw(); });
 }
-function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow='';
-  for(const k in STORIES) if(STORIES[k].pause) STORIES[k].pause(); }
+function closeModal(){ scrim.classList.remove('open'); document.body.style.overflow=''; }
 scrim.addEventListener('click',e=>{ if(e.target===scrim) closeModal(); });
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeModal));
 addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
@@ -1695,60 +1614,17 @@ const DEC=[
    A tiny painter's-algorithm 3-D canvas — the §07 figures, rotatable
    ═════════════════════════════════════════════════════════════════════════ */
 const MINI=[];
-/* ── the §07 transport: a stepped, replayable narrative ──────────────────────
-   Each challenge is a list of beats. `t` eases 0→1 within a beat so geometry can
-   interpolate; play chains beats and stops at the end. Dragging to rotate keeps
-   working throughout because rotation lives in mini3d, not here. Anyone who has
-   asked for reduced motion gets the end state of each beat immediately. */
+/* ── §07 runs free: one clock, no transport, no controls ──────────────────
+   Anyone who has asked for reduced motion gets a single representative frame;
+   dragging to rotate still redraws it. */
 const REDUCED = matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches;
-function story(n, render, dur){
-  const S={i:0, t:1, playing:false, raf:null};
-  const ease=e=>e<0.5?2*e*e:1-Math.pow(-2*e+2,2)/2;
-  function go(i, animate){
-    S.i=Math.max(0,Math.min(n-1,i)); if(S.sync) S.sync();
-    if(S.raf){ cancelAnimationFrame(S.raf); S.raf=null; }
-    if(REDUCED||!animate){ S.t=1; render(); return; }
-    S.t=0; const t0=performance.now(), D=dur||1000;
-    const loop=()=>{ const e=Math.min(1,(performance.now()-t0)/D); S.t=ease(e); render();
-      if(e<1){ S.raf=requestAnimationFrame(loop); }
-      else { S.raf=null; if(S.playing){ if(S.i<n-1) go(S.i+1,true); else { S.playing=false; if(S.sync) S.sync(); render(); } } } };
-    S.raf=requestAnimationFrame(loop);
-  }
-  return { S, n,
-    go, next:()=>go(S.i+1,true), prev:()=>go(S.i-1,true),
-    pause(){ S.playing=false; if(S.raf){cancelAnimationFrame(S.raf); S.raf=null;} S.t=1; if(S.sync)S.sync(); render(); },
-    play(){ if(S.playing){ S.playing=false; if(S.raf){cancelAnimationFrame(S.raf); S.raf=null;} S.t=1; render(); return; }
-            S.playing=true; go(S.i>=n-1?0:S.i+1,true); },
-    reset(){ S.playing=false; go(0,false); } };
-}
 const clamp01=x=>x<0?0:x>1?1:x;
 const seg=(t,a,b)=>{const e=clamp01((t-a)/(b-a)); return e<.5?2*e*e:1-Math.pow(-2*e+2,2)/2;};
 const lerp=(a,b,t)=>a+(b-a)*t;
-/* the renderer refits to the projected extents every frame, so a beat that adds
-   geometry would read as a zoom. An unpainted cage pins the box instead. */
+/* the renderer refits to the projected extents every frame, so geometry that
+   appears mid-loop would read as a zoom. An unpainted cage pins the box. */
 const cage=b=>({type:'line',pts:[[b[0],b[2],b[4]],[b[1],b[2],b[4]],[b[1],b[3],b[4]],[b[0],b[3],b[4]],
                                  [b[0],b[2],b[5]],[b[1],b[2],b[5]],[b[1],b[3],b[5]],[b[0],b[3],b[5]]]});
-function storyBar(el, st, labels, eqs){
-  el.insertAdjacentHTML('afterend','<div class="mth"></div><div class="beat"></div>');
-  const mth=el.nextElementSibling, say=mth.nextElementSibling;
-  el.innerHTML='<button data-a="prev" title="previous beat" aria-label="previous beat">◀</button>'+
-    '<button class="play" data-a="play" title="play" aria-label="play">▶</button>'+
-    '<button data-a="next" title="next beat" aria-label="next beat">▶|</button>'+
-    '<span class="dots"></span><span class="cap"></span>';
-  const dots=el.querySelector('.dots');
-  for(let k=0;k<st.n;k++){ const d=document.createElement('i'); d.onclick=()=>{ st.S.playing=false; st.go(k,true); }; dots.appendChild(d); }
-  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const a=b.dataset.a;
-    if(a==='play') st.play(); else if(a==='next'){ st.S.playing=false; st.next(); } else { st.S.playing=false; st.prev(); } });
-  st.say=h=>{ say.innerHTML=h; };
-  st.S.sync=()=>{ [...dots.children].forEach((d,k)=>d.classList.toggle('on',k===st.S.i));
-    if(labels&&labels[st.S.i]) say.innerHTML=labels[st.S.i];
-    if(eqs&&eqs[st.S.i]) mth.innerHTML=eqs[st.S.i];
-    el.querySelector('[data-a="play"]').textContent=st.S.playing?'❚❚':'▶';
-    el.querySelector('[data-a="prev"]').disabled=st.S.i===0;
-    el.querySelector('[data-a="next"]').disabled=st.S.i===st.n-1;
-    el.querySelector('.cap').textContent='beat '+(st.S.i+1)+' / '+st.n; };
-  st.S.sync(); return st;
-}
 function mini3d(canvas,build,yaw0,pitch0){
   const st={yaw:yaw0,pitch:pitch0,dpr:1,w:0,h:0};
   const ctx=canvas.getContext('2d');
@@ -1839,32 +1715,54 @@ function box3(o,s,fill,stroke,lw){
 }
 
 /* ── §07 tabs ────────────────────────────────────────────────────────────── */
-const STORIES={};        // only the visible tab of an open modal may animate
-let A_LVL=32;            // elements across the inlet, written by the slider, read by beat 3
 function numTab(t){
-  for(const k in STORIES) if(k!==t && STORIES[k].pause) STORIES[k].pause();
   document.querySelectorAll('#n-tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('.npane').forEach(p=>p.hidden=(p.dataset.p!==t));
-  requestAnimationFrame(()=>MINI.forEach(m=>m.resize()));
+  requestAnimationFrame(()=>{ MINI.forEach(m=>m.resize()); numWake(); });
 }
 document.querySelectorAll('#n-tabs .tab').forEach(b=>b.onclick=()=>numTab(b.dataset.t));
 
-/* A genuine P1 solve, run in the browser: -k T'' = f on (0,1) with T(0) pinned.
-   The solution is nodally exact, so the nodal gradient's O(h) error and the
-   reaction's exactness are properties of the METHOD, not of any application. */
+/* ═════════════════════════════════════════════════════════════════════════
+   §07 — three theorems of the finite-element method, each told as ONE
+   continuously looping motion in the style of the DrSimulate gallery:
+   dark ground, red for the wrong thing, green for the right thing, yellow
+   for the quantity of interest, no interface. Drag orbits; the loop plays on.
+   ═════════════════════════════════════════════════════════════════════════ */
+const NUM3D={};                       // pane key -> mini3d api
+const NUM_T0=performance.now();
+/* reduced motion: one representative frame, 7.4 s into the 12 s loop —
+   mid-ladder for A, mid-leak for B, the nudged saddle for C */
+const numTime=()=>REDUCED?31.9:(performance.now()-NUM_T0)/1000;
+let NUM_RAF=null;
+function numAnim(){
+  NUM_RAF=null;
+  if($('m-num').hidden||document.hidden) return;   // stops itself; numWake restarts
+  const pane=document.querySelector('.npane:not([hidden])');
+  const api=pane&&NUM3D[pane.dataset.p];
+  if(api) api.draw();
+  if(!REDUCED) NUM_RAF=requestAnimationFrame(numAnim);
+}
+function numWake(){ if(!NUM_RAF) NUM_RAF=requestAnimationFrame(numAnim); }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) numWake(); });
+
+/* dark-ground palette */
+const NC={ wire:'rgba(255,255,255,.85)', dim:'#9AA4AE', yel:'#F2C14E',
+           red:'#E4572E', grn:'#46C97E', blu:'#5FA8E8' };
+const MONO=w=>(w||'600')+' 11px "IBM Plex Mono",monospace';
+
+/* A genuine P1 solve: -k u..xx = f on (0,1), u(0)=1, u(1)=0. Nodally exact,
+   so the nodes sit ON the curve while the chords cut corners — and the two
+   flux readings below are properties of the METHOD, not of an application. */
 const FEM_A=(function(){
   const k=1, f=1, Tin=1, Tout=0, C=Tout-Tin+0.5, qExact=-k*C;
   function solve(n){
     const h=1/n, N=n+1;
-    // unconstrained tridiagonal stiffness + load
     const a=new Float64Array(N), b=new Float64Array(N), c=new Float64Array(N), r=new Float64Array(N);
     for(let i=0;i<N;i++){ b[i]=(i===0||i===N-1)?k/h:2*k/h; if(i>0)a[i]=-k/h; if(i<N-1)c[i]=-k/h;
       r[i]=f*h*((i===0||i===N-1)?0.5:1); }
     const A0=[b[0],c[0]], f0=r[0];                       // the row Dirichlet is about to discard
-    // strong Dirichlet at both ends
     b[0]=1; c[0]=0; r[0]=Tin;
     b[N-1]=1; a[N-1]=0; r[N-1]=Tout;
-    // Thomas
     const cp=new Float64Array(N), dp=new Float64Array(N);
     cp[0]=c[0]/b[0]; dp[0]=r[0]/b[0];
     for(let i=1;i<N;i++){ const m=b[i]-a[i]*cp[i-1]; cp[i]=c[i]/m; dp[i]=(r[i]-a[i]*dp[i-1])/m; }
@@ -1872,335 +1770,242 @@ const FEM_A=(function(){
     for(let i=N-2;i>=0;i--) T[i]=dp[i]-cp[i]*T[i+1];
     const qNodal=-k*(T[1]-T[0])/h;                       // the tempting, wrong one
     const qReact=A0[0]*T[0]+A0[1]*T[1]-f0;               // the consistent reaction
-    return {h,T,qNodal,qReact};
+    return {qNodal,qReact};
   }
-  return {solve,qExact,k,Tin,Tout};
+  return {solve,qExact};
 })();
-
-const FEM_B=(function(){
-  const kR=3.0,kC=1.5,LR=0.6,LC=0.4,Ltot=LR+LC,Tin=80,T0=10;
-  function solve(n,pin){
-    const h=Ltot/n, N=n+1;
-    const a=new Float64Array(N), b=new Float64Array(N), c=new Float64Array(N), r=new Float64Array(N);
-    for(let e=0;e<n;e++){ const xm=(e+0.5)*h, ke=xm<LR?kR:kC, s=ke/h;
-      b[e]+=s; b[e+1]+=s; c[e]-=s; a[e+1]-=s; }
-    const A0=[b[0],c[0]];                                  // the row we are about to overwrite
-    b[N-1]=1; a[N-1]=0; c[N-1]=0; r[N-1]=Tin;              // inlet, always strong
-    if(pin){ b[0]=1; c[0]=0; r[0]=T0; }                    // the mistake: pin the sealed face
-    const cp=new Float64Array(N), dp=new Float64Array(N);
-    cp[0]=c[0]/b[0]; dp[0]=r[0]/b[0];
-    for(let i=1;i<N;i++){ const m=b[i]-a[i]*cp[i-1]; cp[i]=c[i]/m; dp[i]=(r[i]-a[i]*dp[i-1])/m; }
-    const T=new Float64Array(N); T[N-1]=dp[N-1];
-    for(let i=N-2;i>=0;i--) T[i]=dp[i]-cp[i]*T[i+1];
-    const q=pin?(A0[0]*T[0]+A0[1]*T[1]):0;                 // reaction at the sealed face = the leak
-    return {h,T,q:Math.abs(q),Ltot};
-  }
-  return {solve,Ltot,Tin,T0};
-})();
-
-/* ═════════════════════════════════════════════════════════════════════════
-   §07 — three theorems of the finite-element method, told in 3-D.
-   These are not facts about a mine. They are general results in the calculus
-   of variations, and they bite in every Galerkin code ever written. The
-   project's own measurements appear only as EVIDENCE that each theorem holds.
-   ═════════════════════════════════════════════════════════════════════════ */
-
-/* a height field z = f(x,y) over [-1,1]², as painter-sorted quads */
-function surf(f,n,lo,hi,warm){
-  const it=[], h=2/n;
-  for(let i=0;i<n;i++) for(let j=0;j<n;j++){
-    const x0=-1+h*i, x1=x0+h, y0=-1+h*j, y1=y0+h;
-    const q=[[x0,y0,f(x0,y0)],[x1,y0,f(x1,y0)],[x1,y1,f(x1,y1)],[x0,y1,f(x0,y1)]];
-    const zm=(q[0][2]+q[1][2]+q[2][2]+q[3][2])/4, u=clamp01((zm-lo)/(hi-lo));
-    const c=warm?[Math.round(lerp(232,180,u)),Math.round(lerp(238,60,u)),Math.round(lerp(244,40,u))]
-                :[Math.round(lerp(214,26,u)),Math.round(lerp(232,110,u)),Math.round(lerp(244,180,u))];
-    it.push({type:'poly',pts:q,fill:`rgba(${c[0]},${c[1]},${c[2]},.93)`,stroke:'rgba(255,255,255,.5)',lw:.6});
-  }
-  return it;
-}
-/* a P1 hat function φ_i standing on the interval, as a tent */
-const tent=(x,w,hgt,col,op)=>({type:'poly',
-  pts:[[x-w,0,0],[x,0,hgt],[x+w,0,0],[x,0.34,hgt*0.55],[x-w,0.34,0]],
-  fill:col,stroke:'rgba(40,48,56,.5)',lw:.8,op});
 
 (function(){
-  /* ── A · the boundary flux is the equation you deleted ─────────────────── */
-  let A_ST=null, A_MX=null, A_N=32;
-  const EQ_A=[
-    '−∇·(k∇u) = f &nbsp;in Ω &nbsp;&nbsp;·&nbsp;&nbsp; u = g &nbsp;on Γ<sub>D</sub>',
-    'q<sub>Γ</sub> ≟ −k ∂u<sub>h</sub>/∂n |<sub>Γ</sub>',
-    '‖q − q<sub>h</sub>‖ = <b>O(h<sup>p</sup>)</b> &nbsp;— it never becomes exact',
-    'a(u<sub>h</sub>, φ<sub>i</sub>) − ℓ(φ<sub>i</sub>) = r<sub>i</sub>',
-    '∮<sub>Γ</sub> q φ<sub>i</sub> ds = r<sub>i</sub> &nbsp;⟹&nbsp; <b>Q = Σ<sub>i∈Γ</sub> r<sub>i</sub></b>'];
-  const CAP_A=[
-    'A field problem with a value <b>fixed</b> on part of the boundary. The flux that crosses that part is what you usually want — and it is the one thing the solution does not hand you directly.',
-    'The obvious move: differentiate the computed solution at the wall. Its nodal values are <em>exact</em> here, so surely its slope is too.',
-    'It is not. Refine the mesh and the slope keeps moving: <span class="num">50 → 12.5 → 3.1 → 0.78 → 0.20 %</span>. Galerkin makes the solution optimal in <em>energy</em>, and promises nothing about a derivative at a point.',
-    'But the method already knows the answer. Each basis function φ<sub>i</sub> has an equation. At the fixed node that equation was <b>deleted</b> to impose the value. Put it back and evaluate it.',
-    'What is left over <em>is</em> the flux — not an approximation of it. Exact for every mesh, because it is a statement about the discrete system, not about a derivative. <span class="num">Verified to 1e-13</span> at every refinement.'];
-  A_ST=story(5,()=>{ if(A_MX) A_MX.draw(); },[520,520,700,560,520]);
-  A_MX=mini3d($('n3d-a'),()=>{
-    const i=A_ST.S.i, t=A_ST.S.t, it=[];
-    it.push(cage([-1.15,1.15,-0.15,0.65,-0.30,1.15]));
-    // Ω as a slab, Γ_D its left face
-    box3([-1,0,0],[2,0.34,0.30],'rgba(226,232,238,.5)','#9AA3AB',1).forEach(x=>it.push(x));
-    const pin=i>=1?1:seg(t,0,.6);
+  /* ── A · the flux is the equation you deleted ──────────────────────────
+     The mesh refines 2-4-8-16 in a loop. The red arrow (flux read from the
+     first element slope) moves at every refinement and never reaches the
+     dashed exact line; the green arrow (the reaction) never moves at all.
+     Arrow lengths are real solver output, not choreography. */
+  const AL=[2,4,8,16].map(n=>({n,s:FEM_A.solve(n)}));
+  const uEx=x=>1-x+0.5*x*(1-x);                          // exact solution on (0,1)
+  const zOf=u=>0.16+0.56*u;                              // world height of the ribbon
+  const wx=x=>-1+2*x;                                    // (0,1) -> slab x
+  const QS=0.55/FEM_A.qExact;                            // world length per flux unit
+  function ladder(t){                                    // -> {li, lj, e} between rungs
+    if(t<1.5) return {li:0,lj:0,e:1};
+    if(t<2.5) return {li:0,lj:1,e:seg(t,1.5,2.5)};
+    if(t<3.5) return {li:1,lj:1,e:1};
+    if(t<4.5) return {li:1,lj:2,e:seg(t,3.5,4.5)};
+    if(t<5.5) return {li:2,lj:2,e:1};
+    if(t<6.5) return {li:2,lj:3,e:seg(t,5.5,6.5)};
+    return {li:3,lj:3,e:1};
+  }
+  NUM3D.a=mini3d($('n3d-a'),()=>{
+    const tm=numTime(), t=tm%12, it=[];
+    const fade=t>10?seg(t,10.2,11.4):0;                  // seam: crossfade 16 -> 2
+    it.push(cage([-1.95,1.15,-0.05,0.40,-0.30,1.15]));
+    // the slab and its pinned face
+    box3([-1,0,0],[2,0.34,0.30],'rgba(56,66,78,.55)','rgba(154,164,174,.55)',1).forEach(x=>it.push(x));
     it.push({type:'poly',pts:[[-1,0,0],[-1,0.34,0],[-1,0.34,0.30],[-1,0,0.30]],
-      fill:`rgba(42,111,176,${(0.28+0.34*pin).toFixed(2)})`,stroke:'#2A6FB0',lw:1.8});
-    it.push({type:'text',pts:[[-1,0.17,0.52]],text:'ΓD',color:'#2A6FB0',font:'700 12px "IBM Plex Mono",monospace'});
-    it.push({type:'text',pts:[[0.75,0.17,0.46]],text:'Ω',color:'#6B7278',font:'700 12px "IBM Plex Mono",monospace'});
-    if(i===0){ for(let k=0;k<5;k++){ const y=-0.9+0.45*k, g=seg(t,k*0.07,k*0.07+0.5);
-      it.push({type:'arrow',pts:[[-1.35,0.17,0.15],[lerp(-1.35,-1.02,g),0.17,0.15]],stroke:'#E39A26',lw:2.4,head:6}); }
-      it.push({type:'text',pts:[[-1.05,0.17,-0.20]],text:'q = ?',color:'#B4501E',font:'700 12px "IBM Plex Mono",monospace'}); }
-    if(i===1||i===2){                                    // the solution, and the slope read off it
-      const n=i===2?Math.max(2,Math.round(lerp(3,Math.min(24,A_N),t))):3, u=x=>0.55*(1-x*x)*0.5+0.12;
-      let d=''; const pts=[];
-      for(let k=0;k<=40;k++){ const x=-1+2*k/40; pts.push([x,0.17,u(x)+0.32]); }
-      it.push({type:'line',pts,stroke:'#0A6E38',lw:2.4});
-      for(let k=1;k<n;k++){ const x=-1+2*k/n;
-        it.push({type:'line',pts:[[x,0,0],[x,0.34,0]],stroke:'rgba(58,63,69,.28)',lw:.8}); }
-      const x1=-1+2/n;
-      it.push({type:'line',pts:[[-1,0.17,u(-1)+0.32],[x1,0.17,u(x1)+0.32]],stroke:'#C0392B',lw:2.6});
-      it.push({type:'dot',pts:[[-1,0.17,u(-1)+0.32]],r:4,fill:'#2A6FB0'});
-      it.push({type:'dot',pts:[[x1,0.17,u(x1)+0.32]],r:4,fill:'#C0392B'});
-      it.push({type:'text',pts:[[x1+0.30,0.17,u(x1)+0.52]],text:i===2?('h = 2/'+n):'slope',color:'#C0392B',
-        font:'700 11px "IBM Plex Mono",monospace'}); }
-    if(i>=3){                                            // the hat functions, and the one that was deleted
-      const N=5;
-      for(let k=0;k<=N;k++){ const x=-1+2*k/N, edge=k===0;
-        const gl=edge?seg(t,0,.55):1;
-        it.push(tent(x,2/N,edge?0.34+0.30*gl:0.26,
-          edge?`rgba(10,110,56,${(0.35+0.45*gl).toFixed(2)})`:'rgba(180,190,200,.42)'));
-        if(edge) it.push({type:'text',pts:[[x,0.17,0.86+0.10*gl]],text:'φi',color:'#0A6E38',
-          font:'700 12px "IBM Plex Mono",monospace'}); }
-      if(i===4){ const g=seg(t,.25,1);
-        it.push({type:'arrow',pts:[[-1,0.17,0.62],[-1-0.42*g,0.17,0.62]],stroke:'#0A6E38',lw:3,head:8});
-        it.push({type:'text',pts:[[-1.5,0.17,0.40]],text:'ri',color:'#0A6E38',font:'700 13px "IBM Plex Mono",monospace'}); } }
+      fill:'rgba(95,168,232,.32)',stroke:NC.blu,lw:1.8});
+    it.push({type:'text',pts:[[-1,0.17,-0.18]],text:'u fixed',color:NC.blu,font:MONO('700')});
+    // exact solution, faint white
+    const ex=[]; for(let k2=0;k2<=60;k2++){ const x=k2/60; ex.push([wx(x),0.17,zOf(uEx(x))]); }
+    it.push({type:'line',pts:ex,stroke:'rgba(255,255,255,.50)',lw:1.3});
+    // the FE polyline: nodes ON the curve, new nodes sliding up from the chords
+    const {li,lj,e}=ladder(t);
+    function poly(iL,jL,ee,alpha){
+      const nO=AL[iL].n, pts=[], dots=[];
+      for(let s2=0;s2<nO;s2++){
+        const x0=s2/nO, x1=(s2+1)/nO, xm=(x0+x1)/2;
+        pts.push([wx(x0),0.17,zOf(uEx(x0))]); dots.push([wx(x0),0.17,zOf(uEx(x0)),3.5]);
+        if(jL>iL){                                       // midpoint climbs chord -> curve
+          const zc=lerp((zOf(uEx(x0))+zOf(uEx(x1)))/2, zOf(uEx(xm)), ee);
+          pts.push([wx(xm),0.17,zc]); dots.push([wx(xm),0.17,zc,3.5*ee]);
+        }
+      }
+      pts.push([1,0.17,zOf(0)]); dots.push([1,0.17,zOf(0),3.5]);
+      it.push({type:'line',pts,stroke:'rgba(242,193,78,'+(0.95*alpha).toFixed(2)+')',lw:2.6});
+      dots.forEach(d=>{ if(d[3]>0.4) it.push({type:'dot',pts:[[d[0],d[1],d[2]]],r:d[3],
+        fill:'rgba(255,255,255,'+(0.95*alpha).toFixed(2)+')'}); });
+    }
+    if(fade<1) poly(li,lj,e,1-fade);
+    if(fade>0) poly(0,0,1,fade);                         // n=2 rises back through the seam
+    // the two flux readings, in two lanes; the dashed line is the exact value
+    const qN=lerp(lerp(AL[li].s.qNodal,AL[lj].s.qNodal,e),AL[0].s.qNodal,fade);
+    const LR=QS*qN, LG=QS*AL[0].s.qReact;                // reaction: identical at every n
+    it.push({type:'line',pts:[[-1-LG,0.17,0.20],[-1-LG,0.17,0.76]],
+      stroke:'rgba(255,255,255,.65)',lw:1.2,dash:[4,3]});
+    it.push({type:'text',pts:[[-1-LG,0.17,0.90]],text:'exact flux',color:NC.dim,font:MONO()});
+    it.push({type:'arrow',pts:[[-1,0.17,0.30],[-1-LR,0.17,0.30]],stroke:NC.red,lw:2.8,head:8});
+    it.push({type:'text',pts:[[-1.28,0.17,0.14]],text:'slope of uₕ',color:NC.red,font:MONO('700')});
+    it.push({type:'arrow',pts:[[-1,0.17,0.62],[-1-LG,0.17,0.62]],stroke:NC.grn,lw:2.8,head:8});
+    it.push({type:'text',pts:[[-1.28,0.17,0.82]],text:'reaction —\nthe deleted equation',color:NC.grn,font:MONO('700')});
+    // the overshoot bracket: how far the slope reading still is from the truth
+    const gap=LR-LG;
+    if(gap>0.028){
+      it.push({type:'line',pts:[[-1-LG,0.17,0.42],[-1-LR,0.17,0.42]],stroke:NC.red,lw:1.4});
+      it.push({type:'line',pts:[[-1-LG,0.17,0.39],[-1-LG,0.17,0.45]],stroke:NC.red,lw:1.4});
+      it.push({type:'line',pts:[[-1-LR,0.17,0.39],[-1-LR,0.17,0.45]],stroke:NC.red,lw:1.4});
+      it.push({type:'text',pts:[[-1-(LR+LG)/2,0.17,0.52]],text:(t>7.4&&t<10.2)?'O(h) · never exact':'O(h)',color:NC.red,font:MONO('700')});
+    }
+    // the green tip pulses once per refinement: still exact
+    if(lj>li&&e<1){ it.push({type:'dot',pts:[[-1-LG,0.17,0.62]],r:5+9*e,
+      fill:'rgba(70,201,126,'+(0.55*(1-e)).toFixed(2)+')'}); }
+    if(t>7.4&&t<10.2){ const g=seg(t,7.4,8.0)*(1-seg(t,9.6,10.2));
+      it.push({type:'text',pts:[[-1.28,0.17,1.02]],text:'exact at every mesh',
+        color:'rgba(70,201,126,'+(0.95*g).toFixed(2)+')',font:MONO('700')}); }
+    const nShow=fade>0.5?2:AL[lj>li&&e>0.5?lj:li].n;
+    it.push({type:'text',pts:[[0.45,0.17,1.02]],text:'n = '+nShow,color:'#EAF0F6',
+      font:'700 13px "IBM Plex Mono",monospace'});
     return it;
   },-52*Math.PI/180,18*Math.PI/180);
-  storyBar($('st-a'),A_ST,CAP_A,EQ_A);
-  STORIES.a=A_ST;
-  const nIn=$('a-nin');
-  function updA(){ const n=+nIn.value, r=FEM_A.solve(n); A_N=n;
-    $('a-n').textContent=n;
-    $('a-nod').textContent=fmt(r.qNodal,5);
-    $('a-rea').textContent=fmt(r.qReact,5);
-    $('a-exa').textContent=fmt(FEM_A.qExact,5);
-    $('a-err').textContent=(Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)*100).toFixed(2)+'%';
-    // convergence chart
-    const s=$('c-num-a'), W=300,H=178,L=40,R=12,Tp=12,B=32; clear(s);
-    const ns=[]; for(let m=2;m<=512;m*=1.5) ns.push(Math.round(m)); ns.push(512);
-    const pts=ns.map(m=>{ const q=FEM_A.solve(m); return [m,
-      Math.max(1e-16,Math.abs(q.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact)),
-      Math.max(1e-16,Math.abs(q.qReact-FEM_A.qExact)/Math.abs(FEM_A.qExact))]; });
-    const e0=1e-16,e1=1;
-    const X=m=>L+(W-L-R)*(Math.log(m)-Math.log(2))/(Math.log(512)-Math.log(2));
-    const Y=e=>Tp+(H-Tp-B)*(1-(Math.log10(e)-Math.log10(e0))/(Math.log10(e1)-Math.log10(e0)));
-    [0,-4,-8,-12,-16].forEach(p=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(Math.pow(10,p)),y2:Y(Math.pow(10,p))}));
-      s.appendChild(T(L-5,Y(Math.pow(10,p))+4,'1e'+p,{'text-anchor':'end','font-size':'9'})); });
-    [2,8,32,128,512].forEach(m=>s.appendChild(T(X(m),H-13,m,{'text-anchor':'middle','font-size':'9'})));
-    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' '),
-      fill:'none',stroke:'#B4501E','stroke-width':'2.4'}));
-    s.appendChild(E('path',{d:pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[2]).toFixed(1)).join(' '),
-      fill:'none',stroke:'#0A6E38','stroke-width':'2.4'}));
-    s.appendChild(T(W-R-2,Y(pts[pts.length-1][1])-7,'nodal k dT/dn',{'text-anchor':'end',fill:'#B4501E','font-size':'9','font-weight':'700'}));
-    s.appendChild(T(W-R-2,Y(1e-15)-7,'reaction',{'text-anchor':'end',fill:'#0A6E38','font-size':'9','font-weight':'700'}));
-    const cur=Math.max(1e-16,Math.abs(r.qNodal-FEM_A.qExact)/Math.abs(FEM_A.qExact));
-    s.appendChild(E('circle',{cx:X(n),cy:Y(cur),r:4,fill:'#fff',stroke:'#C97A10','stroke-width':'2.6'}));
-    s.appendChild(T((L+W-R)/2,H-2,'elements',{'text-anchor':'middle','font-size':'9'}));
-    s.appendChild(T(-(H/2)+8,10,'relative flux error',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
-  }
-    if(A_ST && A_ST.S.i===2 && A_MX) A_MX.draw();   // the slider IS beat 3's experiment
-  nIn.addEventListener('input',updA);
-  nIn.addEventListener('pointerdown',()=>{ if(A_ST && !A_ST.S.playing && A_ST.S.i!==2) A_ST.go(2,true); });
-  updA();
 })();
 
 (function(){
-  /* ── B · natural means do nothing ──────────────────────────────────────── */
-  let B_ST=null, B_MX=null, B_PIN=false;
-  const EQ_B=[
-    '∫<sub>Ω</sub> k∇u·∇v = ∫<sub>Ω</sub> f v + ∮<sub>∂Ω</sub> (k ∂u/∂n) v ds',
-    '∂u/∂n = 0 &nbsp;⟹&nbsp; ∮<sub>Γ<sub>N</sub></sub> (·) v ds = 0 &nbsp;— <b>nothing to impose</b>',
-    'u = g &nbsp;on Γ<sub>N</sub> &nbsp;⟹&nbsp; q = Δu / Σ(L<sub>i</sub>/k<sub>i</sub>) ≠ 0',
-    'x ∈ Γ<sub>1</sub> ∩ Γ<sub>2</sub> : &nbsp; u(x) = g<sub>1</sub> &nbsp;<b>and</b>&nbsp; u(x) = g<sub>2</sub>',
-    'a(u,v) + (γ/h)∮ u v = ℓ(v) + (γ/h)∮ g v &nbsp; — <b>weakly</b>'];
-  const CAP_B=[
-    'Integrate the strong form by parts and a boundary term appears on its own. Every boundary condition in a finite-element method is a statement about <em>that</em> term.',
-    'A no-flux wall makes the integrand zero, so the term vanishes from the equation. A <b>natural</b> condition is satisfied by writing nothing at all — the wall is sealed because you left it alone.',
-    'Impose it as a value instead and you have not sealed it, you have replaced it. The wall now drives a flux set purely by the material stack — and refining the mesh will never reduce it, because the error is in the model, not the discretisation.',
-    'Worse at a corner. A node on two boundary patches belongs to both. Two strong conditions arrive at one unknown, and the system is over-determined — the flux there is whatever the solver’s tie-break happens to be.',
-    'So impose it <em>weakly</em>: add the condition to the bilinear form with a penalty rather than deleting a row. The corner keeps one equation, both conditions are satisfied in the weak sense, and the leak is <span class="num">exactly zero</span> at every mesh.'];
-  B_ST=story(5,()=>{ if(B_MX) B_MX.draw(); },[520,560,640,700,620]);
-  B_MX=mini3d($('n3d-b'),()=>{
-    const i=B_ST.S.i, t=B_ST.S.t, it=[];
-    it.push(cage([-1.0,0.95,-0.1,0.85,-0.35,1.0]));
-    box3([-0.85,0.05,0.05],[0.85,0.72,0.50],'rgba(206,210,214,.62)','#98A0A8',1).forEach(x=>it.push(x));
-    box3([0.00,0.05,0.05],[0.62,0.72,0.50],'rgba(232,226,212,.78)','#B6AF9C',1).forEach(x=>it.push(x));
-    it.push({type:'text',pts:[[-0.45,0.40,-0.06]],text:'k1',color:'#6B7278',font:'600 11px "IBM Plex Mono",monospace'});
-    it.push({type:'text',pts:[[0.32,0.40,-0.06]],text:'k2',color:'#8A7F63',font:'600 11px "IBM Plex Mono",monospace'});
-    // the boundary term, as a ring on ∂Ω
-    if(i===0){ const g=seg(t,.15,1);
-      it.push({type:'line',pts:[[-0.85,0.05,0.05],[-0.85,0.77,0.05],[-0.85,0.77,0.55],[-0.85,0.05,0.55],[-0.85,0.05,0.05]],
-        stroke:`rgba(201,122,16,${(0.35+0.6*g).toFixed(2)})`,lw:3});
-      it.push({type:'text',pts:[[-0.85,0.40,0.80]],text:'∮ ds',color:'#C97A10',font:'700 13px "IBM Plex Mono",monospace'}); }
-    if(i===1){ const f=1-seg(t,.2,1);                     // the term fades to nothing
-      it.push({type:'line',pts:[[-0.85,0.05,0.05],[-0.85,0.77,0.05],[-0.85,0.77,0.55],[-0.85,0.05,0.55],[-0.85,0.05,0.05]],
-        stroke:`rgba(201,122,16,${(0.9*f).toFixed(2)})`,lw:3,dash:[5,4]});
-      it.push({type:'text',pts:[[-0.85,0.40,0.80]],text:'= 0',color:'#0A6E38',font:'700 13px "IBM Plex Mono",monospace'});
-      [0.22,0.55].forEach(y=>it.push({type:'arrow',pts:[[-0.85,y,0.30],[-0.85-0.001,y,0.30]],stroke:'#00824A',lw:2})); }
-    if(i===2||i===4){                                     // pinned: it leaks. weak: it does not.
-      const leak=i===2?seg(t,.25,1):1-seg(t,.15,.8);
-      it.push({type:'poly',pts:[[-0.85,0.05,0.05],[-0.85,0.77,0.05],[-0.85,0.77,0.55],[-0.85,0.05,0.55]],
-        fill:i===2?`rgba(192,57,43,${(0.10+0.30*leak).toFixed(2)})`:`rgba(10,110,56,${(0.30*(1-leak)+0.10).toFixed(2)})`,
-        stroke:i===2?'#C0392B':'#0A6E38',lw:1.6});
-      [0.22,0.42,0.62].forEach((y,k)=>{ const L=0.42*leak*(i===2?1:1);
-        if(L>0.02) it.push({type:'arrow',pts:[[-0.85,y,0.30],[-0.85-L,y,0.30]],
-          stroke:i===2?'#C0392B':'#0A6E38',lw:2.6,head:7}); });
-      it.push({type:'text',pts:[[-1.42,0.40,0.30]],text:i===2?'q ≠ 0':'q = 0',
-        color:i===2?'#C0392B':'#0A6E38',font:'700 13px "IBM Plex Mono",monospace'}); }
-    if(i===3){                                            // the corner: two masters, one unknown
-      it.push({type:'line',pts:[[0.00,0.05,0.05],[0.00,0.05,0.55]],stroke:'#C0392B',lw:3.4});
-      const g=seg(t,.2,1);
-      it.push({type:'arrow',pts:[[-0.55,0.05,0.62],[lerp(-0.55,-0.06,g),0.05,0.58]],stroke:'#2A6FB0',lw:2.6,head:7});
-      it.push({type:'arrow',pts:[[0.55,0.05,0.62],[lerp(0.55,0.06,g),0.05,0.58]],stroke:'#C97A10',lw:2.6,head:7});
-      it.push({type:'dot',pts:[[0.00,0.05,0.55]],r:4+3*g,fill:'#C0392B'});
-      it.push({type:'text',pts:[[0.00,0.05,0.86]],text:'g1 ? g2',color:'#C0392B',font:'700 12px "IBM Plex Mono",monospace'}); }
+  /* ── B · a sealed wall is sealed by writing nothing ────────────────────
+     Heat streams through a box, glides along the blank sealed face and
+     leaves through the outlet. Then an equation is WRITTEN on the wall
+     (u = T0) and the same wall bleeds. Erasing the equation reseals it. */
+  const PATHS=[ {y:0.15,z:0.14},{y:0.45,z:0.14},
+                {y:0.15,z:0.30},{y:0.45,z:0.30},
+                {y:0.15,z:0.44},{y:0.45,z:0.44} ];
+  function wPt(p,s){                                     // write-nothing streamline
+    if(s<0.45){ const u=s/0.45; return [lerp(-0.75,0.35,u),p.y,p.z]; }
+    if(s<0.70){ const u=(s-0.45)/0.25; return [lerp(0.35,0.72,u),p.y,lerp(p.z,0.50,u*u)]; }
+    const u=(s-0.70)/0.30; return [lerp(0.72,0.25,u),p.y,lerp(0.50,0.84,u)];
+  }
+  const pPt=(p,s)=>[lerp(-0.75,1.22,s),p.y,p.z];         // pinned: straight out the wall
+  NUM3D.b=mini3d($('n3d-b'),()=>{
+    const tm=numTime(), t=tm%12, it=[];
+    const m=seg(t,6.4,7.2)-seg(t,10.8,11.7);             // 0 sealed-by-silence, 1 clamped
+    const ty=seg(t,4.8,6.6)-seg(t,10.3,11.1);            // the equation being written/erased
+    it.push(cage([-1.10,1.55,-0.05,0.65,-0.10,1.05]));
+    box3([-0.8,0,0],[1.6,0.6,0.55],'rgba(44,52,62,.30)','rgba(255,255,255,.40)',1).forEach(x=>it.push(x));
+    // inlet and outlet, both honest boundaries
+    it.push({type:'poly',pts:[[-0.8,0,0],[-0.8,0.6,0],[-0.8,0.6,0.55],[-0.8,0,0.55]],
+      fill:'rgba(95,168,232,.20)',stroke:NC.blu,lw:1.5});
+    it.push({type:'text',pts:[[-0.93,0.3,0.70]],text:'inlet',color:NC.blu,font:MONO('700')});
+    it.push({type:'text',pts:[[-0.97,0.3,0.24]],text:'heat →',color:NC.yel,font:MONO('700')});
+    it.push({type:'line',pts:[[0.05,0.15,0.551],[0.45,0.15,0.551],[0.45,0.45,0.551],[0.05,0.45,0.551],[0.05,0.15,0.551]],
+      stroke:NC.blu,lw:1.5});
+    it.push({type:'text',pts:[[0.25,0.3,0.97]],text:'outlet',color:NC.blu,font:MONO('700')});
+    // the sealed face: green while blank, red once written on
+    const fc=[Math.round(lerp(70,228,m)),Math.round(lerp(201,87,m)),Math.round(lerp(126,46,m))];
+    it.push({type:'poly',pts:[[0.8,0,0],[0.8,0.6,0],[0.8,0.6,0.55],[0.8,0,0.55]],
+      fill:'rgba('+fc[0]+','+fc[1]+','+fc[2]+','+(0.10+0.12*m).toFixed(2)+')',
+      stroke:'rgb('+fc[0]+','+fc[1]+','+fc[2]+')',lw:2});
+    // labels beside the face
+    const gA=(1-m)*(0.4+0.6*seg(t,1,2))*(1-seg(t,4.6,5.4));
+    if(gA>0.03){ it.push({type:'text',pts:[[1.24,0.3,0.72]],text:'write nothing',
+        color:'rgba(70,201,126,'+gA.toFixed(2)+')',font:MONO('700')});
+      it.push({type:'text',pts:[[1.24,0.3,0.55]],text:'no heat crosses\nq·n = 0',
+        color:'rgba(70,201,126,'+gA.toFixed(2)+')',font:MONO('700')}); }
+    if(ty>0.01){ const msg='T = T₀', nch=Math.max(1,Math.round(ty*msg.length));
+      it.push({type:'text',pts:[[0.94,0.3,0.30]],text:msg.slice(0,nch),color:NC.red,
+        font:'700 13px "IBM Plex Mono",monospace',align:'left'}); }
+    const rA=m*(seg(t,7.2,8.0)-seg(t,10.4,11.0));
+    if(rA>0.03) it.push({type:'text',pts:[[1.30,0.3,0.66]],text:'q·n ≠ 0',
+      color:'rgba(228,87,46,'+rA.toFixed(2)+')',font:MONO('700')});
+    // streamlines and the heat riding them
+    PATHS.forEach((p,k)=>{
+      const mk=m, ln=[];
+      for(let s2=0;s2<=20;s2++){ const s=s2/20;
+        const a=wPt(p,s), b=pPt(p,s);
+        ln.push([lerp(a[0],b[0],mk),p.y,lerp(a[2],b[2],mk)]); }
+      it.push({type:'line',pts:ln,stroke:'rgba(154,164,174,.28)',lw:1});
+      for(let j=0;j<3;j++){
+        const s=(tm*0.16+j/3+k*0.137)%1;
+        const a=wPt(p,s), b=pPt(p,s);
+        const q=[lerp(a[0],b[0],mk),p.y,lerp(a[2],b[2],mk)];
+        const al=s>0.85?(1-s)/0.15:1;
+        if(mk>0.5&&q[0]>0.8){                            // through the wall: it is a leak now
+          it.push({type:'arrow',pts:[[q[0]-0.11,q[1],q[2]],[q[0],q[1],q[2]]],
+            stroke:'rgba(228,87,46,'+(0.9*al).toFixed(2)+')',lw:2.4,head:6});
+        } else if(al>0.05){
+          it.push({type:'dot',pts:[q],r:3,fill:'rgba(242,193,78,'+(0.95*al).toFixed(2)+')'});
+        }
+      }
+    });
     return it;
   },-46*Math.PI/180,20*Math.PI/180);
-  storyBar($('st-b'),B_ST,CAP_B,EQ_B);
-  STORIES.b=B_ST;
-  const bIn=$('b-nin');
-  function updB(){ const n=+bIn.value, r=FEM_B.solve(n,B_PIN);
-    $('b-n').textContent=n;
-    $('b-leak').textContent=fmt(r.q,1)+' W/m²';
-    $('b-leakbox').className='st '+(B_PIN?'bad':'hi');
-    const rw=FEM_B.solve(n,false), pin=B_PIN;
-    const s=$('c-num-b'), W=300,H=178,L=38,R=12,Tp=12,B=30; clear(s);
-    const X=x=>L+(W-L-R)*x/FEM_B.Ltot, Y=t=>Tp+(H-Tp-B)*(1-(t-0)/90);
-    s.appendChild(E('rect',{x:X(0),y:Tp,width:X(0.6)-X(0),height:H-Tp-B,fill:'#D0D0CD','fill-opacity':'.35'}));
-    s.appendChild(E('rect',{x:X(0.6),y:Tp,width:X(1.0)-X(0.6),height:H-Tp-B,fill:'#E6E0D2','fill-opacity':'.6'}));
-    s.appendChild(T(X(0.3),Tp+12,'rock',{'text-anchor':'middle',fill:'#6B7278','font-size':'9'}));
-    s.appendChild(T(X(0.8),Tp+12,'concrete',{'text-anchor':'middle',fill:'#6B7278','font-size':'9'}));
-    [0,30,60,90].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
-      s.appendChild(T(L-5,Y(g)+4,g,{'text-anchor':'end','font-size':'9'})); });
-    const path=t=>{ let d=''; for(let i=0;i<t.length;i++){ const x=i*FEM_B.Ltot/(t.length-1);
-      d+=(i?'L':'M')+X(x).toFixed(1)+' '+Y(t[i]).toFixed(1); } return d; };
-    s.appendChild(E('path',{d:path(rw.T),fill:'none',stroke:'#0A6E38','stroke-width':pin?1.4:2.6,'stroke-dasharray':pin?'4 3':''}));
-    if(pin) s.appendChild(E('path',{d:path(r.T),fill:'none',stroke:'#C0392B','stroke-width':'2.6'}));
-    s.appendChild(T(L,H-13,'sealed face',{'text-anchor':'start','font-size':'9',fill:pin?'#C0392B':'#0A6E38','font-weight':'700'}));
-    s.appendChild(T(W-R,H-13,'inlet 80 °C',{'text-anchor':'end','font-size':'9'}));
-    s.appendChild(T(-(H/2)+8,10,'temperature [°C]',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
-    if(B_MX) B_MX.draw(); }
-  bIn.addEventListener('input',updB);
-  document.querySelectorAll('#b-mode .chip').forEach(b=>b.onclick=()=>{
-    B_PIN=b.dataset.b==='pin';
-    document.querySelectorAll('#b-mode .chip').forEach(c=>c.classList.toggle('on',c===b));
-    B_ST.S.playing=false; B_ST.go(B_PIN?2:4,true); updB(); });
-  updB();
 })();
 
 (function(){
-  /* ── C · it is a saddle, not a bowl ────────────────────────────────────── */
-  let C_ST=null, C_MX=null, C_OP=0;
-  const EQ_C=[
-    'min<sub>u</sub> &nbsp;J(u) = ½ u<sup>T</sup>A u − f<sup>T</sup>u &nbsp;&nbsp;⟹&nbsp;&nbsp; A u = f, &nbsp; A ≻ 0',
-    'ℒ(u,p) = J(u) + p<sup>T</sup>(B u − g) &nbsp;— stationary, not minimal',
-    '[ A &nbsp;B<sup>T</sup> ; &nbsp;B &nbsp;<b>0</b> ] [ u ; p ] = [ f ; g ]',
-    'inertia(K) = ( n<sub>u</sub> positive , n<sub>p</sub> <b>negative</b> ) &nbsp;— Sylvester',
-    'K = L D L<sup>T</sup>, &nbsp; D indefinite &nbsp;— no Cholesky, no CG'];
-  const CAP_C=[
-    'An unconstrained energy minimisation is a <b>bowl</b>. The matrix is symmetric positive definite, a ball released anywhere rolls to the one bottom, and every cheap method — Cholesky, conjugate gradients — is built on exactly that shape.',
-    'Now add a constraint the solution must satisfy, and carry it with a Lagrange multiplier. You are no longer minimising: you minimise in u and <em>maximise</em> in p. The bowl becomes a <b>saddle</b>, and the ball no longer settles anywhere.',
-    'Differentiating gives the block system. The multiplier appears in the corner, and the bottom-right block is <b>identically zero</b> — the constraint does not test against itself. That single zero is the whole difficulty.',
-    'The matrix stays symmetric but its eigenvalues now straddle zero: one negative direction per constraint. Measured on this system — <span class="num">17 110 negative pivots</span> against <span class="num">17 123</span> pressure unknowns. The theorem, confirmed by a factorisation.',
-    'So Cholesky is unavailable — it needs every pivot positive — and the constrained problem costs about <b>twice the memory</b> of the SPD problem it would otherwise be. That, not the physics, is what caps the mesh.'];
-  C_ST=story(5,()=>{ if(C_MX) C_MX.draw(); },[620,760,560,620,520]);
-  C_MX=mini3d($('n3d-c'),()=>{
-    const i=C_ST.S.i, t=C_ST.S.t, it=[];
-    it.push(cage([-1.25,1.25,-1.25,1.25,-1.15,1.15]));
-    if(i<=1){                                             // the bowl becomes a saddle
-      const m=i===0?0:seg(t,0,1);                         // 0 → bowl, 1 → saddle
-      const f=(x,y)=>0.72*(x*x - m*2*y*y) - (m?0:0.30);
-      surf(f,11,-0.85,0.75,false).forEach(q=>it.push(q));
-      const bx=i===0?lerp(0.75,0.03,seg(t,.25,1)):lerp(0.03,0.92,seg(t,.35,1));
-      const by=i===0?0:lerp(0.0,0.62,seg(t,.35,1));
-      it.push({type:'dot',pts:[[bx,by,f(bx,by)+0.12]],r:6,fill:'#B4501E'});
-      it.push({type:'text',pts:[[0,-1.15,0.92]],text:i===0?'A > 0':'saddle',
-        color:i===0?'#0A6E38':'#B4501E',font:'700 13px "IBM Plex Mono",monospace'});
-    } else {                                              // the block system, and its inertia
-      const tiles=[[-0.55,0.55,'A','rgba(42,111,176,.92)',0.42],
-                   [0.55,0.55,'BT','rgba(139,184,221,.92)',0.24],
-                   [-0.55,-0.55,'B','rgba(139,184,221,.92)',0.24],
-                   [0.55,-0.55,'0','rgba(214,214,214,.55)',0.012]];
-      tiles.forEach(([x,y,lab,col,h],k)=>{
-        const g=i===2?seg(t,k*0.10,k*0.10+0.6):1, hh=Math.max(0.012,h*g);
-        box3([x-0.42,y-0.42,0],[0.84,0.84,hh],col,lab==='0'?'#C0392B':'#FFFFFF',lab==='0'?1.6:1.1).forEach(q=>it.push(q));
-        it.push({type:'text',pts:[[x,y,hh+0.16]],text:lab,color:'#181C20',font:'700 13px "IBM Plex Mono",monospace'});
-      });
-      if(i>=3){                                           // eigenvalues straddling zero
-        const g=seg(t,.1,1);
-        it.push({type:'line',pts:[[-1.15,0,-0.75],[1.15,0,-0.75]],stroke:'#3A3F45',lw:1.4});
-        it.push({type:'text',pts:[[0,0,-0.95]],text:'0',color:'#6B7278',font:'600 11px "IBM Plex Mono",monospace'});
-        for(let k=0;k<9;k++){ const u=(k+1)/10;
-          it.push({type:'dot',pts:[[lerp(0.06,1.02,u)*g,0,-0.75]],r:3,fill:'#0A6E38'});
-          if(k<4) it.push({type:'dot',pts:[[-lerp(0.10,0.92,k/4)*g,0,-0.75]],r:3.4,fill:'#C0392B'}); }
-        it.push({type:'text',pts:[[-0.62,0,-1.02]],text:'negative',color:'#C0392B',font:'700 11px "IBM Plex Mono",monospace'});
-      }
-      if(i===4){ it.push({type:'text',pts:[[0,0,1.02]],text:'no Cholesky',color:'#C0392B',
-        font:'700 13px "IBM Plex Mono",monospace'}); }
+  /* ── C · a constraint turns the bowl into a saddle ─────────────────────
+     The same two nudges are given twice. On the bowl both roll back. Then
+     the constraint line draws itself, the bowl folds into a saddle, the
+     lowest eigenvalue slides across zero — and the second nudge runs away. */
+  const F=(x,y,c)=>0.62*(x*x+c*y*y)-0.35;
+  const damp=tt=>0.55*Math.exp(-1.15*tt)*Math.sin(2*Math.PI*tt/1.1);
+  NUM3D.c=mini3d($('n3d-c'),()=>{
+    const t=numTime()%12, it=[];
+    const c=lerp(1,-1,seg(t,4.8,6)-seg(t,9.8,11.4));     // +1 bowl, -1 saddle, back again
+    it.push(cage([-1.35,1.35,-1.35,1.35,-1.20,1.05]));
+    // the landscape
+    const n=13,h=2/n, lo=-1.0,hi=0.35;
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++){
+      const x0=-1+h*i,x1=x0+h,y0=-1+h*j,y1=y0+h;
+      const q=[[x0,y0,F(x0,y0,c)],[x1,y0,F(x1,y0,c)],[x1,y1,F(x1,y1,c)],[x0,y1,F(x0,y1,c)]];
+      const u=clamp01(((q[0][2]+q[2][2])/2-lo)/(hi-lo));
+      it.push({type:'poly',pts:q,
+        fill:'rgba('+Math.round(lerp(36,232,u))+','+Math.round(lerp(52,192,u))+','+Math.round(lerp(84,90,u))+',.90)',
+        stroke:'rgba(255,255,255,.20)',lw:.5});
     }
+    // the constraint writes itself across the surface
+    const cl=seg(t,4,4.8)*(1-seg(t,9.8,10.6));
+    if(cl>0.02){ const ln=[], m2=Math.round(24*cl);
+      for(let s2=0;s2<=m2;s2++){ const x=lerp(-0.92,0.92,s2/24); ln.push([x,0,F(x,0,c)+0.04]); }
+      if(ln.length>1) it.push({type:'line',pts:ln,stroke:'rgba(95,168,232,'+(0.95*cl).toFixed(2)+')',lw:2.6});
+      it.push({type:'text',pts:[[1.12,0,F(0.92,0,c)+0.22]],text:'constraint\nBu = g',
+        color:'rgba(95,168,232,'+(0.95*cl).toFixed(2)+')',font:MONO('700')}); }
+    // the solution ball never moves; the ghosts probe the two directions
+    it.push({type:'dot',pts:[[0,0,F(0,0,c)+0.07]],r:6,fill:NC.yel,stroke:'#14181C',lw:1.5});
+    function probe(t0,saddle){
+      const tt=t-t0; if(tt<0||tt>3) return;
+      const tr1=[],tr2=[];
+      for(let s2=0;s2<=30;s2++){ const u2=Math.min(tt,2.3)*s2/30;
+        const d=damp(u2); tr1.push([d,0,F(d,0,c)+0.05]);
+        if(!saddle) tr2.push([0,damp(u2),F(0,damp(u2),c)+0.05]);
+        else { const dr=Math.min(1.0,0.05*Math.exp(2.6*u2)); tr2.push([0,dr,F(0,dr,c)+0.05]); } }
+      it.push({type:'line',pts:tr1,stroke:'rgba(70,201,126,.85)',lw:2});
+      it.push({type:'line',pts:tr2,stroke:saddle?'rgba(228,87,46,.9)':'rgba(70,201,126,.85)',lw:2});
+      if(tt<2.3){
+        const d=damp(tt); it.push({type:'dot',pts:[[d,0,F(d,0,c)+0.06]],r:4,fill:'rgba(200,210,220,.9)'});
+        const dr=saddle?Math.min(1.0,0.05*Math.exp(2.6*tt)):damp(tt);
+        const fa=saddle?clamp01((1.0-dr)/0.2):1;
+        if(fa>0.03) it.push({type:'dot',pts:[[0,dr,F(0,dr,c)+0.06]],r:4,
+          fill:'rgba('+(saddle?'228,87,46':'200,210,220')+','+(0.9*fa).toFixed(2)+')'});
+      }
+      if(saddle){ const l2=seg(tt,0.1,0.7)*(1-seg(tt,1.6,2.2));
+        if(l2>0.03) it.push({type:'text',pts:[[-0.85,0,0.55]],text:'same nudges',
+          color:'rgba(201,212,222,'+l2.toFixed(2)+')',font:MONO('700')}); }
+      const la=seg(tt,0.7,1.3)*(1-seg(tt,2.5,3.0));
+      if(la>0.03){
+        it.push({type:'text',pts:[[0.85,0,F(0.55,0,c)+0.30]],text:'returns',
+          color:'rgba(70,201,126,'+la.toFixed(2)+')',font:MONO('700')});
+        if(saddle) it.push({type:'text',pts:[[0,1.05,F(0,0.85,c)+0.34]],text:'runs away',
+          color:'rgba(228,87,46,'+la.toFixed(2)+')',font:MONO('700')});
+      }
+    }
+    probe(1.5,false);                                    // on the bowl: both come back
+    probe(6.2,true);                                     // on the saddle: one does not
+    // the lowest eigenvalue, sliding across zero
+    it.push({type:'line',pts:[[-0.7,-1.22,-0.95],[0.7,-1.22,-0.95]],stroke:'rgba(154,164,174,.7)',lw:1.3});
+    it.push({type:'line',pts:[[0,-1.22,-1.00],[0,-1.22,-0.90]],stroke:'rgba(154,164,174,.9)',lw:1.3});
+    it.push({type:'text',pts:[[0,-1.22,-1.12]],text:'0',color:NC.dim,font:MONO()});
+    it.push({type:'text',pts:[[-0.98,-1.22,-0.95]],text:'λmin',color:NC.dim,font:MONO()});
+    const xe=0.42*c;
+    it.push({type:'dot',pts:[[xe,-1.22,-0.95]],r:4.5,fill:xe>0?NC.grn:NC.red});
+    if(xe<0) it.push({type:'text',pts:[[-0.52,-1.22,-0.76]],text:'λmin < 0',color:NC.red,font:MONO('700')});
+    // one label at a time, top of the box
+    const upA=(1-seg(t,4.4,5.2))+seg(t,11.2,12);
+    if(upA>0.05) it.push({type:'text',pts:[[0,0,0.92]],text:'every direction uphill',
+      color:'rgba(201,212,222,'+Math.min(0.95,upA).toFixed(2)+')',font:MONO('700')});
+    const sdA=seg(t,5.8,6.6)*(1-seg(t,9.8,10.6));
+    if(sdA>0.05) it.push({type:'text',pts:[[0,0,0.92]],text:'saddle',
+      color:'rgba(228,87,46,'+(0.95*sdA).toFixed(2)+')',font:'700 13px "IBM Plex Mono",monospace'});
     return it;
   },-58*Math.PI/180,24*Math.PI/180);
-  storyBar($('st-c'),C_ST,CAP_C,EQ_C);
-  STORIES.c=C_ST;
-  const box=$('c-op');
-  MUMPS.ops.forEach((o,k)=>{ const b=document.createElement('button');
-    b.className='chip'+(k===0?' on':''); b.textContent=o.n;
-    b.onclick=()=>{ C_OP=k; [...box.children].forEach((c,j)=>c.classList.toggle('on',j===k)); updC(); };
-    box.appendChild(b); });
-  function updC(){ const o=MUMPS.ops[C_OP];
-    $('c-dof').textContent=grp(o.dof); $('c-fill').textContent=fmt(o.fill,1)+'×';
-    $('c-mem').textContent=grp(o.mem)+' MB'; $('c-t').textContent=fmt(o.t,2)+' s';
-    $('c-say').innerHTML=o.piv+'. Factor entries <b>'+grp(o.fac)+'</b> from '+grp(o.nnz)+
-      ' non-zeros — '+fmt(o.gf,1)+'&nbsp;GFLOP of elimination.';
-    let h='<thead><tr><th>Operator</th><th>fill</th><th>GFLOP</th><th>memory</th><th>factor</th></tr></thead><tbody>';
-    MUMPS.ops.forEach((op,k)=>{ h+=`<tr class="clk${k===C_OP?' sel':''}" data-i="${k}"><td>${op.n}</td><td>${fmt(op.fill,1)}×</td>`+
-      `<td>${fmt(op.gf,1)}</td><td>${grp(op.mem)} MB</td><td>${fmt(op.t,2)} s</td></tr>`; });
-    $('c-tab').innerHTML=h+'</tbody>';
-    $('c-tab').querySelectorAll('tr.clk').forEach(tr=>tr.onclick=()=>{ C_OP=+tr.dataset.i;
-      [...box.children].forEach((c,j)=>c.classList.toggle('on',j===C_OP)); updC(); });
-    // scaling chart
-    const s=$('c-num-c'), W=300,H=178,L=42,R=14,Tp=12,B=32; clear(s);
-    const M=MUMPS.meshes;
-    const X=d=>L+(W-L-R)*(Math.log(d)-Math.log(3e5))/(Math.log(9e5)-Math.log(3e5));
-    const Y=m=>Tp+(H-Tp-B)*(1-(Math.log10(m)-Math.log10(500))/(Math.log10(30000)-Math.log10(500)));
-    [1000,3000,10000,30000].forEach(g=>{ s.appendChild(E('line',{class:'grid',x1:L,x2:W-R,y1:Y(g),y2:Y(g)}));
-      s.appendChild(T(L-5,Y(g)+4,(g/1000)+' GB',{'text-anchor':'end','font-size':'8.5'})); });
-    [3e5,5e5,8e5].forEach(d=>s.appendChild(T(X(d),H-13,(d/1e3)+'k',{'text-anchor':'middle','font-size':'9'})));
-    s.appendChild(E('line',{x1:L,x2:W-R,y1:Y(15000),y2:Y(15000),stroke:'#C0392B','stroke-width':'1.3','stroke-dasharray':'5 4'}));
-    s.appendChild(T(W-R-2,Y(15000)-5,'15 GB in-core ceiling',{'text-anchor':'end',fill:'#C0392B','font-size':'8.5','font-weight':'700'}));
-    const ok=M.filter(m=>m.ok);
-    s.appendChild(E('path',{d:ok.map((m,i)=>(i?'L':'M')+X(m.dof).toFixed(1)+' '+Y(m.mem).toFixed(1)).join(' '),
-      fill:'none',stroke:'#2A6FB0','stroke-width':'2.4'}));
-    // measured trend extended to the mesh that did not fit
-    const g=Math.log(M[1].mem/M[0].mem)/Math.log(M[1].dof/M[0].dof);
-    const pred=M[1].mem*Math.pow(M[2].dof/M[1].dof,g);
-    s.appendChild(E('path',{d:'M'+X(M[1].dof)+' '+Y(M[1].mem)+'L'+X(M[2].dof)+' '+Y(pred),
-      fill:'none',stroke:'#2A6FB0','stroke-width':'1.6','stroke-dasharray':'4 3','stroke-opacity':'.7'}));
-    M.forEach(m=>{ const yy=m.ok?m.mem:pred;
-      s.appendChild(E('circle',{cx:X(m.dof),cy:Y(yy),r:m.ok?4.5:5.5,fill:m.ok?'#2A6FB0':'#fff',
-        stroke:m.ok?'#fff':'#C0392B','stroke-width':m.ok?1.6:2.8}));
-      s.appendChild(T(X(m.dof),Y(yy)-11,m.ok?fmt(m.mem/1000,1)+' GB':'✕',
-        {'text-anchor':'middle','font-size':'9','font-weight':'700',fill:m.ok?'#2A6FB0':'#C0392B'})); });
-    s.appendChild(T(X(M[2].dof)-4,Y(pred)+16,'did not fit',{'text-anchor':'end',fill:'#C0392B','font-size':'8.5'}));
-    s.appendChild(T((L+W-R)/2,H-2,'degrees of freedom',{'text-anchor':'middle','font-size':'9'}));
-    s.appendChild(T(-(H/2)+8,10,'factorisation memory',{transform:'rotate(-90)','text-anchor':'middle','font-size':'9'}));
-    if(C_MX) C_MX.draw(); }
-  updC();
 })();
 
-console.log('%c● GEOBATTERY poster build 2026-07-24a · §07 rebuilt as three theorems told in 3-D','color:#009640;font-weight:bold');
+
+console.log('%c● GEOBATTERY poster build 2026-07-24b · §07 as three free-running loops','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
