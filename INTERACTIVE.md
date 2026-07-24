@@ -68,6 +68,13 @@ A SyntaxError anywhere in an inline `<script>` means **the whole block never run
 figure dies at once. Use a real parser: `pip install esprima`, then `esprima.parseScript`.
 It is ES2017, so `??` and `?.` are false positives — check those by eye.
 
+**Parseability is not runnability either.** `const NC` in §07 collided with an existing `NC`
+bound as a *second declarator* of a multi-name const in FIG 4 (`const NF=…, NR=…, NC=RFB.nc;`)
+— the browser threw `Identifier 'NC' has already been declared` and the whole block died.
+esprima accepts this (redeclaration is a binder early-error, not a parse error), and a
+line-anchored `^const NAME` dup scan misses names on continuation lines. Before adding a
+top-level name, grep for `\bNAME\b` across the file and for the comma form `, NAME=`.
+
 **A missing definition looks like several unrelated faults.** Removing `FEM_A` made `updA()`
 throw, the exception escaped to top level, and every later statement — the whole of tabs B
 and C — never executed. Tab A's canvas still drew, because it was built before the throw.
