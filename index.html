@@ -1531,19 +1531,18 @@ function main() {
                  slab:3.87,                                     // the figure renders "a >= 3.87 m rock slab around the water body"
                  slabOp:1.0,                                    // closed and opaque, as printed
                  sMargin:5.0,                                   // ...plus 5 m of drift beyond each end
-                 layers:{ rock:[0,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.42] },
+                 layers:{ rock:[0,0.16], water:[1,1.0], concrete:[1,1.0], air:[1,0.55] },  // AIR_OPACITY
                  // sampled from the printed panel itself: water renders #73b5d3, the slab #bec0c4.
                  // These are pre-divided by this renderer's mean shading factor (~0.85) so the
                  // shaded average matches the panel instead of the far darker base colour.
-                 pal:{ water:[0.484,0.831,0.987], concrete:[0.836,0.806,0.746], air:[0.980,1.000,1.000] },
-                 // The air is the one body the slab cuts OPEN, so it is a hollow shell: both
-                 // walls composite, the rims go denser than the core, and the sectioned ends
-                 // look into the cavity. The panel uses ambient 0.25 / diffuse 0.65, but it is
-                 // lit by PBR + a cubemap + four lights; here that renders #98a2ab against the
-                 // printed #d7e6f2, and no base colour can correct it without exceeding white.
-                 // So the split is rebalanced: enough diffuse for form, enough ambient to stay
-                 // near-white. A flat high ambient is what made it a solid white sausage.
-                 shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.52,0.46,0.03,6] },
+                 pal:{ water:[0.484,0.831,0.987], concrete:[0.836,0.806,0.746], air:[0.843,0.902,0.949] },  // #d7e6f2
+                 // The air is a VOID, and the outward face of a void can never look like one —
+                 // that is a surface bulging towards you. Cull the front faces instead and only
+                 // the far, INNER wall draws, lit from within and curving away: the standard way
+                 // a cavity reads. The panel's own air material then applies unchanged
+                 // (ambient 0.25 / diffuse 0.65 / specular 0.02, #d7e6f2 at AIR_OPACITY) — and
+                 // the darkening this renderer gives it is right for a hole, not a defect.
+                 shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.28,0.62,0.02,6] },
                  hollow:['air'],
                  slabCol:[0.878,0.887,0.906],
                  cam:{ dir:[-0.62,0.78,-0.55], zoom:1.0 } },   // framed on the slab's projected extents
@@ -1643,13 +1642,15 @@ function main() {
       if (F.shade) Object.keys(F.shade).forEach(nm => { const o = objs[nm], h = F.shade[nm];
         if (o) { const pr = o.actor.getProperty(); pr.setLighting(true);
           pr.setAmbient(h[0]); pr.setDiffuse(h[1]); pr.setSpecular(h[2]); pr.setSpecularPower(h[3]); } });
-      // a hollow body must draw its far wall as well as its near one, or the
-      // cavity reads as a solid lump; the clip planes leave the ends open, which
-      // is the section a draughtsman would cut
+      // A cavity is read from the INSIDE. Drawing a void's outward face just makes a
+      // lump that bulges towards the viewer, whichever way it is shaded — so for a
+      // hollow body cull the FRONT faces and let only the far inner wall draw. It is
+      // concave, it is lit from within, and the clip planes leave the ends open, so a
+      // section looks straight down the drift.
       ['water', 'concrete', 'air'].forEach(nm => { const o = objs[nm]; if (!o) return;
+        const hollow = !!(F.hollow && F.hollow.indexOf(nm) >= 0);
         const pr = o.actor.getProperty();
-        pr.setBackfaceCulling(!(F.hollow && F.hollow.indexOf(nm) >= 0));
-        pr.setFrontfaceCulling(false); });
+        pr.setFrontfaceCulling(hollow); pr.setBackfaceCulling(false); });
       if (F.parallel) renderer.getActiveCamera().setParallelProjection(true);            // the panel is a parallel projection
       if (F.slab) buildFigSlab(F.slab, F.slabCol, F.slabOp, F.sMargin); else removeFigSlab();
       if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom, figSlabBox && figSlabBox.corners);
