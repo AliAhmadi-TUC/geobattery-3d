@@ -17,6 +17,24 @@
   "discharge",
   "recover"
  ],
+ "water_mean": {
+  "charge": 66.12920285010448,
+  "store": 19.188021280286176,
+  "discharge": 11.263177112351597,
+  "recover": 12.605999212891094
+ },
+ "phase_label": {
+  "charge": "80 \u00b0C injected",
+  "store": "sealed",
+  "discharge": "10 \u00b0C injected",
+  "recover": "sealed"
+ },
+ "phase_day": {
+  "charge": 61.0,
+  "store": 184.0,
+  "discharge": 245.0,
+  "recover": 365.0
+ },
  "bounds": [
   -8.332438468933105,
   26.159093856811523,

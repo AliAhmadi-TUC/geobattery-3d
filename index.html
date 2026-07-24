@@ -439,6 +439,15 @@
   body.figmode .cbar .grad{ border-color:rgba(0,0,0,.16) !important; }
   body.figmode #panel{ box-shadow:0 14px 44px rgba(20,24,30,.28) !important; }
 
+  #panelBar{ position:absolute; left:50%; transform:translateX(-50%); bottom:26px; z-index:8;
+    display:none; align-items:center; gap:14px; padding:11px 18px; border-radius:12px;
+    background:rgba(255,255,255,.94); border:1px solid #d3cfc5;
+    box-shadow:0 10px 34px rgba(30,34,40,.18); }
+  body.figpanel #panelBar{ display:flex; }
+  #panelBar input[type=range]{ width:210px; accent-color:#0a6e38; cursor:pointer; }
+  #panelLbl{ font:600 12.5px/1 var(--mono); color:#20262e; white-space:nowrap; letter-spacing:.01em; }
+  @media (max-width:640px){ #panelBar{ left:10px; right:10px; transform:none; justify-content:center; }
+    #panelBar input[type=range]{ width:120px; } #panelLbl{ font-size:11px; } }
   #figTitle{ position:absolute; left:30px; top:82px; z-index:6; display:none; pointer-events:none;
     max-width:min(56%,660px); }
   body.figtitle #figTitle{ display:block; }
@@ -604,6 +613,8 @@
   <div class="r"><span>far-field buffer</span><b>≈ 100 m</b></div>
 </aside>
 
+<div id="panelBar" aria-label="phase"><input type="range" id="panelStep" min="0" max="3" step="1" value="0"
+  aria-label="phase"><span id="panelLbl"></span></div>
 <div id="figTitle" aria-hidden="true"><h3 id="figTitleH"></h3><p id="figTitleP"></p></div>
 <div id="figchip" role="status">
   <span class="fk" id="figKick">FIG</span>
@@ -963,7 +974,24 @@ function main() {
     if (!panel3a || !panel3a.meta.phases || panel3a.meta.phases.indexOf(name) < 0) return;
     ['face', 'water'].forEach(nm => { const p = panel3a.actors[nm];
       if (p) p.mapper.setColorByArrayName(name); });
-    panel3a.phase = name; renderWindow.render();
+    panel3a.phase = name;
+    const m = panel3a.meta, i = m.phases.indexOf(name);
+    const lbl = document.getElementById('panelLbl');
+    // the printed panels title themselves this way: "1 · end of charge · water 66 °C",
+    // and that temperature is the VOLUME mean, exported alongside the fields
+    if (lbl) lbl.textContent = (i + 1) + ' · end of ' + name +
+      ((m.water_mean && m.water_mean[name] != null)
+        ? ' · water ' + Math.round(m.water_mean[name]) + ' °C' : '');
+    const sl = document.getElementById('panelStep');
+    if (sl && +sl.value !== i) sl.value = i;
+    renderWindow.render();
+  }
+  function panel3aBar() {
+    const sl = document.getElementById('panelStep');
+    if (!sl || !panel3a) return;
+    sl.max = String(Math.max(0, panel3a.meta.phases.length - 1));
+    sl.oninput = () => panel3aPhase(panel3a.meta.phases[+sl.value] || panel3a.meta.phases[0]);
+    panel3aPhase(panel3a.phase);
   }
   function panel3aShow(on) {
     if (!panel3a) return;
@@ -1669,7 +1697,7 @@ function main() {
       // bounding-box diagonal and a long thin drift then sits in half the frame.
       // Cut at drift_frame z_open. The old preset carried camera_three_quarter,
       // which is FIG 6's camera, not this one.
-      plume:   { bare:1, kick:'FIG 3A', txt:'The printed panel’s own geometry — a 7 m rock sleeve sliced at the crown, end of charge, on the <b>10–80 °C</b> scale.',
+      plume:   { bare:1, kick:'FIG 3A', txt:'The printed panel’s own geometry — a 7 m rock sleeve sliced at the crown, on the <b>10–80 °C</b> scale. Slide through the four phases.',
                  mode:'temperature', panel:'fig3a', repr:'2', parallel:1,
                  cam:{ yaw:0, elev:62, dir:[-0.4398,0.1643,-0.8829], zoom:1.0 } },
       flow:    { bare:1, kick:'FIG 3B', txt:'The charge flow as <b>moving</b> arrows, coloured by |u| on the poster’s own scale. Green marker = inlet, red = outlet.',
@@ -1904,6 +1932,8 @@ function main() {
         loadPanel3A(() => {
           hideScene();                                   // the load is async; re-assert
           panel3aShow(true);
+          document.body.classList.add('figpanel');
+          panel3aBar();
           const m = panel3a.meta, b2 = m.bounds, cn = [];
           [b2[0],b2[1]].forEach(x => [b2[2],b2[3]].forEach(y =>
             [m.z_open - m.depth_m, m.z_open].forEach(z => cn.push([x,y,z]))));
@@ -1911,7 +1941,7 @@ function main() {
           figCam(figViewDir(m.yaw_deg, m.elev_deg) || F.cam.dir, 1.0, cn);
           renderWindow.render();
         });
-      } else if (panel3a) panel3aShow(false);
+      } else { if (panel3a) panel3aShow(false); document.body.classList.remove('figpanel'); }
       figApplied = true;
       renderWindow.render();
     }
@@ -2221,6 +2251,7 @@ function main() {
       document.body.classList.remove('figmode', 'figlabels', 'figkey', 'figbare', 'fignodeck', 'figtitle');
       figCutZ = null;
       if (panel3a) panel3aShow(false);
+      document.body.classList.remove('figpanel');
       setParticleSpeedColor(false);        // the tour drives the glyph colour itself
       removeFigSlab();
       renderer.getActiveCamera().setParallelProjection(false);

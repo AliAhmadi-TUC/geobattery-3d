@@ -85,6 +85,15 @@ def main() -> None:
         print(f"[export] {name}: {part.n_cells} cells, {part.n_points} pts, "
               f"{f.stat().st_size/1e6:.2f} MB, arrays {sorted(part.point_data.keys())}")
 
+    # the printed panel titles each quote the VOLUME-mean water temperature
+    # ("end of charge · water 66 °C"), not a point mean — the wall region is the
+    # most finely meshed and the coldest, so an unweighted mean under-reads it.
+    wmean = {n: float(F6.water_mean_T(geo["water"], n)) for n in fields}
+    label = {n: lab for _, n, lab, _ in F6.PHASES}
+    day = {n: float(d) for _, n, _, d in F6.PHASES}
+    for n in fields:
+        print(f"[export] {n:<10s} volume-mean water T = {wmean[n]:6.2f} °C  ({label.get(n,'')})")
+
     b = np.asarray(parts["face"].bounds, float)
     meta = dict(
         z_open=z_open,
@@ -94,6 +103,9 @@ def main() -> None:
         cmap_gamma=float(F6.CMAP_GAMMA),
         delta_m=float(C.penetration_depth(C.PHASE_DAYS["store"] * C.DAY)),
         phases=list(fields),
+        water_mean={n: wmean[n] for n in fields},
+        phase_label={n: label.get(n, n) for n in fields},
+        phase_day={n: day.get(n, 0.0) for n in fields},
         bounds=[float(v) for v in b],
         parts=written,
     )
