@@ -1132,6 +1132,7 @@ function main() {
       const flip = document.getElementById('clipFlip').checked ? -1 : 1;
       const w = b[ax*2] + t * (b[ax*2+1] - b[ax*2]);     // world position along axis
       Object.values(objs).forEach(o => o.mapper.removeAllClippingPlanes());
+      applySlabClip();                                  // the slab's own cut outlives the UI clip
       if (clipOn) {
         const n = [0,0,0]; n[ax] = flip;
         const o = [(b[0]+b[1])/2, (b[2]+b[3])/2, (b[4]+b[5])/2]; o[ax] = w;
@@ -1727,12 +1728,43 @@ function main() {
       const corners = [];
       [s0, s1].forEach(sv => [wFar, w1].forEach(wv => [z0, zOpen].forEach(zv =>
         corners.push([cx + ax*sv + sx*wv, cy + ay*sv + sy*wv, zv]))));
-      return { len: s1 - s0, wid: w1 - wFar, hgt: zOpen - z0, corners,
+      /* The same six half-spaces the figure script cuts with, in the vtk.js
+         convention: a clipping plane KEEPS the side its normal points into,
+         which is the opposite sign to slab_planes' "remove the positive side". */
+      const at = (sv, wv) => [cx + ax*sv + sx*wv, cy + ay*sv + sy*wv, 0];
+      const planes = [
+        { n: [-ax, -ay, 0], o: at(s1, 0) },        // beyond the far end
+        { n: [ ax,  ay, 0], o: at(s0, 0) },        // beyond the near end
+        { n: [-sx, -sy, 0], o: at(0, w1) },        // past the near flank
+        { n: [ sx,  sy, 0], o: at(0, wFar) },      // past the far flank
+        { n: [0, 0, -1],    o: [0, 0, zOpen] },    // above the opening cut
+        { n: [0, 0,  1],    o: [0, 0, z0] }        // below the floor
+      ];
+      return { len: s1 - s0, wid: w1 - wFar, hgt: zOpen - z0, corners, planes,
                ctr: [cx + ax*sM + sx*wM, cy + ay*sM + sy*wM, (z0 + zOpen) / 2],
                yawDeg: -Math.atan2(ax, ay) * 180 / Math.PI };
     }
     let figSlab = null, figSlabBox = null;
-    function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; } figSlabBox = null; }
+    /* fig01_geometry_v2.render_hero cuts every body to the slab:
+         rock, air, concrete -> all six planes, so they are CONTAINED by the block
+         water              -> planes[:4] only, so it is trimmed in plan but keeps
+                               its full height and the riser still leaves the top
+       Without this the air-filled drift runs 94 m out of a 59 m box. */
+    function applySlabClip() {
+      if (!figSlabBox || !figSlabBox.planes) return;
+      const mk = p => { const pl = vtk.Common.DataModel.vtkPlane.newInstance();
+        pl.setNormal(p.n[0], p.n[1], p.n[2]); pl.setOrigin(p.o[0], p.o[1], p.o[2]); return pl; };
+      [['water', 4], ['air', 6], ['concrete', 6]].forEach(([nm, k]) => {
+        const o = objs[nm]; if (!o) return;
+        for (let i = 0; i < k; i++) o.mapper.addClippingPlane(mk(figSlabBox.planes[i]));
+      });
+    }
+    function clearSlabClip() {
+      ['water', 'air', 'concrete'].forEach(nm => {
+        const o = objs[nm]; if (o) o.mapper.removeAllClippingPlanes(); });
+    }
+    function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; }
+      if (figSlabBox) { figSlabBox = null; clearSlabClip(); } }
     function buildFigSlab(margin, col, opacity, sMargin) {
       removeFigSlab();
       const B = driftSlabBox(margin, sMargin == null ? 5.0 : sMargin);
@@ -1754,6 +1786,7 @@ function main() {
         else { pr.setAmbient(0.62); pr.setDiffuse(0.40); pr.setSpecular(0.03); }
         pr.setEdgeVisibility(true); pr.setEdgeColor(0.46, 0.47, 0.49); pr.setLineWidth(1);
         renderer.addActor(a); figSlab = a; figSlabBox = B;
+        clearSlabClip(); applySlabClip();
       } catch (e) { console.warn('slab unavailable', e); }
     }
 
