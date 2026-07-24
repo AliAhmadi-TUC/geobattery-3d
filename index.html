@@ -1817,22 +1817,27 @@ function main() {
       return pd;
     }
     let figSlab = null, figSlabBox = null;
-    /* fig01_geometry_v2.render_hero cuts every body to the slab:
-         rock, air, concrete -> all six planes, so they are CONTAINED by the block
-         water              -> planes[:4] only, so it is trimmed in plan but keeps
-                               its full height and the riser still leaves the top
-       Without this the air-filled drift runs 94 m out of a 59 m box. */
+    /* fig01_geometry_v2.render_hero cuts every body to the slab, which is what
+       contains them — without it the air-filled drift runs 94 m out of a 59 m box.
+       Plane 4 is the z_open cut, and it is the one the panel does NOT seal:
+         seal = [pl for i, pl in enumerate(planes) if i != 4]
+       so it is the opening. The bodies that come up through it keep their height:
+         water    -> in-plan only, so the riser leaves through the groove
+         air      -> in-plan and floor, so the air-filled drift shows in the groove
+                     instead of being shaved off flush and disappearing under rock
+         concrete -> all six; the plugs sit down in the drift */
+    const SLAB_CLIP = { water: [0,1,2,3], air: [0,1,2,3,5], concrete: [0,1,2,3,4,5] };
     function applySlabClip() {
       if (!figSlabBox || !figSlabBox.planes) return;
       const mk = p => { const pl = vtk.Common.DataModel.vtkPlane.newInstance();
         pl.setNormal(p.n[0], p.n[1], p.n[2]); pl.setOrigin(p.o[0], p.o[1], p.o[2]); return pl; };
-      [['water', 4], ['air', 6], ['concrete', 6]].forEach(([nm, k]) => {
+      Object.keys(SLAB_CLIP).forEach(nm => {
         const o = objs[nm]; if (!o) return;
-        for (let i = 0; i < k; i++) o.mapper.addClippingPlane(mk(figSlabBox.planes[i]));
+        SLAB_CLIP[nm].forEach(i => o.mapper.addClippingPlane(mk(figSlabBox.planes[i])));
       });
     }
     function clearSlabClip() {
-      ['water', 'air', 'concrete'].forEach(nm => {
+      Object.keys(SLAB_CLIP).forEach(nm => {
         const o = objs[nm]; if (o) o.mapper.removeAllClippingPlanes(); });
     }
     function removeFigSlab() { if (figSlab) { renderer.removeActor(figSlab); figSlab = null; }
