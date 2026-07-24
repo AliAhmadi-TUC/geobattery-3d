@@ -1065,6 +1065,7 @@ function main() {
     panel6.mapper.setLookupTable(cividisLUT(cl[0], cl[1]));
     panel6.mapper.setScalarRange(cl[0], cl[1]);
     panel6.field = key;
+    updateColorbar();                       // (b) has its own scale; the bar must follow
     const lbl = document.getElementById('panelLbl');
     if (lbl) lbl.textContent = (panel6.meta.panel_label && panel6.meta.panel_label[key] || key) +
       ' · 0–' + cl[1].toFixed(1) + ' MPa';
@@ -1583,7 +1584,15 @@ function main() {
     function updateColorbar() {
       const g = document.getElementById('cbGrad'), lo = document.getElementById('cbLo'),
             mid = document.getElementById('cbMid'), hi = document.getElementById('cbHi');
-      if (colMode === 'vm' && stressMeta) {
+      // A panel brings its own ramp and its own limits. Left on the lab's von Mises
+      // ramp the bar promised a red top end the cividis geometry can never show,
+      // and quoted the lab's range instead of the panel's.
+      if (panel6 && panel6.actor.getVisibility()) {
+        const cl = (panel6.meta.clim && panel6.meta.clim[panel6.field]) || [0, 30];
+        g.style.background = cssGrad(CIVIDIS);
+        lo.textContent = cl[0].toFixed(0); mid.textContent = 'von Mises [MPa]';
+        hi.textContent = cl[1].toFixed(1);
+      } else if (colMode === 'vm' && stressMeta) {
         g.style.background = cssGrad(STRESS_COLORS);
         lo.textContent = stressMeta.vmin.toFixed(1); mid.textContent = 'von Mises [MPa]'; hi.textContent = stressMeta.vmax.toFixed(1);
       } else if (colMode === 'flow' && flowMeta) {
@@ -2030,6 +2039,7 @@ function main() {
           panel6Show(true);
           document.body.classList.add('figpanel');
           panel6Bar();
+          updateColorbar();
           const m = panel6.meta, b2 = m.bounds, cn = [];
           [b2[0],b2[1]].forEach(x => [b2[2],b2[3]].forEach(y =>
             [b2[4],b2[5]].forEach(z => cn.push([x,y,z]))));
@@ -2353,6 +2363,7 @@ function main() {
       if (panel3a) panel3aShow(false);
       if (panel6) panel6Show(false);
       document.body.classList.remove('figpanel');
+      updateColorbar();
       setParticleSpeedColor(false);        // the tour drives the glyph colour itself
       removeFigSlab();
       renderer.getActiveCamera().setParallelProjection(false);
