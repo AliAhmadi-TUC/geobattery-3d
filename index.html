@@ -1566,12 +1566,17 @@ function main() {
                  // cavity comes from the excavated block, not from hiding faces
                  shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.32,0.60,0.04,10] },
                  slabCol:[0.800,0.812,0.834],
-                 cam:{ dir:[-0.62,0.78,-0.55], zoom:1.0 } },   // framed on the slab's projected extents
+                 // fig01_geometry_v2 ships VARIANT "c": yaw 21, elev 26. The old vector was 9.4 deg off.
+                 cam:{ yaw:21, elev:26, dir:[-0.6734,0.5953,-0.4384], zoom:1.0 } },
       plume:   { bare:1, kick:'FIG 3A', txt:'3-D temperature cut at the crown, on the poster’s <b>10–80 °C</b> scale. Press ▶ to run charge → store → discharge.',
                  mode:'temperature', layers:{ rock:[1,0.34], water:[1,1.0], concrete:[1,0.95], air:[1,0.40] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', play:1, cam:{ dir:[0.62,0.78,-0.55], zoom:1.28 } },
       flow:    { bare:1, kick:'FIG 3B', txt:'The charge flow as <b>moving</b> arrows, coloured by |u| on the poster’s own scale. Green marker = inlet, red = outlet.',
-                 mode:'flow', repr:'2', move:1, cam:{ dir:[0.20,0.96,-0.20], zoom:1.45 } },
+                 // fig02b_flow_arrows: AZIMUTH_DEG = 0, "keep the clean side (lateral) view".
+                 // The old vector looked 14 deg off the drift AXIS — straight down the tunnel,
+                 // 81 deg from the printed panel, which is why the field read as foreshortened.
+                 mode:'flow', repr:'2', move:1,
+                 cam:{ yaw:0, elev:0, dir:[-0.9368,0.3499,0.0], zoom:1.10 } },
       stress:  { bare:1, kick:'FIG 6', txt:'Von Mises stress at end of charge, sliced at the crown — the poster’s panel (a), live.',
                  mode:'vm', layers:{ rock:[1,1.0], water:[1,0.9], concrete:[1,1.0], air:[0,0.3] },
                  clip:{ axis:2, pos:0.60, flip:false }, repr:'2', cam:{ dir:[0.10,0.55,-0.83], zoom:1.35 } },
@@ -1590,6 +1595,37 @@ function main() {
        59 x 21 x 5 m slab wastes two thirds of the frame — the exact complaint in
        the figure script, which is why it carries its own Projector. Under the
        parallel projection the panel uses, the projected extents give it exactly. */
+    /* The figure scripts do not hard-code a world direction — they aim the camera
+       RELATIVE TO THE DRIFT, by a yaw about it and an elevation above the horizontal
+       (fig01_geometry.view_direction). yaw 0 looks straight along -side, broadside on
+       the drift; a small yaw brings one end face back and keeps the axis near
+       horizontal in frame. Reproduced verbatim so the presets can quote the scripts'
+       own numbers instead of a guessed vector. */
+    let _driftFrame = null;
+    function driftAxis() {
+      if (_driftFrame) return _driftFrame;
+      const W = figPoints('water'); if (!W || W.length < 9) return null;
+      let cx = 0, cy = 0; const N = W.length / 3;
+      for (let i = 0; i < W.length; i += 3) { cx += W[i]; cy += W[i+1]; }
+      cx /= N; cy /= N;
+      let sxx = 0, sxy = 0, syy = 0;
+      for (let i = 0; i < W.length; i += 3) {
+        const dx = W[i] - cx, dy = W[i+1] - cy; sxx += dx*dx; sxy += dx*dy; syy += dy*dy; }
+      const th = 0.5 * Math.atan2(2*sxy, sxx - syy);
+      let ax = Math.cos(th), ay = Math.sin(th);
+      if (ay < 0) { ax = -ax; ay = -ay; }
+      _driftFrame = { ax, ay, sx: ay, sy: -ax };
+      return _driftFrame;
+    }
+    function figViewDir(yawDeg, elevDeg) {
+      const F = driftAxis(); if (!F) return null;
+      const f = yawDeg * Math.PI / 180, t = elevDeg * Math.PI / 180;
+      const hx = -Math.cos(f) * F.sx + Math.sin(f) * F.ax;
+      const hy = -Math.cos(f) * F.sy + Math.sin(f) * F.ay;
+      const d = [Math.cos(t) * hx, Math.cos(t) * hy, -Math.sin(t)];
+      const nn = Math.hypot(d[0], d[1], d[2]) || 1;
+      return [d[0]/nn, d[1]/nn, d[2]/nn];
+    }
     function figCam(dir, zoom, corners) {
       const cam = renderer.getActiveCamera();
       let c, R;
@@ -1677,7 +1713,10 @@ function main() {
         pr.setFrontfaceCulling(false); pr.setBackfaceCulling(false); });
       if (F.parallel) renderer.getActiveCamera().setParallelProjection(true);            // the panel is a parallel projection
       if (F.slab) buildFigSlab(F.slab, F.slabCol, F.slabOp, F.sMargin); else removeFigSlab();
-      if (F.cam && !refreshOnly) figCam(F.cam.dir, F.cam.zoom, figSlabBox && figSlabBox.corners);
+      if (F.cam && !refreshOnly) {
+        const dir = (F.cam.yaw != null && figViewDir(F.cam.yaw, F.cam.elev || 0)) || F.cam.dir;
+        figCam(dir, F.cam.zoom, figSlabBox && figSlabBox.corners);
+      }
       if (F.wells) wellActors.forEach(a => a.setVisibility(true));
       document.body.classList.toggle('figbare', !!F.bare);
       document.body.classList.toggle('fignodeck', !!F.nodeck);
