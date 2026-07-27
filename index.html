@@ -1078,6 +1078,12 @@ function main() {
   const CIVIDIS = [[0.000,0.135,0.304],[0.000,0.227,0.427],[0.153,0.325,0.427],
                    [0.291,0.416,0.435],[0.412,0.506,0.443],[0.541,0.600,0.427],
                    [0.686,0.702,0.388],[0.839,0.812,0.322],[0.996,0.929,0.216]];
+  /* updateColorbar is declared inside the load-chain closure, three scopes down;
+     the panel code lives out here, so calling it by name threw a ReferenceError
+     the moment FIG 6 opened. Worse, the throw landed BEFORE the line that writes
+     the slider's caption, which is why that slider also had nothing to say. The
+     inner scope publishes it here instead. */
+  let _colorbar = null;
   let panel6 = null, panel6Loading = false, _cividis = null;
   function cividisLUT(lo, hi) {
     if (!_cividis) {
@@ -1127,9 +1133,10 @@ function main() {
     panel6.mapper.setLookupTable(cividisLUT(cl[0], cl[1]));
     panel6.mapper.setScalarRange(cl[0], cl[1]);
     panel6.field = key;
-    updateColorbar();                       // (b) has its own scale; the bar must follow
-    const lbl = document.getElementById('panelLbl');
-    if (lbl) lbl.textContent = (panel6.meta.panel_label && panel6.meta.panel_label[key] || key) +
+    if (_colorbar) _colorbar();             // (b) has its own scale; the bar must follow
+    const lbl = document.getElementById('panelLbl'), i = panel6.meta.panels.indexOf(key);
+    if (lbl) lbl.textContent = (i + 1) + ' / ' + panel6.meta.panels.length + ' · ' +
+      (panel6.meta.panel_label && panel6.meta.panel_label[key] || key) +
       ' · 0–' + cl[1].toFixed(1) + ' MPa';
     renderWindow.render();
   }
@@ -1644,6 +1651,7 @@ function main() {
     }
 
     // ---- dynamic colourbar: stress > velocity > temperature ----
+    _colorbar = updateColorbar;              // published for the panel code outside this scope
     function updateColorbar() {
       const g = document.getElementById('cbGrad'), lo = document.getElementById('cbLo'),
             mid = document.getElementById('cbMid'), hi = document.getElementById('cbHi');
