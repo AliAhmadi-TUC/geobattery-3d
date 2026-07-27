@@ -2658,7 +2658,7 @@ function main() {
       13:{ l:'One annual cycle · 61 d charge, 123 d storage, 61 d discharge, 120 d recovery',
           p:'The complete duty cycle comprises charge (61 d), sealed storage (123 d), discharge (61 d) and recovery (120 d), totalling one year. The rock does not return to its initial state: heat retained in the near field raises the initial condition of the following cycle, so for this geometry the annual return rises from 7.3 % in year one to 12.8 % by year ten. The governing variable is not the duty cycle but the far-field boundary — in an array of parallel drifts at 10 m pitch the same calculation reaches 98.5 %.' }
     };
-    let _noteT = null;
+    let _noteT = null, _noteStep = null;
     function _wordsIn(el, text, n) {                 // words surface, staggered
       el.textContent = '';
       if (n) { const c = document.createElement('i'); c.className = 'sn';
@@ -2677,6 +2677,15 @@ function main() {
       const box = document.getElementById('tourNote'), line = document.getElementById('tourNoteL'),
             more = document.getElementById('tourMore'), body = document.getElementById('tourMoreP');
       if (!box) return;
+      /* Step 13 re-titles itself on every heat frame as the year plays, so _note
+         was firing dozens of times on one step — each call slamming the
+         disclosure shut and restarting the words. Opening "how we know this"
+         during the cycle was therefore impossible: it closed on the next frame.
+         Re-render only when the STEP actually changes; a new label within the
+         same step belongs to the title, not to the note. */
+      const key = String(n);
+      if (key === _noteStep) return;
+      _noteStep = key;
       clearTimeout(_noteT);
       const d = TOURNOTE[parseInt(n, 10)];
       if (!d) { box.style.display = 'none'; return; }
@@ -2692,8 +2701,9 @@ function main() {
       const show = t && !(tourStep < tourTargetStep);
       if (el) { if (t) { el.textContent = t; el.style.display = show ? 'block' : 'none'; }
                 else el.style.display = 'none'; }
-      if (show) _note(n); else { const b = document.getElementById('tourNote');
-        if (b) b.style.display = 'none'; clearTimeout(_noteT); } }
+      if (show) _note(n);
+      else { const b = document.getElementById('tourNote');
+        if (b) b.style.display = 'none'; clearTimeout(_noteT); _noteStep = null; } }
     const _ff = () => tourStep < tourTargetStep;         // true while fast-forwarding to a target step
     function _showLabels(list, perp, axis) {
       _hideLabels();
