@@ -81,14 +81,14 @@
   /* the step's own words, under its title */
   #tourNote{ position:absolute; top:56px; left:50%; transform:translateX(-50%); z-index:7; display:none;
     width:min(680px,calc(100vw - 40px)); text-align:center; pointer-events:none; }
-  body.touring #tourNote{ pointer-events:auto; }
+  #tourMore{ pointer-events:auto; }
   #tourNoteL{ margin:0; font:400 15px/1.55 system-ui,sans-serif; color:#dde8f7;
     text-shadow:0 1px 8px rgba(0,0,0,.75); }
   /* Words surface one after another. A typewriter paces the reader at its own
      speed; a staggered word-fade is done in under a second and still reads as
      arrival rather than a caption that was always there. */
   #tourNoteL span{ display:inline-block; opacity:0; transform:translateY(9px); filter:blur(5px);
-    animation:wordin .62s cubic-bezier(.19,.72,.3,1) forwards; }
+    animation:wordin .9s cubic-bezier(.19,.72,.3,1) forwards; }
   @keyframes wordin{ to{ opacity:1; transform:none; filter:blur(0); } }
   #tourMore{ margin-top:9px; display:none; }
   #tourMore>summary{ display:inline-block; cursor:pointer; list-style:none;
@@ -105,7 +105,30 @@
     background:rgba(10,16,28,.72); border:1px solid rgba(140,180,240,.24);
     padding:11px 14px; border-radius:11px; backdrop-filter:blur(7px);
     animation:wordin .5s cubic-bezier(.19,.72,.3,1) forwards; }
-  @media (max-width:640px){ #tourNoteL{ font-size:13.5px; } #tourMore>p{ font-size:12px; } }
+  @media (max-width:900px){
+    /* the title is nowrap by default and a step like "Mirroring the halves ->
+       air + concrete ends" simply runs off a phone; let it wrap and inset it
+       clear of a notch */
+    #tourTitle{ white-space:normal; text-align:center; max-width:calc(100vw - 26px);
+      top:calc(10px + env(safe-area-inset-top)); font-size:12.5px; padding:6px 13px;
+      border-radius:15px; line-height:1.35; }
+    #tourNote{ top:calc(58px + env(safe-area-inset-top)); width:calc(100vw - 26px); }
+    #tourNoteL{ font-size:13px; }
+    #tourMore>p{ font-size:12px; }
+  }
+  /* A tour is watched in landscape, where vertical space is the constraint: a
+     paragraph in normal flow would push the model off the screen. Anchor it to
+     the foot instead, scrolling inside its own box. */
+  @media (orientation:landscape) and (max-height:560px){
+    #tourTitle{ top:calc(7px + env(safe-area-inset-top)); font-size:11.5px; padding:4px 12px; }
+    #tourNote{ top:calc(40px + env(safe-area-inset-top)); width:min(620px,calc(100vw - 150px)); }
+    #tourNoteL{ font-size:12px; line-height:1.4; }
+    #tourMore{ margin-top:5px; }
+    #tourMore>summary{ font-size:9.5px; padding:3px 9px; }
+    #tourMore[open]>p{ position:fixed; left:50%; transform:translateX(-50%); margin:0;
+      bottom:calc(9px + env(safe-area-inset-bottom)); width:min(660px,calc(100vw - 28px));
+      max-height:42vh; overflow-y:auto; -webkit-overflow-scrolling:touch; font-size:11.5px; }
+  }
   @media (prefers-reduced-motion:reduce){ #tourNoteL span{ animation:none; opacity:1;
     transform:none; filter:none; } #tourMore>p{ animation:none; } }
   /* during the tour: hide the control widgets but KEEP the Geobattery hero card */
@@ -2511,34 +2534,39 @@ function main() {
        character: a typewriter paces the reader at its own speed, whereas a
        staggered word fade is over quickly and still reads as arrival. */
     const TOURNOTE = {
-      1:{ l:'Not drawn — scanned. Every point here was measured underground.',
-          p:'The geometry comes from a laser survey of the Reiche Zeche research mine in Freiberg, on Sohle 1 at 147 m depth. A Z+F FlexScan 22 mobile platform, running as an extension on a Z+F IMAGER 5016A scanner with SLAM, collected two overlapping point clouds. They were registered to one another with the ICP algorithm and subsampled to a uniform 1 cm spacing. The irregular walls you are looking at are the real ones — historical mining leaves nothing smooth.' },
-      2:{ l:'A cloud of points becomes a surface — Screened Poisson, then remeshed.',
-          p:'Points alone have no surface, so the cloud is turned into one by Screened Poisson reconstruction at octree depth 10, which solves for the field whose gradient best matches the measured normals. The result is then isotropically remeshed to a uniform 20 cm edge length. That resolution is a deliberate choice: fine enough to keep the wall’s real roughness, coarse enough that a decade of coupled physics stays affordable.' },
-      3:{ l:'This interface is the survey itself — 441.5 m² of wetted wall.' },
-      4:{ l:'From here on, the geometry stops being measured and starts being designed.',
-          p:'The survey captured a flooded drift. The air-filled ends and the concrete plugs are not scanned — they are built by mirroring the surveyed halves, because the installation they represent does not exist yet. This is the honest boundary of the model: the water body and the rock wall are measurement, everything added from here is a hypothetical duty cycle. It is why the printed panel carries the line “not an as-built installation”.' },
-      5:{ l:'One injection sphere at the invert, one extraction sphere at the crown.' },
-      6:{ l:'Four materials share a single mesh: water, gneiss, concrete, air.' },
-      7:{ l:'The rock runs 100 m further out — far enough to be no boundary at all.',
-          p:'A thermal problem needs somewhere for heat to go. The drift is embedded in a block of host rock expanded by 100 m, the far-field buffer the poster quotes. Over one storage season the thermal front travels a few metres, so at 100 m the outer boundary never learns anything happened and holding it at the undisturbed rock temperature costs nothing. The array figures remove that buffer deliberately — there, the neighbouring drifts seal it instead, and that single change is what lifts the annual return to 98.5 %.' },
-      8:{ l:'40 679 nodes, 273 794 tetrahedra — the volume everything is solved on.',
-          p:'The surface is filled by constrained Delaunay tetrahedralisation in Gmsh, optimised with Netgen. The cells are graded: small against the wetted wall where the gradients live, large out in the far field where nothing happens. Every number on the poster — the 88.4 MWh stored, the retention, the stress — is an integral over this mesh, so its resolution is the floor under all of them.' },
-      9:{ l:'Inside the tunnel now, at the scale a person would stand in it.' },
-      10:{ l:'80 °C water in for 61 days — the wall takes what it can.' },
-      11:{ l:'Sealed for 123 days. Nothing enters or leaves; the rock keeps drinking.' },
-      12:{ l:'10 °C in, and whatever the rock will give back out.' },
-      13:{ l:'One year, compressed — and the rock ends warmer than it began.' }
+      1:{ l:'Terrestrial laser survey · 1 cm point spacing · Sohle 1, 147 m depth',
+          p:'The geometry derives from a terrestrial laser survey of the Reiche Zeche research and education mine in Freiberg, operated by TU Bergakademie Freiberg, whose drifts extend some 19 km to depths of 230 m. The region of interest lies on Sohle 1 at 147 m depth. Acquisition used a Z+F FlexScan 22 mobile mapping platform operating as an extension unit on a Z+F IMAGER 5016A laser scanner with SLAM capability. Two overlapping point clouds were preprocessed, trajectory-optimised and 3-D filtered in Z+F LaserControl, registered by the iterative closest point algorithm (Besl and McKay, 1992), and subsampled to a uniform 1 cm resolution.' },
+      2:{ l:'Screened Poisson reconstruction · octree depth 10 · remeshed to 20 cm',
+          p:'Surface reconstruction employs the screened Poisson formulation (Kazhdan and Hoppe, 2013), which recovers from the oriented point set an indicator function satisfying Δχ − αχ = ∇·V. Reconstruction was performed in MeshLab at octree depth 10 and followed by isotropic remeshing to a uniform edge length of 20 cm. The resolution is a deliberate compromise: it retains the wall irregularity characteristic of historical excavation, which governs the wetted area, while keeping a decade of coupled simulation computationally tractable.' },
+      3:{ l:'The rock–water interface: 431.1 m² of the 441.5 m² wetted area' },
+      4:{ l:'Beyond this point the geometry is constructed, not surveyed',
+          p:'The survey captured a flooded drift. The air-filled extensions and the concrete plugs represent an installation that does not presently exist; they are generated by reflecting the surveyed halves about the end hinges, a 1 m band at each hinge being assigned to concrete and the remainder to air. This delimits the measured domain: the water body and the 431.1 m² rock–water interface are survey data, whereas the plugs and air-filled ends are design assumptions. The printed panel carries the same qualification — a hypothetical duty cycle, not an as-built installation.' },
+      5:{ l:'Flow boundary conditions: injection at the invert, extraction at the crown' },
+      6:{ l:'Four material regions in one conforming mesh: water, gneiss, concrete, air' },
+      7:{ l:'Host rock extended 100 m — a far field the thermal front never reaches',
+          p:'The reconstructed surface is embedded within a cuboidal host-rock domain expanded by 100 m. The distance follows from the thermal penetration depth: over a 123-day storage phase the diffusive front in gneiss advances only a few metres, so a boundary held at the undisturbed rock temperature at 100 m imposes no artificial constraint on the solution. The array configuration removes this buffer deliberately and replaces it with adiabatic symmetry planes at the mid-planes between neighbouring drifts, which is the single change that raises the annual return from 12.8 % to 98.5 %.' },
+      8:{ l:'Constrained Delaunay tetrahedralisation · 40 679 nodes · 222 646 tetrahedra',
+          p:'The volume is discretised in Gmsh by constrained Delaunay tetrahedralisation with Netgen optimisation, yielding 40,679 nodes, 222,646 tetrahedra and 51,148 boundary triangles. Element size is graded, refined against the wetted wall where the thermal gradients are steepest and coarsened towards the far field. The conjugate heat transfer and thermoelastic problems are solved on this discretisation using first-order Lagrange elements.' },
+      9:{ l:'Interior view · effective radius L_c = 2V/A = 1.05 m' },
+      10:{ l:'Charge phase · 80 °C injected over 61 days',
+          p:'Water is injected at 80 °C for 61 days against an undisturbed rock temperature of 10 °C. Heat is advected along the drift and conducted into the gneiss wall, for which k = 3.0 W m⁻¹ K⁻¹. At the end of the phase the volume-weighted mean water temperature is 66.1 °C and 88.39 MWh has been delivered. Energy crossing the temperature-pinned inlet is evaluated as the reaction on the constrained degrees of freedom — the consistent boundary flux — which closes the energy balance to the order of 10⁻⁶ kWh per phase.' },
+      11:{ l:'Sealed storage · 123 days · mean water temperature 66.1 → 19.2 °C',
+          p:'The drift is sealed for 123 days, with no transport across either port. Heat continues to conduct from the water into the surrounding gneiss until the two approach equilibrium, and the volume-weighted mean water temperature falls from 66.1 °C to 19.2 °C. The heat is not lost but resides in the near-field rock; the recoverable fraction is governed by the Fourier number Fo = α·t_store / L_c², the dimensionless group on which the screening criterion of §04 is constructed.' },
+      12:{ l:'Discharge · 10 °C injected over 61 days · 6.48 MWh recovered',
+          p:'Water is injected at 10 °C for 61 days to sweep the residual heat from the drift. Recovered energy is evaluated as the net quantity −(E_in + E_out), the enthalpy leaving the outlet less that carried in by the cold injection, because the gross outflow overstates the recovery substantially. For the as-built drift in year one, 6.48 MWh is recovered against 88.39 MWh injected, a first-cycle return of 7.3 %.' },
+      13:{ l:'One annual cycle · 61 d charge, 123 d storage, 61 d discharge, 120 d recovery',
+          p:'The complete duty cycle comprises charge (61 d), sealed storage (123 d), discharge (61 d) and recovery (120 d), totalling one year. The rock does not return to its initial state: heat retained in the near field raises the initial condition of the following cycle, so for this geometry the annual return rises from 7.3 % in year one to 12.8 % by year ten. The governing variable is not the duty cycle but the far-field boundary — in an array of parallel drifts at 10 m pitch the same calculation reaches 98.5 %.' }
     };
     let _noteT = null;
     function _wordsIn(el, text) {                    // words surface, staggered
       el.textContent = '';
       if (REDUCED_LAB) { el.textContent = text; return; }
+      let i = 0;
       text.split(/(\s+)/).forEach(w => {
         if (!w.trim()) { el.appendChild(document.createTextNode(w)); return; }
         const sp = document.createElement('span');
         sp.textContent = w;
-        sp.style.animationDelay = (el.querySelectorAll('span').length * 34) + 'ms';
+        sp.style.animationDelay = (i++ * 85) + 'ms';   // deliberate arrival, not a race
         el.appendChild(sp);
       });
     }
