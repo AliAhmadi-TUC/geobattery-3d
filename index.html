@@ -243,6 +243,16 @@
     padding:7px 28px 7px 10px; font:500 12px/1.2 var(--ui); cursor:pointer;
     appearance:none; -webkit-appearance:none; transition:border-color .15s; }
   select:hover{ border-color:var(--heat-700); }
+  /* camera buttons: same visual family as .seg-opt, but they are actions rather
+     than a state, so they never latch — except "set centre", which stays lit
+     while it waits for a click on the model */
+  .camrow{ display:flex; flex-wrap:wrap; gap:4px; }
+  .cbtn{ flex:1 1 auto; min-width:34px; padding:6px 4px; cursor:pointer;
+    background:transparent; color:var(--ink-45); border:1px solid var(--line);
+    border-radius:var(--r-md); font:600 10.5px/1 var(--mono); letter-spacing:.04em; }
+  .cbtn.wide{ flex:1 1 92px; }
+  .cbtn:hover{ color:var(--ink-70); border-color:var(--line-soft); background:rgba(233,233,237,.05); }
+  .cbtn.on{ color:var(--heat-300); border-color:var(--heat); background:var(--heat-900); }
   .seg-src{ position:absolute; width:0; height:0; opacity:0; pointer-events:none; margin:0; padding:0; border:0; }
 
   /* segmented controls (built by the UI layer from the hidden selects) */
@@ -666,6 +676,25 @@
         <div class="row"><label for="wireOp">lattice opacity</label><input type="range" id="wireOp" min="0.05" max="1" step="0.05" value="0.4"></div>
       </div>
     </div>
+
+    <div class="grp" id="camGrp"><h2>Camera</h2>
+      <div class="row camrow">
+        <button class="cbtn" data-view="+x" title="look from +X">+X</button>
+        <button class="cbtn" data-view="-x" title="look from −X">−X</button>
+        <button class="cbtn" data-view="+y" title="look from +Y">+Y</button>
+        <button class="cbtn" data-view="-y" title="look from −Y">−Y</button>
+        <button class="cbtn" data-view="+z" title="look from above">+Z</button>
+        <button class="cbtn" data-view="-z" title="look from below">−Z</button>
+        <button class="cbtn" data-view="iso" title="three-quarter view">iso</button>
+      </div>
+      <div class="row camrow">
+        <button class="cbtn wide" id="camFit" title="frame everything visible">fit to data</button>
+        <button class="cbtn wide" id="camPick" title="click a point on the model to make it the pivot">set centre…</button>
+        <button class="cbtn wide" id="camCentre" title="pivot about the middle of the data again">centre on data</button>
+      </div>
+      <div class="row"><input type="checkbox" id="orthoOn"><label for="orthoOn">parallel projection</label></div>
+      <div class="row"><input type="checkbox" id="camMark"><label for="camMark">show centre of rotation</label></div>
+    </div>
   </div>
 </div>
 
@@ -929,6 +958,146 @@ function main() {
     axesWidget = null; console.warn('orientation axes unavailable', e);
     const _ax = document.getElementById('axesOn'); if (_ax && _ax.closest('.row')) _ax.closest('.row').style.display = 'none';   // hide the dead toggle
   }
+
+
+  /* ---- camera: named views, projection, and a movable centre of rotation ----
+     The trackball rotates about the camera's FOCAL POINT, so "where it looks
+     from" and "what it turns around" are the same setting here. Re-centring
+     therefore moves the focal point and translates the camera by the same
+     vector: the view direction and distance are preserved, the picked point
+     lands in the middle of the screen, and every subsequent rotation pivots
+     about it — which is what ParaView's centre-of-rotation does. */
+  (function () {
+    const cam = () => renderer.getActiveCamera();
+    const bnds = () => renderer.computeVisiblePropBounds();
+    const mid = b => [(b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2];
+    const rad = b => 0.5 * Math.hypot(b[1] - b[0], b[3] - b[2], b[5] - b[4]) || 1;
+    const ok = b => b && isFinite(b[0]) && b[1] >= b[0];
+
+    let marker = null;
+    function markCentre() {
+      const on = (document.getElementById('camMark') || {}).checked;
+      if (!on) { if (marker) marker.setVisibility(false); return; }
+      const b = bnds(); if (!ok(b)) return;
+      const f = cam().getFocalPoint(), r = rad(b) * 0.013;
+      if (!marker) {
+        try {
+          const src = vtk.Filters.Sources.vtkSphereSource.newInstance(
+            { radius: 1, thetaResolution: 20, phiResolution: 20 });
+          const m = vtk.Rendering.Core.vtkMapper.newInstance();
+          m.setInputConnection(src.getOutputPort());
+          marker = vtk.Rendering.Core.vtkActor.newInstance();
+          marker.setMapper(m);
+          const p = marker.getProperty();
+          p.setColor(1.0, 0.42, 0.14); p.setLighting(false);
+          if (marker.setUseBounds) marker.setUseBounds(false);   // never let it drive a fit
+          renderer.addActor(marker);
+        } catch (e) { console.warn('centre marker unavailable', e); return; }
+      }
+      marker.setScale(r, r, r);
+      marker.setPosition(f[0], f[1], f[2]);
+      marker.setVisibility(true);
+    }
+
+    /* "+X" is ParaView's sense: the eye sits on +X looking back at the data,
+       so the VIEW direction is -X. Up is +Z except for the two Z views, where
+       +Z would be parallel to the line of sight and the view would degenerate. */
+    const VIEWS = {
+      '+x': [[-1, 0, 0], [0, 0, 1]], '-x': [[1, 0, 0], [0, 0, 1]],
+      '+y': [[0, -1, 0], [0, 0, 1]], '-y': [[0, 1, 0], [0, 0, 1]],
+      '+z': [[0, 0, -1], [0, 1, 0]], '-z': [[0, 0, 1], [0, 1, 0]],
+      'iso': [[-0.62, 0.78, -0.55], [0, 0, 1]],
+    };
+    function namedView(key) {
+      const v = VIEWS[key]; if (!v) return;
+      const b = bnds(); if (!ok(b)) return;
+      const c = mid(b), R = rad(b), d = v[0], u = v[1], k = cam();
+      k.setFocalPoint(c[0], c[1], c[2]);
+      k.setPosition(c[0] - d[0] * 2.5 * R, c[1] - d[1] * 2.5 * R, c[2] - d[2] * 2.5 * R);
+      k.setViewUp(u[0], u[1], u[2]);
+      renderer.resetCamera();                       // keeps the direction, solves the framing
+      renderer.resetCameraClippingRange();
+      markCentre(); renderWindow.render();
+    }
+
+    function recentre(p) {
+      const k = cam(), f = k.getFocalPoint(), pos = k.getPosition();
+      const d = [p[0] - f[0], p[1] - f[1], p[2] - f[2]];
+      k.setFocalPoint(p[0], p[1], p[2]);
+      k.setPosition(pos[0] + d[0], pos[1] + d[1], pos[2] + d[2]);
+      renderer.resetCameraClippingRange();
+      markCentre(); renderWindow.render();
+    }
+
+    /* Pick in DISPLAY pixels with the origin bottom-left, which is not what a
+       pointer event gives: scale by the canvas backing size so a HiDPI screen
+       does not pick at half the intended place, and flip y. */
+    function pickAt(ev) {
+      const cv = document.querySelector('#view canvas'); if (!cv) return null;
+      const r = cv.getBoundingClientRect(); if (!r.width || !r.height) return null;
+      const x = (ev.clientX - r.left) * (cv.width / r.width);
+      const y = (r.height - (ev.clientY - r.top)) * (cv.height / r.height);
+      const P = vtk.Rendering.Core.vtkCellPicker || vtk.Rendering.Core.vtkPicker;
+      if (!P) return null;
+      try {
+        const pk = P.newInstance();
+        if (pk.setTolerance) pk.setTolerance(0.005);
+        pk.pick([x, y, 0], renderer);
+        const hit = pk.getActors ? pk.getActors() : null;
+        if (hit && hit.length === 0) return null;             // clicked empty space
+        const pos = pk.getPickPosition ? pk.getPickPosition() : null;
+        return (pos && pos.every(v => isFinite(v))) ? pos : null;
+      } catch (e) { console.warn('pick failed', e); return null; }
+    }
+
+    // ---- wiring ----
+    document.querySelectorAll('#camGrp [data-view]').forEach(b =>
+      b.onclick = () => namedView(b.dataset.view));
+
+    const fit = document.getElementById('camFit');
+    if (fit) fit.onclick = () => {
+      renderer.resetCamera(); renderer.resetCameraClippingRange();
+      markCentre(); renderWindow.render();
+    };
+    const onData = document.getElementById('camCentre');
+    if (onData) onData.onclick = () => { const b = bnds(); if (ok(b)) recentre(mid(b)); };
+
+    const ortho = document.getElementById('orthoOn');
+    if (ortho) ortho.onchange = e => {
+      cam().setParallelProjection(!!e.target.checked);
+      renderer.resetCameraClippingRange(); renderWindow.render();
+    };
+    const mk = document.getElementById('camMark');
+    if (mk) mk.onchange = () => { markCentre(); renderWindow.render(); };
+
+    /* Picking shares the canvas with the trackball, so only a click that did
+       NOT drag counts — otherwise every rotation would move the pivot. */
+    const pickBtn = document.getElementById('camPick');
+    let arming = false, downAt = null;
+    function setArmed(v) {
+      arming = v;
+      if (pickBtn) pickBtn.classList.toggle('on', v);
+      const el = document.getElementById('view');
+      if (el) el.style.cursor = v ? 'crosshair' : '';
+    }
+    if (pickBtn) pickBtn.onclick = () => setArmed(!arming);
+    const host = document.getElementById('view');
+    if (host) {
+      host.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; }, true);
+      host.addEventListener('pointerup', e => {
+        if (!arming || !downAt) return;
+        const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
+        downAt = null;
+        if (moved > 5) return;                                 // that was a rotate
+        const p = pickAt(e);
+        setArmed(false);
+        if (p) recentre(p);
+        else setStatus('nothing under the cursor — the centre is unchanged');
+      }, true);
+    }
+    window._camMark = markCentre;      // the tour and figure presets refresh it
+    setTimeout(markCentre, 800);
+  })();
 
   // X/Y/Z labels as an HTML overlay projected from the camera onto the gizmo — deterministic (vtk text-in-gizmo was unreliable).
   // The marker mirrors the main camera's orientation, so we project each world axis' tip through the main camera and lay a <span> there.
