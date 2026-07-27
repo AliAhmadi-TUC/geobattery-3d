@@ -192,15 +192,17 @@
   .grp:first-of-type{ background:none; }
   .grp h2{ display:flex; align-items:center; gap:7px; margin:0 0 9px; cursor:pointer; user-select:none;
     font:500 9.5px/1 var(--mono); letter-spacing:.17em; text-transform:uppercase; color:var(--mut); }
-  .grp h2::before{ content:''; width:10px; height:2px; background:var(--heat); flex:none; }
-  /* a chevron says "there is more this way"; a plus/minus says whether the
-     section is OPEN, which is the thing being toggled */
-  .grp h2::after{ content:'−'; margin-left:auto; flex:none; width:13px; height:13px;
-    display:flex; align-items:center; justify-content:center; border-radius:3px;
-    font:600 13px/1 var(--mono); color:var(--mut-2); border:1px solid var(--line);
-    transition:color .18s, border-color .18s; }
-  .grp.fold h2::after{ content:'+'; }
-  .grp h2:hover::after{ color:var(--heat-300); border-color:var(--heat-700); }
+  /* the heat-coloured mark on the LEFT is the one that carries the state: a
+     dash when the section is open, a plus when it is folded away */
+  .grp h2::before{ content:'−'; width:10px; flex:none; text-align:center;
+    font:600 13px/1 var(--mono); color:var(--heat); }
+  .grp.fold h2::before{ content:'+'; }
+  /* the chevron on the right goes back to what it was: a direction hint, not a
+     second copy of the state */
+  .grp h2::after{ content:''; margin-left:auto; width:6px; height:6px; flex:none;
+    border-right:1.5px solid var(--mut-2); border-bottom:1.5px solid var(--mut-2);
+    transform:rotate(45deg) translate(-1px,-1px); transition:transform .18s; }
+  .grp.fold h2::after{ transform:rotate(-45deg); }
   .grp h2:hover{ color:var(--ink-70); }
   .grp.fold h2{ margin-bottom:0; }
   .grp.fold > *:not(h2){ display:none; }
@@ -3642,7 +3644,6 @@ main();
     setTimeout(stopOrbit, 32000);
   }, 120);
   ['pointerdown', 'wheel', 'touchstart'].forEach(ev => viewEl.addEventListener(ev, stopOrbit, { passive: true }));
-  $('reset').addEventListener('click', () => { stopOrbit(); heroCam(); });
 
   // entering velocity mode: keep a faint water shell visible so the arrows read inside it
   // (setColorMode dims water/concrete/air to low opacity and hides rock)
