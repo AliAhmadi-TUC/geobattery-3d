@@ -7,7 +7,6 @@ storage in flooded mine workings."* The geometry is the real surveyed drift; the
 is hypothetical.
 
 **Live viewer:** https://aliahmadi-tuc.github.io/geobattery-3d/
-**Simple fallback viewer:** https://aliahmadi-tuc.github.io/geobattery-3d/simple/
 
 Authors: **Ali Ahmadi**, Eleni Gerolymatou.
 
@@ -44,8 +43,8 @@ data/
     temperature.vti (legacy, unused by the viewer)
   array/            10 m array-cell scenario — same contract, but has NO air.vtp,
                     NO flow*, NO stress.json (viewer auto-hides those features)
-simple/index.html   minimal <model-viewer> fallback (models/*.gltf)
-models/*.gltf       two baked models for the simple viewer
+models/*.gltf       two baked glTF models — no page loads these since the
+                    simple viewer was removed; kept only as an export artefact
 lab/index.html      redirect stub to the root (legacy URL)
 ```
 
