@@ -77,7 +77,12 @@
     font:600 14px/1.3 system-ui,sans-serif; letter-spacing:.02em; color:#eaf2ff; white-space:nowrap;
     background:rgba(10,16,28,.62); padding:7px 16px; border-radius:999px; border:1px solid rgba(140,180,240,.28);
     backdrop-filter:blur(6px); pointer-events:none; text-shadow:0 1px 6px rgba(0,0,0,.6); }
-  #tourTitle b{ color:var(--heat-300); font-weight:700; margin-right:8px; }
+  /* The step number was a bold badge on the title. With a narration line under
+     every step it read as chrome, so it moves to the head of that line — still
+     available as progress, no longer competing with the title. */
+  #tourNoteL i.sn{ font:600 10.5px var(--mono); font-style:normal; letter-spacing:.14em;
+    color:var(--heat-300); opacity:.85; margin-right:10px; vertical-align:1.5px;
+    white-space:nowrap; }
   /* the step's own words, under its title */
   #tourNote{ position:absolute; top:56px; left:50%; transform:translateX(-50%); z-index:7; display:none;
     width:min(680px,calc(100vw - 40px)); text-align:center; pointer-events:none; }
@@ -2558,9 +2563,11 @@ function main() {
           p:'The complete duty cycle comprises charge (61 d), sealed storage (123 d), discharge (61 d) and recovery (120 d), totalling one year. The rock does not return to its initial state: heat retained in the near field raises the initial condition of the following cycle, so for this geometry the annual return rises from 7.3 % in year one to 12.8 % by year ten. The governing variable is not the duty cycle but the far-field boundary — in an array of parallel drifts at 10 m pitch the same calculation reaches 98.5 %.' }
     };
     let _noteT = null;
-    function _wordsIn(el, text) {                    // words surface, staggered
+    function _wordsIn(el, text, n) {                 // words surface, staggered
       el.textContent = '';
-      if (REDUCED_LAB) { el.textContent = text; return; }
+      if (n) { const c = document.createElement('i'); c.className = 'sn';
+        c.textContent = String(n).padStart(2, '0') + ' / 13'; el.appendChild(c); }
+      if (REDUCED_LAB) { el.appendChild(document.createTextNode(text)); return; }
       let i = 0;
       text.split(/(\s+)/).forEach(w => {
         if (!w.trim()) { el.appendChild(document.createTextNode(w)); return; }
@@ -2582,12 +2589,12 @@ function main() {
       if (d.p) { more.style.display = 'block'; body.textContent = d.p; }
       else more.style.display = 'none';
       // let the step's own motion settle before the words arrive
-      _noteT = setTimeout(() => _wordsIn(line, d.l), 620);
+      _noteT = setTimeout(() => _wordsIn(line, d.l, parseInt(n, 10)), 620);
     }
     function _title(n, t) { const el = document.getElementById('tourTitle');   // step caption at the top of the screen
       if (t) tourStep = parseInt(n, 10) || 0;            // mark the current step (drives seek/fast-forward)
       const show = t && !(tourStep < tourTargetStep);
-      if (el) { if (t) { el.innerHTML = '<b>' + n + '</b>' + t; el.style.display = show ? 'block' : 'none'; }
+      if (el) { if (t) { el.textContent = t; el.style.display = show ? 'block' : 'none'; }
                 else el.style.display = 'none'; }
       if (show) _note(n); else { const b = document.getElementById('tourNote');
         if (b) b.style.display = 'none'; clearTimeout(_noteT); } }
