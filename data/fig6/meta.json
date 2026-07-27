@@ -8,33 +8,47 @@
  ],
  "zoom": 1.42,
  "panels": [
-  "vm_tot",
-  "vm_th",
-  "vm_geo"
+  "vm_geo",
+  "charge",
+  "store",
+  "discharge",
+  "recover"
  ],
  "panel_label": {
-  "vm_tot": "(a) total \u03c3vM, end of charge",
-  "vm_th": "(b) thermally induced \u0394\u03c3",
-  "vm_geo": "(c) geostatic \u03c3vM"
+  "vm_geo": "geostatic \u03c3vM \u00b7 before any heat",
+  "charge": "total \u03c3vM \u00b7 end of charge",
+  "store": "total \u03c3vM \u00b7 end of storage",
+  "discharge": "total \u03c3vM \u00b7 end of discharge",
+  "recover": "total \u03c3vM \u00b7 end of recovery"
  },
  "clim": {
-  "vm_tot": [
+  "vm_geo": [
+   0.0,
+   6.900623865707816
+  ],
+  "charge": [
    0.0,
    30.648768302287714
   ],
-  "vm_th": [
+  "store": [
    0.0,
-   26.84618566329636
+   30.648768302287714
   ],
-  "vm_geo": [
+  "discharge": [
+   0.0,
+   30.648768302287714
+  ],
+  "recover": [
    0.0,
    30.648768302287714
   ]
  },
  "p999": {
   "vm_geo": 6.900623865707816,
-  "vm_tot": 30.648768302287714,
-  "vm_th": 26.84618566329636
+  "charge": 30.648768302287714,
+  "store": 11.402235096154746,
+  "discharge": 8.46206310256046,
+  "recover": 8.300772019231777
  },
  "bounds": [
   -4.742962837219238,

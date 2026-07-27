@@ -501,11 +501,33 @@
     display:none; align-items:center; gap:14px; padding:11px 18px; border-radius:12px;
     background:rgba(255,255,255,.94); border:1px solid #d3cfc5;
     box-shadow:0 10px 34px rgba(30,34,40,.18); }
-  body.figpanel #panelBar{ display:flex; }
+  body.figpanel #panelBar{ display:block; }
+  #panelBar .prow{ display:flex; align-items:center; gap:14px; }
+  /* the slider said what it was showing but never what it DID; the caption is
+     the instruction, the row below it is the read-out */
+  #panelCap{ font:700 9.5px/1.3 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+    color:#0a6e38; margin:0 0 7px; }
+  #panelCap span{ display:block; font:400 11px/1.35 -apple-system,"Segoe UI",sans-serif;
+    letter-spacing:0; text-transform:none; color:#5a6069; margin-top:2px; }
   #panelBar input[type=range]{ width:210px; accent-color:#0a6e38; cursor:pointer; }
   #panelLbl{ font:600 12.5px/1 var(--mono); color:#20262e; white-space:nowrap; letter-spacing:.01em; }
   @media (max-width:640px){ #panelBar{ left:10px; right:10px; transform:none; justify-content:center; }
     #panelBar input[type=range]{ width:120px; } #panelLbl{ font-size:11px; } }
+  /* A ?fig= URL used to paint the ordinary lab — hero camera, default layers —
+     and only swap to the figure once the geometry and any panel data had landed.
+     That intermediate scene is not a slower version of the figure, it is a
+     DIFFERENT picture, and it read as a bug. Cover it until the figure is ready. */
+  #figLoad{ position:fixed; inset:0; z-index:40; display:none; background:#fff;
+    align-items:center; justify-content:center; }
+  body.figloading #figLoad{ display:flex; }
+  #figLoad .fl{ text-align:center; max-width:340px; padding:0 20px; }
+  #figLoad .flb{ height:4px; border-radius:3px; background:#e6e3da; overflow:hidden; }
+  #figLoad .flb i{ display:block; height:100%; width:38%; border-radius:3px;
+    background:linear-gradient(90deg,#0a6e38,#20C368); animation:flrun 1.25s ease-in-out infinite; }
+  @keyframes flrun{ 0%{ transform:translateX(-105%); } 100%{ transform:translateX(320%); } }
+  #figLoadT{ margin:14px 0 4px; font:600 13.5px var(--mono); color:#20262e; }
+  #figLoad .flm{ margin:0; font:400 12px/1.5 -apple-system,"Segoe UI",sans-serif; color:#6d747c; }
+  @media (prefers-reduced-motion:reduce){ #figLoad .flb i{ animation:none; width:100%; } }
   #figTitle{ position:absolute; left:30px; top:82px; z-index:6; display:none; pointer-events:none;
     max-width:min(56%,660px); }
   body.figtitle #figTitle{ display:block; }
@@ -654,6 +676,9 @@
 </button>
 
 <div id="hint" aria-hidden="true"><span class="coarse">drag to rotate · pinch to zoom</span><span class="fine">drag to rotate · scroll to zoom</span></div>
+<div id="figLoad"><div class="fl"><div class="flb"><i></i></div>
+  <p id="figLoadT">Preparing the figure…</p>
+  <p class="flm">The 3-D geometry is loading. This takes a moment on a first visit.</p></div></div>
 <div id="tourTitle" aria-live="polite"></div>
 <div id="tourNote" aria-live="polite">
   <p id="tourNoteL" class="tw"></p>
@@ -675,8 +700,11 @@
   <div class="r"><span>far-field buffer</span><b>≈ 100 m</b></div>
 </aside>
 
-<div id="panelBar" aria-label="phase"><input type="range" id="panelStep" min="0" max="3" step="1" value="0"
-  aria-label="phase"><span id="panelLbl"></span></div>
+<div id="panelBar" aria-label="panel step">
+  <div id="panelCap"></div>
+  <div class="prow"><input type="range" id="panelStep" min="0" max="3" step="1" value="0"
+    aria-label="panel step"><span id="panelLbl"></span></div>
+</div>
 <div id="figTitle" aria-hidden="true"><h3 id="figTitleH"></h3><p id="figTitleP"></p></div>
 <div id="figchip" role="status">
   <span class="fk" id="figKick">FIG</span>
@@ -815,6 +843,30 @@ function tempCTF() {
 function main() {
   if (!window.vtk) { setStatus('vtk.js failed to load.', true); return; }
   const SCENES = { drift:'As-built drift · end of charge', array:'10 m array cell · year 1 cycle' };
+  /* Raise the cover before anything renders: a ?fig= URL must never show the
+     ordinary lab first. A hard timeout takes it down regardless, so a failure
+     leaves the viewer with a working lab rather than a blank screen. */
+  const FIGQ = new URLSearchParams(location.search).get('fig');
+  let _figCover = null;
+  if (FIGQ) {
+    document.body.classList.add('figloading');
+    const t = document.getElementById('figLoadT');
+    if (t) t.textContent = ({ cutaway:'Preparing FIG 2 · the surveyed drift',
+                              plume:'Preparing FIG 3A · the thermal plume',
+                              flow:'Preparing FIG 3B · the charge flow',
+                              stress:'Preparing FIG 6 · von Mises stress',
+                              arraydomain:'Preparing the array cell',
+                              arrayresult:'Preparing the year-10 cell' })[FIGQ]
+                           || 'Preparing the figure…';
+    _figCover = setTimeout(() => figReady('timeout'), 30000);
+  }
+  function figReady(why) {
+    if (_figCover) { clearTimeout(_figCover); _figCover = null; }
+    if (document.body.classList.contains('figloading')) {
+      document.body.classList.remove('figloading');
+      if (why === 'timeout') console.warn('figure cover timed out; showing whatever loaded');
+    }
+  }
   const q = new URLSearchParams(location.search).get('scene');
   const SCENE = (q && SCENES[q]) ? q : 'drift';
   let DATA = 'data/' + SCENE + '/';
@@ -1028,7 +1080,7 @@ function main() {
       panelNote(PANEL3A_PARTS.map(k => actors[k]
         ? k + ' ' + pd[k].getNumberOfPoints() + 'p' : k + ' MISSING').join(' · '));
       if (done) done();
-    }).catch(err => { panel3aLoading = false;
+    }).catch(err => { panel3aLoading = false; figReady('error');
       setStatus('panel load failed: ' + err, true);
       panelNote('panel load FAILED: ' + (err && err.message || err)); });
   }
@@ -1050,19 +1102,25 @@ function main() {
   }
   /* One bar, whichever panel is up: FIG 3A steps through the four phases,
      FIG 6 through the three printed stress panels. */
-  function panelBarInit(steps, apply, current) {
+  function panelBarInit(steps, apply, current, cap, hint) {
     const sl = document.getElementById('panelStep');
     if (!sl || !steps || !steps.length) return;
+    const c = document.getElementById('panelCap');
+    if (c) c.innerHTML = (cap || '') + (hint ? '<span>' + hint + '</span>' : '');
     sl.max = String(steps.length - 1);
     sl.value = String(Math.max(0, steps.indexOf(current)));
     sl.oninput = () => apply(steps[+sl.value] || steps[0]);
     apply(current || steps[0]);
   }
   function panel3aBar() {
-    if (panel3a) panelBarInit(panel3a.meta.phases, panel3aPhase, panel3a.phase);
+    if (panel3a) panelBarInit(panel3a.meta.phases, panel3aPhase, panel3a.phase,
+      'phase of the annual cycle',
+      'Drag to step charge → storage → discharge → recovery. The temperature on the cut face and in the water is that phase’s solved field.');
   }
   function panel6Bar() {
-    if (panel6) panelBarInit(panel6.meta.panels, panel6Field, panel6.field);
+    if (panel6) panelBarInit(panel6.meta.panels, panel6Field, panel6.field,
+      'stress through the year',
+      'Drag to compare the undisturbed geostatic field with the total stress at the end of each phase. All four totals share one colour scale.');
   }
   function panel3aShow(on) {
     if (!panel3a) return;
@@ -1118,11 +1176,14 @@ function main() {
       pr.setAmbient(0.30); pr.setDiffuse(0.72); pr.setSpecular(0.03);
       a.setVisibility(false);
       renderer.addActor(a);
-      panel6 = { meta, actor: a, mapper: m, field: meta.panels[0] };
+      // open on the loudest panel — end of charge — with geostatic one step back
+      // as the reference, rather than starting on the quiet field
+      const first = meta.panels.indexOf('charge') >= 0 ? 'charge' : meta.panels[0];
+      panel6 = { meta, actor: a, mapper: m, field: first };
       panel6Loading = false; setStatus('ready');
       panelNote('sleeve ' + pd.getNumberOfPoints() + 'p · ' + meta.panels.join(' / '));
       if (done) done();
-    }).catch(err => { panel6Loading = false;
+    }).catch(err => { panel6Loading = false; figReady('error');
       setStatus('panel load failed: ' + err, true);
       panelNote('panel load FAILED: ' + (err && err.message || err)); });
   }
@@ -1869,7 +1930,7 @@ function main() {
                  cam:{ yaw:0, elev:0, dir:[-0.9368,0.3499,0.0], zoom:1.10 } },
       // fig07_stress: rc.camera_three_quarter(zoom=1.42) — direction (0.62, 0.78, -0.55),
       // "from -y/-x, above, looking down the drift" — and sliced at the same z_open.
-      stress:  { bare:1, kick:'FIG 6', txt:'The printed panel’s own geometry — a 3 m rock sleeve sliced at the crown. Slide through total, thermal and geostatic.',
+      stress:  { bare:1, kick:'FIG 6', txt:'The printed panel’s own geometry — a 3 m rock sleeve sliced at the crown. Slide through the geostatic field and the total stress at the end of each phase.',
                  mode:'vm', panel:'fig6', repr:'2', parallel:1,
                  cam:{ dir:[0.62,0.78,-0.55], zoom:1.0 } },
       arraydomain:{ bare:1, nodeck:1, kick:'FIX', txt:'The simulated unit cell — the red box in the poster figure — as real geometry. Drifts repeat at 10 m pitch either side.',
@@ -2098,7 +2159,7 @@ function main() {
             [m.z_open - m.depth_m, m.z_open].forEach(z => cn.push([x,y,z]))));
           renderer.getActiveCamera().setParallelProjection(true);
           figCam(figViewDir(m.yaw_deg, m.elev_deg) || F.cam.dir, 1.0, cn);
-          renderWindow.render();
+          renderWindow.render(); figReady();
         });
       } else if (F.panel === 'fig6') {
         const hideScene = () => {
@@ -2123,7 +2184,7 @@ function main() {
             [b2[4],b2[5]].forEach(z => cn.push([x,y,z]))));
           renderer.getActiveCamera().setParallelProjection(true);
           figCam(m.cam_dir, 1.0, cn);
-          renderWindow.render();
+          renderWindow.render(); figReady();
         });
       } else {
         if (panel3a) panel3aShow(false);
@@ -2132,6 +2193,7 @@ function main() {
       }
       figApplied = true;
       renderWindow.render();
+      if (F.panel !== 'fig3a' && F.panel !== 'fig6') figReady();   // panels lift it themselves
     }
     /* ---- FIG 2 rock slab ---------------------------------------------------
        The far-field block is 236 x 294 x 206 m while the drift sits at z ~ 0-2 m,
