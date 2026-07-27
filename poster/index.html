@@ -162,41 +162,44 @@
   @property --ba{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
   @keyframes beamgo{ to{ --ba:360deg; } }
   @keyframes beamland{
-      0%,84%{ box-shadow:0 0 0 0 rgba(10,110,56,0); }
-     93%{ box-shadow:0 0 17px 2px rgba(10,110,56,.72); }
-    100%{ box-shadow:0 0 0 0 rgba(10,110,56,0); } }
-  .chip, .tab, .story button{ position:relative; animation:beamland 3.2s ease-out infinite; }
+      0%,90%{ box-shadow:0 0 0 0 rgba(0,150,64,0); }
+     95%{ box-shadow:0 0 15px 1px rgba(0,150,64,.80); }
+    100%{ box-shadow:0 0 0 0 rgba(0,150,64,0); } }
+  .chip, .tab, .story button{ position:relative; animation:beamland 5.5s ease-out infinite; }
   .chip::before, .tab::before, .story button::before{
     content:''; position:absolute; inset:-2px; border-radius:inherit; padding:2px;
-    background:conic-gradient(from var(--ba), transparent 0 66%,
-      rgba(10,110,56,.30) 79%, #2FE38C 90%, rgba(10,110,56,.30) 95%, transparent 100%);
+    /* TUC green, and a SHORT head: the lit arc was 34 % of the perimeter, so a
+       third of every border was green at any instant — that is an outline that
+       glows, not a light that travels. Now ~10 %, with a pale tip. */
+    background:conic-gradient(from var(--ba), transparent 0 90%,
+      rgba(0,150,64,.35) 93%, var(--grn) 97%, #7BEBAE 99%, transparent 100%);
     -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
             mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite:xor; mask-composite:exclude;
-    animation:beamgo 3.2s linear infinite; pointer-events:none; }
+    animation:beamgo 5.5s linear infinite; pointer-events:none; }
   .chip:nth-of-type(2), .chip:nth-of-type(2)::before,
-  .tab:nth-of-type(2), .tab:nth-of-type(2)::before{ animation-delay:.26s; }
+  .tab:nth-of-type(2), .tab:nth-of-type(2)::before{ animation-delay:.45s; }
   .chip:nth-of-type(3), .chip:nth-of-type(3)::before,
-  .tab:nth-of-type(3), .tab:nth-of-type(3)::before{ animation-delay:.52s; }
-  .chip:nth-of-type(4), .chip:nth-of-type(4)::before{ animation-delay:.78s; }
-  .chip:nth-of-type(5), .chip:nth-of-type(5)::before{ animation-delay:1.04s; }
+  .tab:nth-of-type(3), .tab:nth-of-type(3)::before{ animation-delay:.90s; }
+  .chip:nth-of-type(4), .chip:nth-of-type(4)::before{ animation-delay:1.35s; }
+  .chip:nth-of-type(5), .chip:nth-of-type(5)::before{ animation-delay:1.80s; }
   /* under the cursor, or once chosen, the light stops: it has done its job */
   .chip:hover, .tab:hover, .chip.on{ animation:none; box-shadow:none; }
   .chip:hover::before, .tab:hover::before, .chip.on::before{ animation:none; opacity:0; }
   /* a range thumb is round, so the same beam rides it naturally */
   input[type=range]{ filter:none; }
-  input[type=range]::-webkit-slider-thumb{ animation:beamland 3.2s ease-out infinite; }
-  input[type=range]::-moz-range-thumb{ animation:beamland 3.2s ease-out infinite; }
+  input[type=range]::-webkit-slider-thumb{ animation:beamland 5.5s ease-out infinite; }
+  input[type=range]::-moz-range-thumb{ animation:beamland 5.5s ease-out infinite; }
   input[type=range]:hover::-webkit-slider-thumb,
   input[type=range]:active::-webkit-slider-thumb{ animation:none; }
   /* The same idea where the control is a DRAWN cell: a dash runs the rim once —
      perimeter 2*(106+58) = 328 units — and the stroke flares as it closes. */
   @keyframes cellbeam{
-      0%{ stroke-dashoffset:328; stroke-opacity:.85; stroke-width:1.4; }
-     84%{ stroke-dashoffset:0;   stroke-opacity:.85; stroke-width:1.4; }
-     93%{ stroke-dashoffset:0;   stroke-opacity:1;   stroke-width:3.2; }
-    100%{ stroke-dashoffset:0;   stroke-opacity:.30; stroke-width:1; } }
-  rect.selcell{ stroke-dasharray:44 284; animation:cellbeam 3.2s linear infinite; }
+      0%{ stroke-dashoffset:328; stroke-opacity:.90; stroke-width:1.4; }
+     90%{ stroke-dashoffset:0;   stroke-opacity:.90; stroke-width:1.4; }
+     95%{ stroke-dashoffset:0;   stroke-opacity:1;   stroke-width:3.4; }
+    100%{ stroke-dashoffset:0;   stroke-opacity:0;   stroke-width:1; } }
+  rect.selcell{ stroke-dasharray:34 294; animation:cellbeam 5.5s linear infinite; }
   rect.selcell.on{ animation:none; stroke-dasharray:none; stroke-opacity:1; stroke-width:1.8; }
   @media (prefers-reduced-motion:reduce){
     .chip, .tab, .story button, .chip::before, .tab::before, .story button::before,
@@ -205,14 +208,10 @@
     .chip::before, .tab::before{ background:rgba(10,110,56,.30); }
     rect.selcell{ stroke-dasharray:none; stroke-opacity:.8; } }
   .tab{ border-radius:7px 7px 0 0; }
-  @media (prefers-reduced-motion:reduce){
-    .chip, .tab, .story button, input[type=range]::-webkit-slider-thumb,
-    input[type=range]::-moz-range-thumb{ animation:none; }
-    .chip, .tab{ box-shadow:0 0 0 2.5px rgba(10,110,56,.22); } }   /* the one exception: reduced motion needs a static cue */
   table.tb tr.clk td:first-child::before{ content:''; position:absolute; left:0; top:14%; bottom:14%;
-    width:3.5px; border-radius:2px; background:var(--grn-d); opacity:.35;
-    animation:rowflash 3.2s ease-out infinite; }
-  @keyframes rowflash{ 0%,70%,100%{ opacity:.30; } 25%{ opacity:1; } }
+    width:3.5px; border-radius:2px; background:var(--grn); opacity:0;
+    animation:rowflash 5.5s ease-out infinite; }
+  @keyframes rowflash{ 0%,88%,100%{ opacity:0; } 94%{ opacity:1; } }
   table.tb tr.clk:hover td:first-child::before,
   table.tb tr.clk.sel td:first-child::before{ opacity:1; animation:none; }
   canvas.mini{ box-shadow:none; }
@@ -221,7 +220,7 @@
      set of things it can touch before it starts reading. */
   @keyframes ctlwake{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.9) saturate(1.3); } }
   .modal.wake .chip, .modal.wake .tab,
-  .modal.wake .story button{ animation:ctlwake 1.1s ease-in-out 3, beamland 3.2s ease-out infinite; }
+  .modal.wake .story button{ animation:ctlwake 1.1s ease-in-out 3, beamland 5.5s ease-out infinite; }
   @media (prefers-reduced-motion:reduce){ .modal.wake .chip, .modal.wake input[type=range],
     .modal.wake .tab, .modal.wake .story button{ animation:none; } }
   .chip{ font:600 11px var(--sans); padding:6px 10px; border-radius:7px; cursor:pointer; color:var(--ink-3);
@@ -340,7 +339,7 @@
     <div class="t">Interactive poster<small>ALERT Geomaterials 2026 · Aussois — every figure is live</small></div>
     <span class="sp"></span>
 
-    <a class="labbtn" href="../?b=23mb">3-D lab ↗</a>
+    <a class="labbtn" href="../?b=23mc">3-D lab ↗</a>
   </div></div>
 
   <p class="note">The poster exactly as printed. <b>Every figure is a door</b> — click one and it opens as the real
@@ -353,7 +352,7 @@
       <!-- the printed QR placeholder is covered and replaced by a working button -->
       <div id="qrpatch">
         <div class="k">INTERACTIVE · 3-D MODELS</div>
-        <a id="qrbtn" href="../?b=23mb">
+        <a id="qrbtn" href="../?b=23mc">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2.6 21 7.3v9.4L12 21.4 3 16.7V7.3z"/><path d="M3 7.3 12 12l9-4.7M12 12v9.4"/>
           </svg>
@@ -370,7 +369,7 @@
     <b>Ali Ahmadi</b> &amp; Eleni Gerolymatou — Chair of Geomechanics and Multiphysical Systems, Institute of
     Geotechnology and Mineral Resources, TU&nbsp;Clausthal · MOVIE project. The geometry is the real surveyed
     Reiche&nbsp;Zeche drift; the duty cycle is hypothetical.
-    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../?b=23mb">Full 3-D lab →</a>
+    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../?b=23mc">Full 3-D lab →</a>
   </div>
 
 <div class="scrim" id="scrim">
@@ -785,7 +784,7 @@ const DELIVERED_KWH=454532.3, STORED_KWH=88387.44553, AWET=441.52;
    HOTSPOTS — rectangles measured from poster_ALERT2026_selectable.pdf itself
    (PyMuPDF image + text bboxes), not placed by eye.  % of the poster image.
    ═════════════════════════════════════════════════════════════════════════ */
-const LABV='23mb';                    // bump whenever the lab is redeployed, or a cached
+const LABV='23mc';                    // bump whenever the lab is redeployed, or a cached
                                      // build serves the old figure on a return visit
 const HOT=[
  {l:30.38,t:16.78,w:18.07,h:6.73,  k:'FIG 1',  lab:'Match the calendar to the physics', m:'solar'},
@@ -2492,7 +2491,7 @@ let CELL3D=null, CL=10;
   updCell();
 })();
 
-console.log('%c● GEOBATTERY poster build 2026-07-24ar · a beam that travels the border and lands','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24as · a short comet in TUC green, one lap every 5.5 s','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
