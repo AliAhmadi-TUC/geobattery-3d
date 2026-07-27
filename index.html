@@ -193,12 +193,16 @@
   .grp h2{ display:flex; align-items:center; gap:7px; margin:0 0 9px; cursor:pointer; user-select:none;
     font:500 9.5px/1 var(--mono); letter-spacing:.17em; text-transform:uppercase; color:var(--mut); }
   .grp h2::before{ content:''; width:10px; height:2px; background:var(--heat); flex:none; }
-  .grp h2::after{ content:''; margin-left:auto; width:6px; height:6px; flex:none;
-    border-right:1.5px solid var(--mut-2); border-bottom:1.5px solid var(--mut-2);
-    transform:rotate(45deg) translate(-1px,-1px); transition:transform .18s; }
+  /* a chevron says "there is more this way"; a plus/minus says whether the
+     section is OPEN, which is the thing being toggled */
+  .grp h2::after{ content:'−'; margin-left:auto; flex:none; width:13px; height:13px;
+    display:flex; align-items:center; justify-content:center; border-radius:3px;
+    font:600 13px/1 var(--mono); color:var(--mut-2); border:1px solid var(--line);
+    transition:color .18s, border-color .18s; }
+  .grp.fold h2::after{ content:'+'; }
+  .grp h2:hover::after{ color:var(--heat-300); border-color:var(--heat-700); }
   .grp h2:hover{ color:var(--ink-70); }
   .grp.fold h2{ margin-bottom:0; }
-  .grp.fold h2::after{ transform:rotate(-45deg); }
   .grp.fold > *:not(h2){ display:none; }
 
   .row{ display:flex; align-items:center; gap:10px; margin:7px 0; min-height:24px; }
@@ -246,6 +250,17 @@
   /* camera buttons: same visual family as .seg-opt, but they are actions rather
      than a state, so they never latch — except "set centre", which stays lit
      while it waits for a click on the model */
+  /* the native title tooltip waits about a second and cannot be styled; this one
+     appears in 200 ms and sits clear of the narrow panel */
+  [data-tip]{ position:relative; }
+  [data-tip]::before{ content:attr(data-tip); position:absolute; left:50%; bottom:calc(100% + 7px);
+    transform:translateX(-50%); z-index:30; pointer-events:none; opacity:0;
+    padding:5px 9px; border-radius:6px; background:#11131b; color:var(--ink);
+    border:1px solid var(--line); box-shadow:0 6px 18px rgba(0,0,0,.45);
+    font:500 11px/1.35 var(--ui); letter-spacing:0; text-transform:none;
+    white-space:normal; width:max-content; max-width:190px; text-align:center;
+    transition:opacity .13s .2s; }
+  [data-tip]:hover::before, [data-tip]:focus-visible::before{ opacity:1; }
   .camrow{ display:flex; flex-wrap:wrap; gap:4px; }
   .cbtn{ flex:1 1 auto; min-width:34px; padding:6px 4px; cursor:pointer;
     background:transparent; color:var(--ink-45); border:1px solid var(--line);
@@ -679,21 +694,21 @@
 
     <div class="grp" id="camGrp"><h2>Camera</h2>
       <div class="row camrow">
-        <button class="cbtn" data-view="+x" title="look from +X">+X</button>
-        <button class="cbtn" data-view="-x" title="look from −X">−X</button>
-        <button class="cbtn" data-view="+y" title="look from +Y">+Y</button>
-        <button class="cbtn" data-view="-y" title="look from −Y">−Y</button>
-        <button class="cbtn" data-view="+z" title="look from above">+Z</button>
-        <button class="cbtn" data-view="-z" title="look from below">−Z</button>
-        <button class="cbtn" data-view="iso" title="three-quarter view">iso</button>
+        <button class="cbtn" data-view="+x" data-tip="Look from +X, back along the axis" aria-label="look from plus X">+X</button>
+        <button class="cbtn" data-view="-x" data-tip="Look from −X" aria-label="look from minus X">−X</button>
+        <button class="cbtn" data-view="+y" data-tip="Look from +Y — broadside on the drift" aria-label="look from plus Y">+Y</button>
+        <button class="cbtn" data-view="-y" data-tip="Look from −Y" aria-label="look from minus Y">−Y</button>
+        <button class="cbtn" data-view="+z" data-tip="Plan view — straight down" aria-label="look from above">+Z</button>
+        <button class="cbtn" data-view="-z" data-tip="Look up from underneath" aria-label="look from below">−Z</button>
+        <button class="cbtn" data-view="iso" data-tip="Three-quarter view, the poster’s own angle">iso</button>
       </div>
       <div class="row camrow">
-        <button class="cbtn wide" id="camFit" title="frame everything visible">fit to data</button>
-        <button class="cbtn wide" id="camPick" title="click a point on the model to make it the pivot">set centre…</button>
-        <button class="cbtn wide" id="camCentre" title="pivot about the middle of the data again">centre on data</button>
+        <button class="cbtn wide" id="camFit" data-tip="Frame everything currently visible">fit to data</button>
+        <button class="cbtn wide" id="camPick" data-tip="Then click a point on the model: it becomes the pivot for rotation">set centre…</button>
+        <button class="cbtn wide" id="camCentre" data-tip="Put the pivot back at the middle of the data">centre on data</button>
       </div>
-      <div class="row"><input type="checkbox" id="orthoOn"><label for="orthoOn">parallel projection</label></div>
-      <div class="row"><input type="checkbox" id="camMark"><label for="camMark">show centre of rotation</label></div>
+      <div class="row"><input type="checkbox" id="orthoOn"><label for="orthoOn" data-tip="No perspective: equal lengths stay equal, as the printed panels are drawn">parallel projection</label></div>
+      <div class="row"><input type="checkbox" id="camMark"><label for="camMark" data-tip="A small marker at the point the view turns around">show centre of rotation</label></div>
     </div>
   </div>
 </div>
@@ -756,11 +771,6 @@
     <div class="grad" id="cbGrad"></div>
     <div class="lab"><span id="cbLo">10&nbsp;°C</span><span id="cbHi">80&nbsp;°C</span></div>
   </div>
-  <button id="reset" title="reset view" aria-label="reset view">
-    <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
-      <circle cx="9" cy="9" r="4.7"/><path d="M9 1.6v2.6M9 13.8v2.6M1.6 9h2.6M13.8 9h2.6"/><circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/>
-    </svg>
-  </button>
 </div>
 
 <div id="infoScrim"></div>
@@ -923,6 +933,33 @@ function main() {
   const clipPlane = vtk.Common.DataModel.vtkPlane.newInstance();
   const surfLUT = tempCTF();
 
+  /* ---- mouse map: left rotates, RIGHT pans, wheel zooms ------------------
+     The default trackball style gives no pan on the right button, which is the
+     one motion a ParaView user reaches for first. Swap in the manipulator style
+     and bind it explicitly; if either class is missing from this build the
+     default style stays and the lab behaves as before. */
+  try {
+    const S = vtk.Interaction.Style && vtk.Interaction.Style.vtkInteractorStyleManipulator;
+    const M = vtk.Interaction.Manipulators;
+    if (S && M && M.vtkMouseCameraTrackballRotateManipulator && M.vtkMouseCameraTrackballPanManipulator) {
+      const st = S.newInstance();
+      st.addMouseManipulator(M.vtkMouseCameraTrackballRotateManipulator.newInstance({ button: 1 }));
+      st.addMouseManipulator(M.vtkMouseCameraTrackballPanManipulator.newInstance({ button: 3 }));            // right
+      st.addMouseManipulator(M.vtkMouseCameraTrackballPanManipulator.newInstance({ button: 2 }));            // middle
+      st.addMouseManipulator(M.vtkMouseCameraTrackballPanManipulator.newInstance({ button: 1, shift: true }));
+      if (M.vtkMouseCameraTrackballZoomManipulator)
+        st.addMouseManipulator(M.vtkMouseCameraTrackballZoomManipulator.newInstance({ button: 1, control: true }));
+      if (M.vtkMouseCameraTrackballZoomToMouseManipulator)
+        st.addMouseManipulator(M.vtkMouseCameraTrackballZoomToMouseManipulator.newInstance(
+          { scrollEnabled: true, dragEnabled: false }));
+      if (M.vtkGestureCameraManipulator)
+        st.addGestureManipulator(M.vtkGestureCameraManipulator.newInstance());
+      view.getInteractor().setInteractorStyle(st);
+      const _host = document.getElementById('view');
+      if (_host) _host.addEventListener('contextmenu', e => e.preventDefault());   // else the menu eats the drag
+    }
+  } catch (e) { console.warn('manipulator style unavailable; default mouse map kept', e); }
+
   // ---- orientation axes (bottom-CENTRE) — X/Y/Z direction indicator, toggled from the panel ----
   let axesWidget = null;
   try {
@@ -952,7 +989,16 @@ function main() {
         return true;
       } catch (e) { return false; }
     };
+    /* Calling this once after setEnabled was not enough: the widget recomputes
+       its own viewport (on enable, on resize, on marker updates) and overwrote
+       the centring, so the triad stayed bottom-left. Wrap that recompute so the
+       re-centre always runs last. */
+    if (typeof axesWidget.updateViewport === 'function') {
+      const _orig = axesWidget.updateViewport;
+      axesWidget.updateViewport = (...a) => { const r = _orig.apply(axesWidget, a); _axesCentre(); return r; };
+    }
     if (!_axesCentre()) console.warn('axes triad stays bottom-left: viewport not settable');
+    [0, 120, 500, 1500].forEach(t => setTimeout(_axesCentre, t));
     window.addEventListener('resize', () => setTimeout(_axesCentre, 60));
   } catch (e) {
     axesWidget = null; console.warn('orientation axes unavailable', e);
@@ -1085,7 +1131,7 @@ function main() {
     if (host) {
       host.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; }, true);
       host.addEventListener('pointerup', e => {
-        if (!arming || !downAt) return;
+        if (!arming || !downAt || e.button !== 0) return;   // right-drag is a pan, not a pick
         const moved = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]);
         downAt = null;
         if (moved > 5) return;                                 // that was a rotate
@@ -3463,7 +3509,6 @@ function main() {
       if (fw) fw.onclick = () => { if (touring) { tourPaused = false; tourTargetStep = Math.max(tourTargetStep, tourStep) + 1; } };   // skip to the next step
       if (bk) bk.onclick = () => { if (touring) { tourGoto = Math.max(0, tourStep - 1); touring = false; } }; }   // restart + fast-forward to the previous step
 
-    document.getElementById('reset').onclick = () => { renderer.resetCamera(); renderWindow.render(); };
   }).catch(err => setStatus('Load failed: ' + err, true));
 }
 console.log('%c● GEOBATTERY build 2026-07-23l · FIG 2: outlet and its plug on opposite sides');
@@ -3661,8 +3706,12 @@ main();
       body: '“Clip” slices the model with a movable plane — it’s cutting through now. “Field plane” instead drops a cross-section that paints the active field through the surrounding rock.' },
     { sel: '#reprGrp', title: 'Style & orientation',
       body: 'Switch surface / wireframe / points / 3-D lattice — showing the wireframe now. Also toggles mesh edges (on the surface) and the X·Y·Z orientation axes at the bottom-left corner.' },
-    { sel: '#reset',   title: 'Reset & the guided tour',
-      body: 'Reframe the view at any time with this button. For the narrated fly-through, hit ▶ guided tour under the title. That’s it — enjoy exploring!' },
+    { sel: '#camGrp',  title: 'Move the camera',
+      body: 'Six named views put the eye on an axis — +Y is broadside on the drift, +Z looks straight down. “Fit to data” reframes everything visible, and “parallel projection” drops perspective so equal lengths stay equal, the way the printed panels are drawn. Right-drag pans, the wheel zooms.' },
+    { sel: '#camPick', title: 'Choose what it turns around',
+      body: 'Press this, then click any point on the model: that point becomes the pivot, and it moves to the middle of the screen. Every rotation after that turns about it — useful for studying one chamber instead of the whole drift. “Centre on data” puts the pivot back.' },
+    { sel: '#tutBtn',  title: 'The guided tour',
+      body: 'For the narrated fly-through, hit ▶ guided tour under the title. That’s it — enjoy exploring!' },
   ];
   const coach = $('coach'), hole = $('coachHole'), ccard = $('coachCard');
   let cIdx = 0, coachSnap = null, coachDemoT = null;
