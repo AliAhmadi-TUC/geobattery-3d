@@ -2314,6 +2314,15 @@ function main() {
         pr.setBackfaceCulling(false);                      // the excavation is seen from inside
         renderer.addActor(a); figSlab = a; figSlabBox = B;
         clearSlabClip(); applySlabClip();
+        /* Reasoning from the source has twice failed to explain what this renders,
+           so make it state its own case: the groove cell count is the one number
+           that separates "excavated but mis-framed" from "never excavated". */
+        const W0 = figPoints('water'), A0 = figPoints('air');
+        let opened = 0; if (B.mask) for (let i = 0; i < B.mask.a.length; i++) opened += B.mask.a[i];
+        panelNote('slab ' + B.len.toFixed(1) + '×' + B.wid.toFixed(1) + '×' + B.hgt.toFixed(1) + ' m'
+          + ' · groove ' + opened + '/' + (B.mask ? B.mask.nx * B.mask.ny : 0) + ' cells'
+          + ' · water ' + (W0 ? W0.length / 3 : 'NULL') + 'p · air ' + (A0 ? A0.length / 3 : 'NULL') + 'p'
+          + ' · zOpen ' + (driftZOpen() == null ? 'NULL' : driftZOpen().toFixed(2)));
       } catch (e) { console.warn('slab unavailable', e); }
     }
 

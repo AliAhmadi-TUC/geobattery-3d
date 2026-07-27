@@ -154,6 +154,15 @@
      is built to catch events. Each control now emits a ring that expands and
      fades away around it — the same signal a radar blip uses — instead of
      sitting there lit. Staggered so the panel ripples rather than strobing. */
+  /* FIG 4b and FIG 5 are chosen by clicking a drawn cell, not an HTML button, so
+     the pulse has to reach into the SVG. Stroke width and opacity are animatable
+     on an SVG element; the filter that carries the colour is not. */
+  @keyframes cellflash{
+      0%,72%,100%{ stroke-opacity:.45; stroke-width:1; }
+     26%{ stroke-opacity:1; stroke-width:2.4; } }
+  rect.selcell{ animation:cellflash 3.2s ease-out infinite; }
+  rect.selcell.on{ animation:none; stroke-opacity:1; stroke-width:1.8; }
+  @media (prefers-reduced-motion:reduce){ rect.selcell{ animation:none; stroke-opacity:.8; } }
   @keyframes ctlflash{
       0%{ box-shadow:0 0 0 0 rgba(10,110,56,.60), 0 0 0 0 rgba(10,110,56,.30); }
      45%{ box-shadow:0 0 0 8px rgba(10,110,56,0),  0 0 14px 3px rgba(10,110,56,.30); }
@@ -164,8 +173,9 @@
   .chip:nth-of-type(3), .tab:nth-of-type(3){ animation-delay:.52s; }
   .chip:nth-of-type(4){ animation-delay:.78s; }
   .chip:nth-of-type(5){ animation-delay:1.04s; }
-  .chip:hover, .tab:hover{ animation:none; box-shadow:0 0 0 3px rgba(10,110,56,.28); }
-  .chip.on{ animation:none; box-shadow:0 0 0 3px rgba(10,110,56,.30); }
+  /* nothing is lit at rest: hover and the selected state simply stop the pulse,
+     and the selected chip is already legible from its filled background */
+  .chip:hover, .tab:hover, .chip.on{ animation:none; box-shadow:none; }
   /* a range input cannot carry a pseudo-element, but its thumb takes a
      box-shadow, so the ring rides the thumb itself */
   input[type=range]{ filter:none; }
@@ -177,15 +187,14 @@
   @media (prefers-reduced-motion:reduce){
     .chip, .tab, .story button, input[type=range]::-webkit-slider-thumb,
     input[type=range]::-moz-range-thumb{ animation:none; }
-    .chip, .tab{ box-shadow:0 0 0 2.5px rgba(10,110,56,.22); } }
+    .chip, .tab{ box-shadow:0 0 0 2.5px rgba(10,110,56,.22); } }   /* the one exception: reduced motion needs a static cue */
   table.tb tr.clk td:first-child::before{ content:''; position:absolute; left:0; top:14%; bottom:14%;
-    width:3.5px; border-radius:2px; background:var(--grn-d); opacity:.70;
-    box-shadow:0 0 12px rgba(10,110,56,.95); }
-  table.tb tr.clk:hover td:first-child::before, table.tb tr.clk.sel td:first-child::before{ opacity:1;
-    box-shadow:0 0 16px rgba(10,110,56,1); }
-  canvas.mini{ box-shadow:0 0 0 1.5px rgba(70,201,126,.40), 0 0 26px rgba(70,201,126,.30); }
-  canvas.mini:hover{ box-shadow:0 0 0 2px rgba(70,201,126,.62), 0 0 34px rgba(70,201,126,.48); }
-  .story button{ box-shadow:0 0 14px rgba(10,110,56,.38); }
+    width:3.5px; border-radius:2px; background:var(--grn-d); opacity:.35;
+    animation:rowflash 3.2s ease-out infinite; }
+  @keyframes rowflash{ 0%,70%,100%{ opacity:.30; } 25%{ opacity:1; } }
+  table.tb tr.clk:hover td:first-child::before,
+  table.tb tr.clk.sel td:first-child::before{ opacity:1; animation:none; }
+  canvas.mini{ box-shadow:none; }
   /* A halo that only ever sits there still has to be FOUND. On opening a figure
      every control breathes three times and then settles, so the eye is handed the
      set of things it can touch before it starts reading. */
@@ -309,8 +318,8 @@
     <span class="dot"></span>
     <div class="t">Interactive poster<small>ALERT Geomaterials 2026 · Aussois — every figure is live</small></div>
     <span class="sp"></span>
-    <label class="toggle" title="show or hide the clickable regions"><input type="checkbox" id="spotSw" checked>spots</label>
-    <a class="labbtn" href="../?b=23lz">3-D lab ↗</a>
+
+    <a class="labbtn" href="../?b=23ma">3-D lab ↗</a>
   </div></div>
 
   <p class="note">The poster exactly as printed. <b>Every figure is a door</b> — click one and it opens as the real
@@ -323,7 +332,7 @@
       <!-- the printed QR placeholder is covered and replaced by a working button -->
       <div id="qrpatch">
         <div class="k">INTERACTIVE · 3-D MODELS</div>
-        <a id="qrbtn" href="../?b=23lz">
+        <a id="qrbtn" href="../?b=23ma">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2.6 21 7.3v9.4L12 21.4 3 16.7V7.3z"/><path d="M3 7.3 12 12l9-4.7M12 12v9.4"/>
           </svg>
@@ -340,7 +349,7 @@
     <b>Ali Ahmadi</b> &amp; Eleni Gerolymatou — Chair of Geomechanics and Multiphysical Systems, Institute of
     Geotechnology and Mineral Resources, TU&nbsp;Clausthal · MOVIE project. The geometry is the real surveyed
     Reiche&nbsp;Zeche drift; the duty cycle is hypothetical.
-    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../?b=23lz">Full 3-D lab →</a>
+    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../?b=23ma">Full 3-D lab →</a>
   </div>
 
 <div class="scrim" id="scrim">
@@ -755,7 +764,7 @@ const DELIVERED_KWH=454532.3, STORED_KWH=88387.44553, AWET=441.52;
    HOTSPOTS — rectangles measured from poster_ALERT2026_selectable.pdf itself
    (PyMuPDF image + text bboxes), not placed by eye.  % of the poster image.
    ═════════════════════════════════════════════════════════════════════════ */
-const LABV='23lz';                    // bump whenever the lab is redeployed, or a cached
+const LABV='23ma';                    // bump whenever the lab is redeployed, or a cached
                                      // build serves the old figure on a return visit
 const HOT=[
  {l:30.38,t:16.78,w:18.07,h:6.73,  k:'FIG 1',  lab:'Match the calendar to the physics', m:'solar'},
@@ -796,7 +805,8 @@ HOT.forEach(h=>{
   poster.appendChild(el);
 });
 setTimeout(()=>document.body.classList.remove('hinton'),5400);
-$('spotSw').addEventListener('change',e=>document.body.classList.toggle('spots',e.target.checked));
+/* the spots toggle is gone: the hotspot outlines are always on, which is the
+   only setting that ever made sense on a poster nobody is told to configure */
 
 /* QR patch — sized from the printed placeholder's own box in the PDF */
 Object.assign($('qrpatch').style,{left:'85.30%',top:'79.30%',width:'12.70%',height:'9.70%'});
@@ -1525,8 +1535,8 @@ const DEC=[
       g(T(x+100,zy+12,'of heat injected',{'text-anchor':'end','font-size':'5.6',fill:'#9AA0A6'}));
       // a selectable cell: the halo marks the whole strip as choosable
       g(E('rect',{x:x+1,y:3,width:106,height:58,rx:5,fill:'none',
-        stroke:on?COL[k]:'#B9BEC4','stroke-width':on?1.6:1,
-        'stroke-opacity':on?0.95:0.5,filter:on?('url(#glcell'+k+')'):null}));
+        'class':'selcell'+(on?' on':''),stroke:on?COL[k]:'#8E959C',
+        filter:on?('url(#glcell'+k+')'):null}));
       hitS.push({x,y:2,w:108,h:60,k});
     });
 
@@ -1703,8 +1713,8 @@ const DEC=[
       g(T(tx,SH+47,'tap '+fmt(sc.to[9],1)+'°C',{'font-size':'6',fill:cold?'#C0392B':'#8A8F86'}));
       if(cold) g(T(tx,SH+56,'below its rock',{'font-size':'5.8','font-weight':'700',fill:'#C0392B'}));
       g(el('rect',{x:x+1,y:SH+1,width:106,height:SHH-2,rx:5,fill:'none',
-        stroke:on?sc.c:'#B9BEC4','stroke-width':on?1.6:1,
-        'stroke-opacity':on?0.95:0.5,filter:on?('url(#glcell5'+k+')'):null}));
+        'class':'selcell'+(on?' on':''),stroke:on?sc.c:'#8E959C',
+        filter:on?('url(#glcell5'+k+')'):null}));
       hit.push({x,y:SH,w:108,h:SHH,kind:'sc',i:k});
     });
 
@@ -2461,7 +2471,7 @@ let CELL3D=null, CL=10;
   updCell();
 })();
 
-console.log('%c● GEOBATTERY poster build 2026-07-24ap · audit fixes: labels, scales, cross-references','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24aq · pulse everywhere, no static glow, no spots toggle','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>
