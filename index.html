@@ -3294,9 +3294,17 @@ main();
   let orbit = null;
   const stopOrbit = () => { if (orbit) clearInterval(orbit); orbit = null; };
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* A figure-match preset composes an exact camera. heroCam() then reset it and
+     applied azimuth -28 / ELEVATION -62, putting the eye under the model, and the
+     idle orbit turned it a further 88 degrees over 32 s. Which one won was a race
+     between the geometry loading and uiView appearing — so FIG 2 could look right
+     once and show its own underside the next time. Neither greeting runs when the
+     URL asks for a figure. */
+  const _figURL = new URLSearchParams(location.search).get('fig');
   const wait = setInterval(() => {
     if (!window.uiView) return;
     clearInterval(wait);
+    if (_figURL) return;                              // the preset owns the camera
     heroCam();
     const w = $('vis_water');                        // show the flooded drift itself
     if (w && !w.checked) { w.checked = true; w.dispatchEvent(new Event('change')); }
