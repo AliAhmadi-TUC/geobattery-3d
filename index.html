@@ -847,6 +847,15 @@ function main() {
      ordinary lab first. A hard timeout takes it down regardless, so a failure
      leaves the viewer with a working lab rather than a blank screen. */
   const FIGQ = new URLSearchParams(location.search).get('fig');
+  /* The poster's ?b= tag busts the LAB HTML and nothing else. Pages serves the
+     data with max-age=600, so after a re-export a returning visitor keeps the
+     old panel files — and since meta.json and sleeve.vtp are cached together
+     they stay mutually consistent, which is worse than a mismatch: the figure
+     looks correct and is simply out of date. Carry the tag onto the panel
+     fetches. The scene geometry is deliberately left untagged: it is 62 MB and
+     has not changed since it was first published. */
+  const DTAG = (() => { const b = new URLSearchParams(location.search).get('b');
+    return b ? ('?b=' + encodeURIComponent(b)) : ''; })();
   let _figCover = null;
   if (FIGQ) {
     document.body.classList.add('figloading');
@@ -1038,11 +1047,11 @@ function main() {
     setStatus('loading the printed panel…');
     // DATA is 'data/<scene>/'; the panel sits beside the scenes, not inside one
     const PDIR = DATA.replace(/data\/[^/]*\/$/, 'data/') + 'fig3a/';
-    const jobs = [fetch(PDIR + 'meta.json').then(r => {
+    const jobs = [fetch(PDIR + 'meta.json' + DTAG).then(r => {
         if (!r.ok) throw new Error('meta.json ' + r.status + ' at ' + PDIR); return r.json(); })].concat(
       PANEL3A_PARTS.map(nm => {
         const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
-        return rd.setUrl(PDIR + nm + '.vtp')
+        return rd.setUrl(PDIR + nm + '.vtp' + DTAG)
                  .then(() => ({ nm, pd: rd.getOutputData(0) }));
       }));
     Promise.all(jobs).then(res => {
@@ -1164,9 +1173,9 @@ function main() {
     const PDIR = DATA.replace(/data\/[^/]*\/$/, 'data/') + 'fig6/';
     const rd = vtk.IO.XML.vtkXMLPolyDataReader.newInstance();
     Promise.all([
-      fetch(PDIR + 'meta.json').then(r => {
+      fetch(PDIR + 'meta.json' + DTAG).then(r => {
         if (!r.ok) throw new Error('meta.json ' + r.status + ' at ' + PDIR); return r.json(); }),
-      rd.setUrl(PDIR + 'sleeve.vtp').then(() => rd.getOutputData(0))
+      rd.setUrl(PDIR + 'sleeve.vtp' + DTAG).then(() => rd.getOutputData(0))
     ]).then(([meta, pd]) => {
       const m = vtk.Rendering.Core.vtkMapper.newInstance();
       m.setInputData(pd);
@@ -1181,7 +1190,8 @@ function main() {
       const first = meta.panels.indexOf('charge') >= 0 ? 'charge' : meta.panels[0];
       panel6 = { meta, actor: a, mapper: m, field: first };
       panel6Loading = false; setStatus('ready');
-      panelNote('sleeve ' + pd.getNumberOfPoints() + 'p · ' + meta.panels.join(' / '));
+      panelNote('sleeve ' + pd.getNumberOfPoints() + 'p · ' + meta.panels.length +
+        ' panels: ' + meta.panels.join(', '));
       if (done) done();
     }).catch(err => { panel6Loading = false; figReady('error');
       setStatus('panel load failed: ' + err, true);
