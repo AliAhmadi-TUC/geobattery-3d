@@ -272,6 +272,14 @@
   .figkey span{ display:inline-flex; align-items:center; gap:6px; }
   .figkey i{ width:13px; height:9px; border-radius:2px; flex:none; }
   .figkey em{ font-style:normal; color:var(--mut); }
+  /* An SVG font-size is in USER units, so a 560-wide viewBox on a ~330 px phone
+     scales it by 0.59: the FIG 5 scenario shelf was landing at 3.6-4.2 CSS px and
+     FIG 1's axes at about 6. Lift the floor on small screens. */
+  @media (max-width:620px){
+    #c-dec text{ font-size:15px; }
+    #c-solar text{ font-size:26px; }
+    #c-stair text, #c-tradeoff text{ font-size:13px; }
+  }
   .howto1{ font:400 13px/1.5 var(--sans); color:var(--ink-2); margin:7px 2px 10px;
     border-left:3px solid #C97A10; padding:2px 0 2px 11px; }
   .howto1 b{ color:var(--ink); }
@@ -344,13 +352,14 @@
       <p class="lead">The printed bars are half the story. The <b>gap between supply and demand is a storage
         duration</b>, and the duration decides whether anything survives: it sets the Fourier number
         <b>Fo&nbsp;=&nbsp;α<sub>rock</sub>&thinsp;t<sub>store</sub>&thinsp;/&thinsp;L<sub>c</sub>²</b>, and Fo sets the
-        retention of §04. Everything below is the real 2023 record — <b>8 760 metered hours</b> of the 50 Hz zone —
-        and every control is on the data itself.</p>
+        retention of §04. The supply bands below are the real 2023 record — <b>8 760 metered hours</b> of the
+        50 Hz zone; the demand band is a Freiberg heating-degree-day climatology, not a measured year.
+        Every control is on the data itself.</p>
 
       <div class="figkey">
         <span><i style="background:#E39A26"></i>PV generation · daily</span>
         <span><i style="background:#16C46A"></i>storable PV above the threshold</span>
-        <span><i style="background:#1C2128;height:2px"></i>PV ÷ load · daily</span>
+        <span><i style="background:#1C2128;height:2px"></i>peak hourly PV ÷ load, per day</span>
         <span><i style="background:#3E5C76"></i>heat demand · HDD</span>
       </div>
       <p class="howto1">Anything that <b>glows</b> can be dragged. Move the two windows, or their edges, and the
@@ -503,7 +512,7 @@
     <div class="mh"><h2><span class="k">05 · ten years, five scenarios</span>The store and the ledger</h2><button class="x" data-close aria-label="close">✕</button></div>
     <div class="mb">
       <p class="lead">Ten years of rock, one stratum per cycle. A stratum's <b>height</b> is the heat you injected that
-        year and its <b>width</b> is the share that came back — so <b>area is energy</b>, 44&nbsp;px² per MWh, the same
+        year and its <b>width</b> is the share that came back — so <b>area is energy</b>, 37&nbsp;px² per MWh, the same
         in every scenario. Heat you stored and got back grows <b>rightward out of the drift wall</b>. Native ground
         heat, mined by the 10&nbsp;°C discharge, grows <b>leftward out of the rock</b>, because it never came out of
         your injection.</p>
@@ -532,7 +541,7 @@
 
   <!-- ══════════ FIX · why one box is the whole array ══════════ -->
   <div class="modal wide" id="m-array" role="dialog" aria-modal="true" hidden>
-    <div class="mh"><h2><span class="k">08 · the array</span>Why one box is the whole field</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mh"><h2><span class="k">the array</span>Why one box is the whole field</h2><button class="x" data-close aria-label="close">✕</button></div>
     <div class="mb">
       <p class="lead">A decade in 3-D on a whole array is not affordable — and it is also not necessary. Space the
         drifts evenly and the field becomes <b>periodic</b>: every mid-plane between two neighbours has identical
@@ -547,20 +556,23 @@
         on this one box. Its adiabatic faces are the reason the annual return climbs to <b>98.5&nbsp;%</b>: with no
         far-field sink, the rock between drifts saturates and stops taking heat away.
         <a class="labbtn2" id="a-lab" href="../?scene=array&amp;fig=arraydomain">open the real cell in the 3-D lab ↗</a></p>
-      <p class="mut">The same statement as §07&nbsp;B, arrived at from the other side: a symmetry plane is a
-        <b>natural</b> boundary condition. It is imposed by writing nothing — put a value on it and you would be
-        replacing the physics, not enforcing the symmetry.</p>
+      <p class="mut">Note what is <em>not</em> written on those planes. A symmetry plane is a <b>natural</b>
+        boundary condition: integrating by parts leaves a term that is already zero there, so imposing it correctly
+        means adding nothing to the weak form. Pinning a temperature on it instead would replace the symmetry with
+        a heat source or sink, which is the opposite of what the geometry says.</p>
     </div>
   </div>
 
   <!-- ══════════ RESULT · ten cycles to saturation ══════════ -->
   <div class="modal wide" id="m-cell" role="dialog" aria-modal="true" hidden>
-    <div class="mh"><h2><span class="k">08 · the array result</span>Ten cycles to saturation</h2><button class="x" data-close aria-label="close">✕</button></div>
+    <div class="mh"><h2><span class="k">the array · result</span>Ten cycles to saturation</h2><button class="x" data-close aria-label="close">✕</button></div>
     <div class="mb">
       <p class="lead">A lone drift loses heat outward forever. Inside the array it cannot: the mid-planes are sealed,
         so every joule that leaves the water is still <b>in the cell</b>, warming the rock that will hand it back next
         time. Each cycle leaves the rock warmer, so each cycle loses less — until the cell is full and almost
-        everything comes back. Scrub the decade and watch the return climb while the <b>gain per cycle collapses</b>.</p>
+        everything comes back. Scrub the decade and watch the return climb while the <b>gain per cycle collapses</b>.
+        These are per-cycle returns; over the whole decade the cell gives back <b>73.4&nbsp;%</b> of everything ever
+        injected, which is the quantity FIG&nbsp;5 weighs as area.</p>
       <div class="split">
         <div>
           <canvas class="mini dk" id="c3d"></canvas>
@@ -570,7 +582,7 @@
         <div>
           <div class="card2" style="margin:0 0 9px">
             <h3>What comes back, cycle by cycle</h3>
-            <p class="sc">Bars = what that single cycle added over the one before. The line is the cumulative return.</p>
+            <p class="sc">Bars = how much better a cycle did than the one before. The line is the return <b>in that cycle</b> — recovered ÷ injected, that year.</p>
             <svg class="chart" id="c-cell" viewBox="0 0 300 178"></svg>
           </div>
         </div>
@@ -610,7 +622,7 @@
         <canvas class="mini dk" id="n3d-a"></canvas>
         <p class="capt">Drag to rotate — the loop keeps playing. Arrow lengths <em>and</em> the tilt of the balance
           are real output of a P1 solve running in your browser at every mesh shown.</p>
-        <div class="mth">Q = Σ<sub>i∈Γ</sub>[ a(u<sub>h</sub>,φ<sub>i</sub>) − ℓ(φ<sub>i</sub>) ] — <b>exact at every h</b> · −k ∂u<sub>h</sub>/∂n|<sub>Γ</sub> = O(h) — never exact</div>
+        <div class="mth">Q = Σ<sub>i∈Γ</sub>[ a(u<sub>h</sub>,φ<sub>i</sub>) − ℓ(φ<sub>i</sub>) ] — <b>exactly conservative at every h</b> · −k ∂u<sub>h</sub>/∂n|<sub>Γ</sub> = O(h) — never is</div>
         <p class="projn"><b>Where this project meets it&nbsp;·</b> pinning the inlet at 80&nbsp;°C and summing
           k&thinsp;∂T/∂n across it left the energy budget visibly open. Metered instead as the reaction — the
           consistent boundary flux of Douglas, Dupont &amp; Wheeler and Carey, in the form of Gresho&nbsp;et&nbsp;al. —
@@ -648,7 +660,8 @@
         <p class="capt">Drag to rotate — the saddle is a 3-D fact, and the orbit is part of the argument.</p>
         <div class="mth">[ A Bᵀ ; B <b>0</b> ][ u ; p ] = [ f ; g ] — symmetric but <b>indefinite</b> · no Cholesky, no CG</div>
         <p class="projn"><b>Where this project meets it&nbsp;·</b> the water in the drift is incompressible and its
-          pressure is a live Lagrange multiplier, so every time step factorises a saddle system — 17&thinsp;110
+          pressure is a live Lagrange multiplier, so the flow comes from a saddle system — one Stokes
+          factorisation whose velocity field is then frozen and rescaled per phase — carrying 17&thinsp;110
           negative pivots, about twice the memory of the equivalent definite solve; that ceiling, not the physics,
           is what capped the mesh.</p>
       </div>
@@ -756,7 +769,7 @@ const HOT=[
  {l:61.41,t:81.46,w:9.87, h:4.88,  k:'FIX',    lab:'Why one box is the whole array',     m:'array'},
  {l:73.06,t:81.46,w:9.87, h:4.88,  k:'RESULT', lab:'Ten cycles to saturation',           m:'cell'},
  {l:2.38, t:90.35,w:31.15,h:7.40,  k:'A',      lab:'Re-solve it: nodal flux vs reaction', m:'num', arg:'a'},
- {l:34.42,t:90.35,w:31.16,h:7.40,  k:'B',      lab:'Re-solve it: pin vs weak no-flux',  m:'num', arg:'b'},
+ {l:34.42,t:90.35,w:31.16,h:7.40,  k:'B',      lab:'Pinned vs penalty no-slip',          m:'num', arg:'b'},
  {l:66.47,t:90.35,w:31.15,h:7.40,  k:'C',      lab:'The saddle point, measured',        m:'num', arg:'c'},
 ];
 const CNR='<span class="cnr"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4h4M4 4v4M14 14h-4M14 14v-4M4 14v-4M4 14h4M14 4h-4M14 4v4"/></svg></span>';
@@ -926,7 +939,11 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
     }
     // ---- seal bracket ----
     const a=X(ST.ch[1])+PW/ND/2, b=X(ST.di[0])-PW/ND/2, by=MY+22;
-    if(b>a+30){
+    /* The wording has to follow the CALENDAR, not the available pixels. The old
+       test was `b>a+30`, about 12 days of width, so an ordinary short forward gap
+       printed "(wraps the year end)" over a seal that plainly does not wrap. */
+    const wraps = ST.di[0] <= ST.ch[1];
+    if(!wraps){
       g(E('line',{x1:a,x2:b,y1:by,y2:by,stroke:'#0A6E38','stroke-width':'1.5'}));
       g(E('line',{x1:a,x2:a,y1:by-5,y2:by+5,stroke:'#0A6E38','stroke-width':'1.5'}));
       g(E('line',{x1:b,x2:b,y1:by-5,y2:by+5,stroke:'#0A6E38','stroke-width':'1.5'}));
@@ -1143,7 +1160,7 @@ addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
       GW(del)+'</b> is still there when the discharge window opens on '+dayLabel(ST.di[0])+' — into months holding <b>'+
       Math.round(dem*100)+'%</b> of the year’s heat demand. '+
       (rf>=0.5?'The seal is short enough, or the opening wide enough, that most of it survives.'
-             :'Nearly all of it drains into the rock: the reason §04 asks for L<sub>c</sub> ≥ 3.4 m, and §06 for the array.');
+             :'Nearly all of it drains into the rock: the reason §04 asks for L<sub>c</sub> ≥ 3.4 m, and the reason the array exists.');
     $('s-scale').innerHTML=' At this setting the charge window captures <b>'+Math.round(cap*1000/88.387)+
       '</b> drift-charges’ worth of energy.';
     drawSVG(); drawHeat(); trade();
@@ -1635,7 +1652,7 @@ const DEC=[
    tap — the mean outlet actually delivered. In 30 °C rock the tap sits INSIDE
    the ambient block: the store returns water colder than the ground.
    Right: ten strata, one per cycle. Height = heat injected that year, width =
-   the share that came back, so AREA IS ENERGY (38.5 px² per MWh, identical in
+   the share that came back, so AREA IS ENERGY (37.1 px2 per MWh, identical in
    every scenario). Your own returned heat grows rightward out of the drift
    wall; native ground heat grows LEFTWARD out of the rock, because it never
    came out of your injection.
@@ -2421,7 +2438,7 @@ let CELL3D=null, CL=10;
       fill:(i+1)===CL?'#fff':'#0A6E38',stroke:'#0A6E38','stroke-width':(i+1)===CL?2.6:0})));
     [1,4,7,10].forEach(c=>s.appendChild(T(X(c),H-13,c,{'text-anchor':'middle','font-size':'9'})));
     s.appendChild(T((L+W-R)/2,H-2,'cycle',{'text-anchor':'middle','font-size':'9'}));
-    s.appendChild(T(W-R-2,Y(ARRP[9])-8,'cumulative',{'text-anchor':'end',fill:'#0A6E38','font-size':'9','font-weight':'700'}));
+    s.appendChild(T(W-R-2,Y(ARRP[9])-8,'return per cycle',{'text-anchor':'end',fill:'#0A6E38','font-size':'9','font-weight':'700'}));
   }
   function updCell(){
     const i=CL-1, ret=ARRP[i], mar=i?ret-ARRP[i-1]:ret;
@@ -2444,7 +2461,7 @@ let CELL3D=null, CL=10;
   updCell();
 })();
 
-console.log('%c● GEOBATTERY poster build 2026-07-24ao · flash controls; §07 B is the velocity seal','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24ap · audit fixes: labels, scales, cross-references','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>

@@ -38,7 +38,9 @@ These were each checked against the project's own outputs; do not re-derive by h
 - **α_rock = 2.8129395218e-7 × κ** exactly (ρc held fixed), so no α table is needed.
 - **FIG 4b: 1 px² = 27.17 kWh·K**, i.e. 179 Wh of compressor work at a 30 °C header.
   Integrating the drawn pixels reproduces the step-by-step COP integral to <1 kWh.
-- **FIG 5: 38.48 px² per MWh**, identical across all five scenarios.
+- **FIG 5: 37.1 px² per MWh**, identical across all five scenarios — PH·WMAX/MXT with
+  PH = 208, WMAX = 236, MXT = 1,324,761 kWh. An earlier note said 38.48 and the prose said 44;
+  both were stale. Derive it, do not quote it.
 - **Discharge energy is NET**, −(Ein+Eout): outflow minus the enthalpy the 10 °C injection
   carries in. Gross |Eout| overstates the 30 °C run by **52.6 %**. The net matches
   `recovered_kWh` in `decadal_*.json` exactly and is monotone.
