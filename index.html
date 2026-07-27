@@ -758,9 +758,11 @@
     <div class="poster">ALERT Geomaterials 2026 · “Geobattery: a dimensionless criterion for seasonal
       heat storage in flooded mine workings”</div>
     <div class="links">
-      <a href="https://github.com/AliAhmadi-TUC/geobattery-3d" target="_blank" rel="noopener">poster &amp; code ↗</a>
+      <!-- the poster is the companion piece, so it leads; the repository is what
+           "poster & code" was actually pointing at, now named for what it is -->
+      <a href="poster/">the interactive poster →</a>
       <a href="#" id="infoTut">controls walkthrough →</a>
-      <a href="simple/">lite viewer →</a>
+      <a href="https://github.com/AliAhmadi-TUC/geobattery-3d" target="_blank" rel="noopener">repository ↗</a>
     </div>
   </div>
 </aside>
@@ -892,7 +894,7 @@ function main() {
   const clipPlane = vtk.Common.DataModel.vtkPlane.newInstance();
   const surfLUT = tempCTF();
 
-  // ---- orientation axes (bottom-left) — X/Y/Z direction indicator, toggled from the panel ----
+  // ---- orientation axes (bottom-CENTRE) — X/Y/Z direction indicator, toggled from the panel ----
   let axesWidget = null;
   try {
     // recenter:false -> arrows start at the origin (no negative "tail"); slim tip/shaft so it doesn't read as fat
@@ -901,11 +903,28 @@ function main() {
     axesWidget = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
       actor: axesActor, interactor: view.getInteractor() });
     const _corners = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners || {};
-    axesWidget.setViewportCorner(_corners.BOTTOM_LEFT != null ? _corners.BOTTOM_LEFT : 0);   // 0 = bottom-left (also the default)
+    axesWidget.setViewportCorner(_corners.BOTTOM_LEFT != null ? _corners.BOTTOM_LEFT : 0);
     axesWidget.setViewportSize(0.13);
     axesWidget.setMinPixelSize(72);
     axesWidget.setMaxPixelSize(148);
     axesWidget.setEnabled(true);
+    /* The widget only offers the four corners, and bottom-left is where the
+       control panel sits — the triad was reading as part of the panel rather
+       than as part of the scene. Its own renderer takes an arbitrary viewport,
+       so centre it under the model instead. The widget recomputes the viewport
+       on every resize, so re-apply after one. */
+    const _axesCentre = () => {
+      try {
+        const r = axesWidget.getRenderer && axesWidget.getRenderer();
+        if (!r || !r.setViewport) return false;
+        const vp = r.getViewport();                       // [x0,y0,x1,y1] the widget just set
+        const w = Math.abs(vp[2] - vp[0]), h = Math.abs(vp[3] - vp[1]);
+        r.setViewport(0.5 - w / 2, 0, 0.5 + w / 2, h);    // same size, centred on the bottom edge
+        return true;
+      } catch (e) { return false; }
+    };
+    if (!_axesCentre()) console.warn('axes triad stays bottom-left: viewport not settable');
+    window.addEventListener('resize', () => setTimeout(_axesCentre, 60));
   } catch (e) {
     axesWidget = null; console.warn('orientation axes unavailable', e);
     const _ax = document.getElementById('axesOn'); if (_ax && _ax.closest('.row')) _ax.closest('.row').style.display = 'none';   // hide the dead toggle
