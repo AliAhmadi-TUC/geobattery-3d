@@ -150,13 +150,34 @@
      signal: a soft halo that NOTHING static carries. Once the eye has learned it
      on one figure it transfers to all of them, with no legend to read. */
   .chip, .tab, table.tb tr.clk td:first-child, .story button{ position:relative; }
-  .chip{ box-shadow:0 0 0 3px rgba(10,110,56,.18), 0 0 15px rgba(10,110,56,.38); }
-  .chip:hover{ box-shadow:0 0 0 3.5px rgba(10,110,56,.30), 0 0 22px rgba(10,110,56,.58); }
-  .chip.on{ box-shadow:0 0 0 4px rgba(10,110,56,.34), 0 0 26px rgba(10,110,56,.72); }
-  input[type=range]{ filter:drop-shadow(0 0 9px rgba(10,110,56,.52)); }
+  /* A steady glow is a property of the object; a pulse is an EVENT, and the eye
+     is built to catch events. Each control now emits a ring that expands and
+     fades away around it — the same signal a radar blip uses — instead of
+     sitting there lit. Staggered so the panel ripples rather than strobing. */
+  @keyframes ctlflash{
+      0%{ box-shadow:0 0 0 0 rgba(10,110,56,.60), 0 0 0 0 rgba(10,110,56,.30); }
+     45%{ box-shadow:0 0 0 8px rgba(10,110,56,0),  0 0 14px 3px rgba(10,110,56,.30); }
+     70%{ box-shadow:0 0 0 8px rgba(10,110,56,0),  0 0 0 0 rgba(10,110,56,0); }
+    100%{ box-shadow:0 0 0 0 rgba(10,110,56,0),    0 0 0 0 rgba(10,110,56,0); } }
+  .chip, .tab, .story button{ animation:ctlflash 3.2s ease-out infinite; }
+  .chip:nth-of-type(2), .tab:nth-of-type(2){ animation-delay:.26s; }
+  .chip:nth-of-type(3), .tab:nth-of-type(3){ animation-delay:.52s; }
+  .chip:nth-of-type(4){ animation-delay:.78s; }
+  .chip:nth-of-type(5){ animation-delay:1.04s; }
+  .chip:hover, .tab:hover{ animation:none; box-shadow:0 0 0 3px rgba(10,110,56,.28); }
+  .chip.on{ animation:none; box-shadow:0 0 0 3px rgba(10,110,56,.30); }
+  /* a range input cannot carry a pseudo-element, but its thumb takes a
+     box-shadow, so the ring rides the thumb itself */
+  input[type=range]{ filter:none; }
+  input[type=range]::-webkit-slider-thumb{ animation:ctlflash 3.2s ease-out infinite; }
+  input[type=range]::-moz-range-thumb{ animation:ctlflash 3.2s ease-out infinite; }
+  input[type=range]:hover::-webkit-slider-thumb,
+  input[type=range]:active::-webkit-slider-thumb{ animation:none; }
   .tab{ border-radius:7px 7px 0 0; }
-  .tab:hover{ box-shadow:0 0 16px rgba(10,110,56,.40); }
-  .tab.on{ box-shadow:0 0 20px rgba(10,110,56,.52); }
+  @media (prefers-reduced-motion:reduce){
+    .chip, .tab, .story button, input[type=range]::-webkit-slider-thumb,
+    input[type=range]::-moz-range-thumb{ animation:none; }
+    .chip, .tab{ box-shadow:0 0 0 2.5px rgba(10,110,56,.22); } }
   table.tb tr.clk td:first-child::before{ content:''; position:absolute; left:0; top:14%; bottom:14%;
     width:3.5px; border-radius:2px; background:var(--grn-d); opacity:.70;
     box-shadow:0 0 12px rgba(10,110,56,.95); }
@@ -169,8 +190,8 @@
      every control breathes three times and then settles, so the eye is handed the
      set of things it can touch before it starts reading. */
   @keyframes ctlwake{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.9) saturate(1.3); } }
-  .modal.wake .chip, .modal.wake input[type=range], .modal.wake .tab,
-  .modal.wake .story button{ animation:ctlwake 1.1s ease-in-out 3; }
+  .modal.wake .chip, .modal.wake .tab,
+  .modal.wake .story button{ animation:ctlwake 1.1s ease-in-out 3, ctlflash 3.2s ease-out infinite; }
   @media (prefers-reduced-motion:reduce){ .modal.wake .chip, .modal.wake input[type=range],
     .modal.wake .tab, .modal.wake .story button{ animation:none; } }
   .chip{ font:600 11px var(--sans); padding:6px 10px; border-radius:7px; cursor:pointer; color:var(--ink-3);
@@ -281,7 +302,7 @@
     <div class="t">Interactive poster<small>ALERT Geomaterials 2026 · Aussois — every figure is live</small></div>
     <span class="sp"></span>
     <label class="toggle" title="show or hide the clickable regions"><input type="checkbox" id="spotSw" checked>spots</label>
-    <a class="labbtn" href="../?b=23ly">3-D lab ↗</a>
+    <a class="labbtn" href="../?b=23lz">3-D lab ↗</a>
   </div></div>
 
   <p class="note">The poster exactly as printed. <b>Every figure is a door</b> — click one and it opens as the real
@@ -294,7 +315,7 @@
       <!-- the printed QR placeholder is covered and replaced by a working button -->
       <div id="qrpatch">
         <div class="k">INTERACTIVE · 3-D MODELS</div>
-        <a id="qrbtn" href="../?b=23ly">
+        <a id="qrbtn" href="../?b=23lz">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2.6 21 7.3v9.4L12 21.4 3 16.7V7.3z"/><path d="M3 7.3 12 12l9-4.7M12 12v9.4"/>
           </svg>
@@ -311,7 +332,7 @@
     <b>Ali Ahmadi</b> &amp; Eleni Gerolymatou — Chair of Geomechanics and Multiphysical Systems, Institute of
     Geotechnology and Mineral Resources, TU&nbsp;Clausthal · MOVIE project. The geometry is the real surveyed
     Reiche&nbsp;Zeche drift; the duty cycle is hypothetical.
-    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../?b=23ly">Full 3-D lab →</a>
+    &nbsp;·&nbsp; <a href="../simple/">Story version →</a> &nbsp;·&nbsp; <a href="../?b=23lz">Full 3-D lab →</a>
   </div>
 
 <div class="scrim" id="scrim">
@@ -599,20 +620,25 @@
 
       <!-- ---- B ---- -->
       <div class="npane" data-p="b" hidden>
-        <p class="lead">A sealed face is <b>natural</b>: write nothing, and the mathematics seals it. Pin two adjacent
-          sealed faces to <b>values</b> instead and the grid nodes on their shared corner belong to both patches —
-          two strong conditions arrive at one unknown, the system is over-determined, and the corner answers with
-          spurious flux. The cure is to impose the seal <b>weakly, by penalty</b>: every node keeps exactly one equation.</p>
+        <p class="lead">A wall that fluid cannot cross is a <b>no-slip</b> condition on the <b>velocity</b>:
+          <b>u&nbsp;=&nbsp;0</b>. Impose it strongly on two adjoining walls and the nodes on their shared corner
+          inherit both statements at once. In a mixed velocity–pressure discretisation the damage is worse than a
+          duplicated condition: a sliver cell in that corner can have its <b>entire</b> velocity degree-of-freedom set
+          pinned, so the pressure unknown it supports is left with no equation at all and the factorisation aborts.
+          Impose the same seal <b>weakly, as a penalty</b>, and every node keeps exactly one equation.</p>
         <canvas class="mini dk" id="n3d-b"></canvas>
-        <p class="capt">Drag to rotate — the loop keeps playing. Two seals, one shared corner ring, then the penalty.</p>
-        <div class="mth">x ∈ Γ₁∩Γ₂ : u = g₁ <b>and</b> u = g₂ — over-determined · the cure: add (γ/h)∮(u−g)v — <b>weakly</b></div>
-        <p class="projn"><b>Where this project meets it&nbsp;·</b> the rock–water and the concrete–water interfaces meet
-          at a corner ring of shared grid nodes. Sealing both with Dirichlet values over-constrained exactly that ring,
-          so the no-flux condition is applied weakly, by penalty — the corner keeps one equation per node and passes
-          nothing.</p>
+        <p class="capt">Drag to rotate — the loop keeps playing. Two sealed walls, the corner they share, and what
+          the pressure unknown there does under each treatment.</p>
+        <div class="mth">u = 0 on Γ₁∪Γ₂ — strongly ⟹ a corner cell loses every velocity dof, and its pressure dof
+          decouples &nbsp;·&nbsp; a(u,v) + (γ/h)∮ u·v = ℓ(v) — <b>weakly</b></div>
+        <p class="projn"><b>Where this project meets it&nbsp;·</b> the Stokes solve seals the rock–water and
+          concrete–water interfaces with <code>FluidNoSlipInjector</code>, which adds no-slip as a <b>Robin penalty</b>
+          of h&nbsp;=&nbsp;10<sup>10</sup> on both markers rather than as a strong pin. Where the same condition <em>is</em>
+          imposed strongly, the wall-corner slivers decouple a handful of pressure unknowns and MUMPS only survives with
+          null-pivot fixation, <code>ICNTL(24)&nbsp;=&nbsp;1</code>.</p>
       </div>
 
-      <!-- ---- C ---- -->
+            <!-- ---- C ---- -->
       <div class="npane" data-p="c" hidden>
         <p class="lead">Minimise an energy and the landscape is a <b>bowl</b>: every direction uphill, and the cheap
           solvers — Cholesky, conjugate gradients — exist because of that shape. Add a constraint through a Lagrange
@@ -716,7 +742,7 @@ const DELIVERED_KWH=454532.3, STORED_KWH=88387.44553, AWET=441.52;
    HOTSPOTS — rectangles measured from poster_ALERT2026_selectable.pdf itself
    (PyMuPDF image + text bboxes), not placed by eye.  % of the poster image.
    ═════════════════════════════════════════════════════════════════════════ */
-const LABV='23ly';                    // bump whenever the lab is redeployed, or a cached
+const LABV='23lz';                    // bump whenever the lab is redeployed, or a cached
                                      // build serves the old figure on a return visit
 const HOT=[
  {l:30.38,t:16.78,w:18.07,h:6.73,  k:'FIG 1',  lab:'Match the calendar to the physics', m:'solar'},
@@ -2114,42 +2140,51 @@ const FEM_A=(function(){
 })();
 
 (function(){
-  /* ── B · two seals meet at a corner ────────────────────────────────────
-     The rock-water and concrete-water interfaces are sealed. Written as
-     Dirichlet VALUES, the grid nodes on the shared corner ring inherit
-     both conditions: over-determined, and the corner spits spurious flux.
-     Imposed weakly, by penalty, every node keeps one equation. */
+  /* ── B · the seal is on the VELOCITY, and the corner pays for it ───────
+     Not temperature — the Stokes solve. Both wetted walls carry no-slip,
+     u = 0. Written strongly on both, a sliver cell on the corner ring they
+     share can have its ENTIRE velocity dof set on the boundary; the pressure
+     unknown supported only by that cell then has no equation left, the row
+     goes empty and the factorisation aborts. Written weakly as a Robin
+     penalty — which is what FluidNoSlipInjector actually does, h = 1e10 —
+     every node keeps one equation and the solve completes. */
   NUM3D.b=mini3d($('n3d-b'),()=>{
-    const tm=numTime(), t=tm%12, it=[];
-    it.push(cage([-1.35,2.05,-0.10,0.70,-0.86,1.24]));
-    const m =seg(t,2.6,4.4)-seg(t,8.2,9.6);              // strong pins on both seals
-    const ty=seg(t,2.3,4.2)-seg(t,8.2,9.0);              // the two equations being typed
-    const cr=seg(t,4.6,5.4)-seg(t,8.6,9.6);              // the corner ring lights up
-    const sp=seg(t,5.4,6.2)*(1-seg(t,8.2,9.2));          // spurious corner flux
-    const pk=seg(t,8.8,9.8)*(1-seg(t,10.8,11.7));        // the penalty seal
-    const g1=(1-seg(t,2.2,3.0))+seg(t,11.0,11.9);        // the calm write-nothing state
-    // water, the rock below it, the concrete beyond it
+    const tm=numTime(), t=tm%13, it=[];
+    it.push(cage([-1.35,2.15,-0.10,0.70,-0.90,1.30]));
+    const m  =seg(t,2.6,4.4)-seg(t,8.8,10.2);            // strong pins on both walls
+    const ty =seg(t,2.3,4.2)-seg(t,8.8,9.6);             // the two conditions being written
+    const cr =seg(t,4.6,5.4)-seg(t,9.2,10.2);            // the shared corner ring lights up
+    const dead=seg(t,6.0,6.8)*(1-seg(t,8.8,9.6));        // the pressure dof loses its equation
+    const pk =seg(t,9.6,10.6)*(1-seg(t,12.0,12.9));      // the penalty seal
+    const g1 =(1-seg(t,2.2,3.0))+seg(t,12.2,13.0);       // the calm, correctly sealed state
+    // rock below, water in the drift, concrete beyond the end
     box3([-0.7,0,-0.26],[1.4,0.6,0.26],'rgba(108,116,128,.38)','rgba(154,164,174,.45)',1).forEach(x=>it.push(x));
     box3([0.7,0,-0.26],[0.34,0.6,0.76],'rgba(191,181,155,.40)','rgba(182,175,156,.55)',1).forEach(x=>it.push(x));
     box3([-0.7,0,0],[1.4,0.6,0.5],'rgba(95,168,232,.12)','rgba(255,255,255,.40)',1).forEach(x=>it.push(x));
     it.push({type:'text',pts:[[-1.06,0.3,0.40]],text:'water',color:'#9CC8EE',font:MONO('700')});
     it.push({type:'text',pts:[[-1.06,0.3,-0.22]],text:'rock',color:PAL7.dim,font:MONO('700')});
-    it.push({type:'text',pts:[[1.46,0.3,0.30]],text:'concrete',color:'#C9BD97',font:MONO('700')});
-    // the two sealed interfaces: green while natural, red once written on
+    it.push({type:'text',pts:[[1.52,0.3,0.30]],text:'concrete',color:'#C9BD97',font:MONO('700')});
+    // the flow the walls are sealing
+    for(let j=0;j<4;j++){ const y=0.10+0.14*j;
+      for(let q=0;q<3;q++){ const sx=((tm*0.20+j*0.19+q/3)%1);
+        const a2=(1-m*0.75)*(sx>0.88?(1-sx)/0.12:1);
+        if(a2>0.06) it.push({type:'arrow',pts:[[-0.66+1.20*sx-0.09,y,0.25],[-0.66+1.20*sx,y,0.25]],
+          stroke:'rgba(242,193,78,'+(0.85*a2).toFixed(2)+')',lw:2,head:5}); } }
+    it.push({type:'text',pts:[[-0.30,0.3,0.05]],text:'u',color:PAL7.yel,font:MONO('700')});
+    // the two sealed walls: green while natural, red once pinned strongly
     const c1=[Math.round(lerp(70,228,m)),Math.round(lerp(201,87,m)),Math.round(lerp(126,46,m))];
-    const rc='rgb('+c1[0]+','+c1[1]+','+c1[2]+')';
-    const fA=(0.08+0.10*m).toFixed(2), dsh=pk>0.3?[5,4]:null;
+    const rc='rgb('+c1[0]+','+c1[1]+','+c1[2]+')', fA=(0.08+0.10*m).toFixed(2);
+    const dsh=pk>0.3?[5,4]:null;
     it.push({type:'poly',pts:[[-0.7,0,0.001],[0.7,0,0.001],[0.7,0.6,0.001],[-0.7,0.6,0.001]],
       fill:'rgba('+c1[0]+','+c1[1]+','+c1[2]+','+fA+')',stroke:rc,lw:1.8,dash:dsh});
-    it.push({type:'poly',pts:[[0.7,0,0],[0.7,0.6,0],[0.7,0.6,0.5],[0.7,0,0.5]],
+    it.push({type:'poly',pts:[[0.7,0,0.001],[0.7,0.6,0.001],[0.7,0.6,0.5],[0.7,0,0.5]],
       fill:'rgba('+c1[0]+','+c1[1]+','+c1[2]+','+fA+')',stroke:rc,lw:1.8,dash:dsh});
-    // the two equations, written onto the walls
-    if(ty>0.01){ const m1='T = T₁', m2='T = T₂', n1=Math.max(1,Math.round(ty*m1.length));
+    if(ty>0.01){ const m1='u = 0', n1=Math.max(1,Math.round(ty*m1.length));
       it.push({type:'text',pts:[[-0.18,0.3,0.07]],text:m1.slice(0,n1),color:PAL7.red,
         font:'700 13px "IBM Plex Mono",monospace'});
-      it.push({type:'text',pts:[[0.70,0.3,0.66]],text:m2.slice(0,n1),color:PAL7.red,
+      it.push({type:'text',pts:[[0.70,0.3,0.66]],text:m1.slice(0,n1),color:PAL7.red,
         font:'700 13px "IBM Plex Mono",monospace'}); }
-    // the shared corner ring: one node, two masters
+    // the shared corner ring: one node, both conditions
     if(cr>0.02){
       it.push({type:'line',pts:[[0.7,0,0.002],[0.7,0.6,0.002]],
         stroke:'rgba(228,87,46,'+(0.95*cr).toFixed(2)+')',lw:3});
@@ -2160,30 +2195,36 @@ const FEM_A=(function(){
         stroke:'rgba(95,168,232,'+(0.9*cr).toFixed(2)+')',lw:2.4,head:7});
       it.push({type:'arrow',pts:[[0.7,0.3,0.44],[0.7,0.3,0.09]],
         stroke:'rgba(232,179,58,'+(0.9*cr).toFixed(2)+')',lw:2.4,head:7});
-      it.push({type:'text',pts:[[1.72,0.3,0.98]],text:'one node\ntwo conditions',
+      it.push({type:'text',pts:[[1.80,0.3,1.04]],text:'every velocity dof\npinned in this cell',
         color:'rgba(228,87,46,'+(0.95*cr).toFixed(2)+')',font:MONO('700')});
     }
-    // what the tie-break produces
-    if(sp>0.02){ for(let j=0;j<5;j++){ const y=0.08+0.11*j;
-        const Lm=sp*(0.14+0.07*Math.sin(tm*7+j*2.1));
-        it.push({type:'arrow',pts:[[0.7,y,0.01],[0.7-Lm*0.9,y,0.01+Lm*0.8]],
-          stroke:'rgba(228,87,46,'+(0.85*sp).toFixed(2)+')',lw:2,head:5}); }
-      it.push({type:'text',pts:[[-0.30,0.3,0.92]],text:'spurious flux',
-        color:'rgba(228,87,46,'+(0.9*sp).toFixed(2)+')',font:MONO('700')}); }
-    // the calm state, and the cure — same label anchor, three tenants
-    if(g1>0.05){ const a=Math.min(0.95,g1);
-      it.push({type:'text',pts:[[1.72,0.3,0.98]],text:'sealed —\nwrite nothing',
-        color:'rgba(70,201,126,'+a.toFixed(2)+')',font:MONO('700')});
-      it.push({type:'text',pts:[[1.72,0.3,0.62]],text:'k∇T·n = 0',
-        color:'rgba(70,201,126,'+a.toFixed(2)+')',font:MONO('700')}); }
+    // and the pressure unknown that cell supported is left with nothing
+    if(dead>0.02){
+      const pu=0.55+0.20*Math.sin(tm*2.2);
+      it.push({type:'dot',pts:[[0.62,0.3,0.16]],r:6+5*dead,
+        fill:'rgba(228,87,46,'+(0.30*dead*pu).toFixed(2)+')'});
+      it.push({type:'dot',pts:[[0.62,0.3,0.16]],r:4.2,fill:'rgba(255,255,255,'+(0.9*dead).toFixed(2)+')'});
+      it.push({type:'text',pts:[[0.10,0.3,0.88]],text:'p : empty row\n→ factorisation aborts',
+        color:'rgba(228,87,46,'+(0.95*dead).toFixed(2)+')',font:MONO('700')});
+    }
+    // the calm state, and the cure — one label anchor, three tenants
+    if(g1>0.05){ const a3=Math.min(0.95,g1);
+      it.push({type:'text',pts:[[1.80,0.3,1.04]],text:'sealed to flow',
+        color:'rgba(70,201,126,'+a3.toFixed(2)+')',font:MONO('700')});
+      it.push({type:'text',pts:[[1.80,0.3,0.76]],text:'u·n = 0',
+        color:'rgba(70,201,126,'+a3.toFixed(2)+')',font:MONO('700')}); }
     if(pk>0.02){
-      it.push({type:'text',pts:[[1.72,0.3,0.98]],text:'no-flux by penalty',
+      it.push({type:'text',pts:[[1.80,0.3,1.04]],text:'no-slip by penalty',
         color:'rgba(70,201,126,'+(0.95*pk).toFixed(2)+')',font:MONO('700')});
-      it.push({type:'text',pts:[[1.72,0.3,0.62]],text:'(γ/h) ∮ (u−g) v',
+      it.push({type:'text',pts:[[1.80,0.3,0.76]],text:'h = 1e10',
         color:'rgba(70,201,126,'+(0.95*pk).toFixed(2)+')',font:MONO('700')});
       for(let j=0;j<6;j++){ const y=0.05+0.10*j;
         it.push({type:'dot',pts:[[0.7,y,0.002]],r:3.2,
-          fill:'rgba(70,201,126,'+(0.95*pk).toFixed(2)+')'}); } }
+          fill:'rgba(70,201,126,'+(0.95*pk).toFixed(2)+')'}); }
+      it.push({type:'dot',pts:[[0.62,0.3,0.16]],r:4.6,fill:'rgba(70,201,126,'+(0.95*pk).toFixed(2)+')'});
+      it.push({type:'text',pts:[[0.10,0.3,0.88]],text:'p keeps its equation',
+        color:'rgba(70,201,126,'+(0.95*pk).toFixed(2)+')',font:MONO('700')});
+    }
     return it;
   },-46*Math.PI/180,20*Math.PI/180);
 })();
@@ -2403,7 +2444,7 @@ let CELL3D=null, CL=10;
   updCell();
 })();
 
-console.log('%c● GEOBATTERY poster build 2026-07-24an · lab bumped: step number moved into the line','color:#009640;font-weight:bold');
+console.log('%c● GEOBATTERY poster build 2026-07-24ao · flash controls; §07 B is the velocity seal','color:#009640;font-weight:bold');
 </script>
 </body>
 </html>

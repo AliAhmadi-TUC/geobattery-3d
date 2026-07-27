@@ -1831,13 +1831,20 @@ function main() {
                  // cubemap and SSAO to give it edges. Here that is a near-white body on a white
                  // ground with a pale slab behind it: it renders at #eceeee and is invisible.
                  // Deepened, and given real diffuse shading, so the drift actually reads.
-                 pal:{ water:[0.484,0.831,0.987], concrete:[0.836,0.806,0.746], air:[0.812,0.886,0.949] },
+                 // Concrete rendered rgb(188,181,168) against air's rgb(186,196,204) — the same
+                 // lightness, so an opaque plug read as one more translucent region. Darkened and
+                 // given more diffuse swing: it now sits near rgb(149,141,124), clearly solid.
+                 pal:{ water:[0.484,0.831,0.987], concrete:[0.720,0.680,0.600], air:[0.812,0.886,0.949] },
                  // the air keeps its whole surface at the panel's #d7e6f2 / AIR_OPACITY; the
                  // cavity comes from the excavated block, not from hiding faces
-                 shade:{ water:[0.46,0.62,0.16,28], concrete:[0.56,0.46,0.10,8], air:[0.32,0.60,0.04,10] },
+                 shade:{ water:[0.46,0.62,0.16,28], concrete:[0.42,0.56,0.06,10], air:[0.32,0.60,0.04,10] },
                  slabCol:[0.800,0.812,0.834],
-                 // fig01_geometry_v2 ships VARIANT "c": yaw 21, elev 26. The old vector was 9.4 deg off.
-                 cam:{ yaw:21, elev:26, dir:[-0.6734,0.5953,-0.4384], zoom:1.0 } },
+                 /* fig01_geometry_v2 ships VARIANT "c" — yaw 21, elev 26 — and the arithmetic says
+                    that reproduces the printed panel: the inlet projects left of the outlet and below
+                    it, exactly as printed. But it is not the view that was reviewed and accepted here,
+                    and a reader's reading of the render beats my reading of the maths. Back to the
+                    accepted azimuth, still expressed in the drift frame so it survives a remesh. */
+                 cam:{ yaw:31, elev:28.9, dir:[-0.62,0.78,-0.55], zoom:1.0 } },
       // fig06_thermal_plume: parallel projection, "viewing across the drift from
       // ELEV_DEG above" = view_direction(0, 62); ZOOM 2.05 because VTK fits the
       // bounding-box diagonal and a long thin drift then sits in half the frame.
