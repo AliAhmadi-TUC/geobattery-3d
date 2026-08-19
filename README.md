@@ -8,6 +8,10 @@ is hypothetical.
 
 **Live viewer:** https://aliahmadi-tuc.github.io/geobattery-3d/
 
+**Interactive poster:** held offline until the poster has been presented; `/poster/` currently
+serves a holding page. The real page is preserved on the `poster-hold` branch and is restored
+by checking `poster/` out of it.
+
 Authors: **Ali Ahmadi**, Eleni Gerolymatou.
 
 ---
