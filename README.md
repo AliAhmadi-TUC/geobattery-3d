@@ -9,8 +9,11 @@ is hypothetical.
 **Live viewer:** https://aliahmadi-tuc.github.io/geobattery-3d/
 
 **Interactive poster:** held offline until the poster has been presented; `/poster/` currently
-serves a holding page. The real page is preserved on the `poster-hold` branch and is restored
-by checking `poster/` out of it.
+serves a holding page. The real page is preserved on the `poster-hold` branch. To switch:
+- **GitHub button:** Actions → **Poster** → *Run workflow* → `publish` (or `hold` to undo;
+  `dry-run` tests without changing anything). Works from a phone.
+- **Command line:** `tools/poster.sh publish | hold | status [--dry-run]`.
+The page changes about a minute after the switch (browsers may hold the old page up to 10 minutes).
 
 Authors: **Ali Ahmadi**, Eleni Gerolymatou.
 

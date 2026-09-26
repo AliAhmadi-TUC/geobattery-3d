@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Geobattery — the interactive poster opens after the conference</title>
+<style>
+  :root{ --void:#0e1018; --ink:#e9e9ed; --ink-70:rgba(233,233,237,.70);
+         --ink-45:rgba(233,233,237,.45); --grn:#009640; --grn-b:#20C368;
+         --line:rgba(233,233,237,.14); --mono:"IBM Plex Mono",ui-monospace,monospace;
+         --ui:-apple-system,"Segoe UI",Roboto,sans-serif; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; min-height:100dvh; display:flex; align-items:center; justify-content:center;
+        padding:28px; background:var(--void); color:var(--ink); font-family:var(--ui);
+        -webkit-font-smoothing:antialiased; }
+  .card{ width:min(560px,100%); }
+  .kick{ display:flex; align-items:center; gap:9px; font:600 10px/1 var(--mono);
+         letter-spacing:.18em; text-transform:uppercase; color:var(--ink-45); margin-bottom:20px; }
+  .kick::before{ content:''; width:14px; height:2px; background:var(--grn); flex:none; }
+  h1{ margin:0 0 16px; font:600 clamp(21px,4.4vw,28px)/1.22 var(--ui); letter-spacing:-.01em; }
+  p{ margin:0 0 14px; font-size:15px; line-height:1.62; color:var(--ink-70); text-wrap:pretty; }
+  p strong{ color:var(--ink); font-weight:600; }
+  .btn{ display:inline-flex; align-items:center; gap:8px; margin-top:12px; padding:12px 18px;
+        border-radius:9px; background:var(--grn); color:#fff; text-decoration:none;
+        font:700 13px var(--ui); transition:background .16s; }
+  .btn:hover{ background:var(--grn-b); color:#06210f; }
+  .foot{ margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
+         font-size:12.5px; line-height:1.6; color:var(--ink-45); }
+  .foot a{ color:var(--ink-70); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="kick">Geobattery</div>
+
+    <h1>The interactive poster isn’t open yet.</h1>
+
+    <p>It goes live <strong>as soon as the poster has been presented at the conference</strong>.
+      Until then this page is standing in for it, so that the poster’s figures and findings
+      are seen there first.</p>
+
+    <p>Nothing is missing or broken — please come back after the session and this address will
+      take you straight to it.</p>
+
+    <p><strong>The 3-D lab is open now.</strong> It holds the same surveyed drift, the same
+      simulation, and the guided walkthrough — you can explore all of it today.</p>
+
+    <a class="btn" href="../">Open the 3-D lab →</a>
+
+    <div class="foot">
+      Seasonal heat storage in a flooded mine drift · Reiche Zeche research mine, Freiberg.<br>
+      Ali Ahmadi, Eleni Gerolymatou — TU Clausthal.
+      <a href="https://github.com/AliAhmadi-TUC/geobattery-3d">Repository ↗</a>
+    </div>
+  </div>
+</body>
+</html>

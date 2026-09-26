@@ -1,0 +1,45 @@
+name: Poster
+
+# The "Publish poster" button: GitHub -> Actions -> Poster -> Run workflow.
+# publish = show the interactive poster (restored from branch poster-hold)
+# hold    = show the "opens after the conference" waiting page again
+# dry-run = test only: checks everything, changes nothing
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "publish = show the interactive poster · hold = show the waiting page · dry-run = test, changes nothing"
+        type: choice
+        options: [dry-run, publish, hold]
+        default: dry-run
+
+permissions:
+  contents: write     # commit the switch to main
+  pages: write        # ask GitHub Pages to rebuild
+
+concurrency:
+  group: poster
+  cancel-in-progress: false
+
+jobs:
+  poster:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Switch the poster page
+        env:
+          ACTION: ${{ inputs.action }}
+        run: bash tools/poster.sh "$ACTION" --ci
+
+      - name: Ask GitHub Pages to rebuild
+        if: inputs.action != 'dry-run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" \
+            || echo "Rebuild request not accepted; the push normally triggers the build anyway."
+          echo "The page https://aliahmadi-tuc.github.io/geobattery-3d/poster/ updates in about a minute."
